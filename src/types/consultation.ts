@@ -7,6 +7,7 @@ interface PatientDetails {
 }
 
 interface ConsultationExtras {
+  meetingId:string,
   patientDetails: PatientDetails;
 }
 
@@ -109,6 +110,7 @@ export const createNewConsultation = (
   doctorName: string,
   consultationTime: number,
   participants: string[],
+  meetingId:string,
   patientDetails: PatientDetails,
   consultationExpiration: number
 ): Consultation => {
@@ -132,6 +134,7 @@ export const createNewConsultation = (
     participants,
     attachments: [],
     extras: {
+      meetingId,
       patientDetails,
     },
     badExperienceDoctor: null,

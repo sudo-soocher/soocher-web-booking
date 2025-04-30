@@ -349,12 +349,38 @@ export default function DoctorDetails() {
 
       // Create consultation document
       const consultationId = crypto.randomUUID();
+      // Create a meeting room for video consultation
+      const createMeetingRoom = async () => {
+        try {
+          const response = await fetch('https://api.videosdk.live/v2/rooms', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `${process.env.NEXT_PUBLIC_VIDEOSDK_API_KEY}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to create meeting room');
+          }
+          
+          const roomData = await response.json();
+          return roomData.roomId;
+        } catch (error) {
+          console.error('Error creating meeting room:', error);
+          return null;
+        }
+      };
+      
+      // Get meeting room ID for the consultation
+      const meetingRoomId = await createMeetingRoom();
       const consultation = createNewConsultation(
         consultationId,
         userData.name,
         doctor!.name,
         consultationTime,
         [userData.uid, params.id as string],
+        meetingRoomId,
         {
           patientName: userData.name,
           gender: userData.gender,
