@@ -359,11 +359,11 @@ export default function DoctorDetails() {
               'Authorization': `${process.env.NEXT_PUBLIC_VIDEOSDK_API_KEY}`
             }
           });
-          
+
           if (!response.ok) {
             throw new Error('Failed to create meeting room');
           }
-          
+
           const roomData = await response.json();
           return roomData.roomId;
         } catch (error) {
@@ -371,7 +371,7 @@ export default function DoctorDetails() {
           return null;
         }
       };
-      
+
       // Get meeting room ID for the consultation
       const meetingRoomId = await createMeetingRoom();
       const consultation = createNewConsultation(
@@ -399,7 +399,75 @@ export default function DoctorDetails() {
         patientName: userData.name,
         consultationId,
         onSuccess: async (response) => {
+          // 1. Save the consultation to Firestore (existing logic unchanged)
           await saveConsultation(consultation, response);
+
+          // 2. Create a Google Meet link for the consultation
+          let meetLink: string | null = null;
+          try {
+            const meetResponse = await fetch("/api/create-meet-link", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                consultationId,
+                consultationTime,
+                doctorName: doctor!.name,
+                patientName: userData.name,
+                durationMinutes: doctor!.specialization
+                  ?.toLowerCase()
+                  .includes("psycho")
+                  ? 50
+                  : 15,
+              }),
+            });
+            if (meetResponse.ok) {
+              const meetData = await meetResponse.json();
+              meetLink = meetData.meetLink || null;
+
+              // 3. Update the Firestore consultation doc with the Meet link
+              if (meetLink) {
+                const { updateDoc, doc: firestoreDoc } = await import(
+                  "firebase/firestore"
+                );
+                await updateDoc(
+                  firestoreDoc(db, "Consultations", consultationId),
+                  { "extras.meetLink": meetLink }
+                );
+              }
+            }
+          } catch (meetError) {
+            console.error(
+              "Meet link creation failed (non-fatal):",
+              meetError
+            );
+          }
+
+          // 4. Fetch patient FCM token and send push notification
+          try {
+            const userDocSnap = await getDoc(
+              doc(db, "Users", userData.uid)
+            );
+            const fcmToken = userDocSnap.data()?.fcmToken || null;
+
+            await fetch("/api/send-booking-notification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fcmToken,
+                patientName: userData.name,
+                doctorName: doctor!.name,
+                consultationTime,
+                meetLink,
+              }),
+            });
+          } catch (fcmError) {
+            console.error(
+              "FCM notification failed (non-fatal):",
+              fcmError
+            );
+          }
+
+          // 5. Navigate to booking complete page
           router.push(`/booking-complete/${consultationId}`);
         },
         onFailure: (error) => {
@@ -732,8 +800,8 @@ export default function DoctorDetails() {
                 {showLoginForm
                   ? "Sign In to Continue"
                   : showNewUserForm
-                  ? "Complete Your Profile"
-                  : "Patient Details"}
+                    ? "Complete Your Profile"
+                    : "Patient Details"}
               </ModalHeader>
               <ModalBody>
                 {showLoginForm ? (

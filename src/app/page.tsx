@@ -187,7 +187,14 @@ export default function Home() {
       <header className="w-full p-4 bg-white shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-3xl font-bold text-primary">Soocher</h1>
-          <div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="light"
+              size="sm"
+              onPress={() => router.push("/contact")}
+            >
+              Contact Us
+            </Button>
             {isLoggedIn ? (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
@@ -365,18 +372,16 @@ export default function Home() {
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${
-                        message.type === "user"
+                      className={`flex ${message.type === "user"
                           ? "justify-end"
                           : "justify-start"
-                      }`}
+                        }`}
                     >
                       <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
-                          message.type === "user"
+                        className={`max-w-[80%] p-3 rounded-lg ${message.type === "user"
                             ? "bg-primary text-white"
                             : "bg-gray-100"
-                        }`}
+                          }`}
                       >
                         <p className="whitespace-pre-line text-sm">
                           {message.content}

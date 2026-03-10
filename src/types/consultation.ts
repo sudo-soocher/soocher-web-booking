@@ -7,7 +7,8 @@ interface PatientDetails {
 }
 
 interface ConsultationExtras {
-  meetingId:string,
+  meetingId: string;
+  meetLink?: string; // Google Meet link (generated after booking)
   patientDetails: PatientDetails;
 }
 
@@ -110,7 +111,7 @@ export const createNewConsultation = (
   doctorName: string,
   consultationTime: number,
   participants: string[],
-  meetingId:string,
+  meetingId: string,
   patientDetails: PatientDetails,
   consultationExpiration: number
 ): Consultation => {
