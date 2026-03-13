@@ -4,15 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Card, CardBody, Button, Image } from "@nextui-org/react";
+import { Button } from "@nextui-org/react";
 import {
   FaCheckCircle,
-  FaDownload,
-  FaMobile,
   FaClock,
   FaCalendar,
   FaVideo,
-  FaComments,
   FaUser,
   FaUserMd,
   FaStethoscope,

@@ -2,13 +2,7 @@
 
 import {
   Button,
-  Card,
-  CardBody,
   Chip,
-  Textarea,
-  Modal,
-  ModalContent,
-  ModalBody,
   Avatar,
   Dropdown,
   DropdownTrigger,
@@ -18,17 +12,18 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import {
   FaStethoscope,
-  FaRobot,
   FaUser,
   FaSignOutAlt,
   FaCalendarCheck,
 } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
-import { playSound } from "@/utils/sound";
+import { motion } from "framer-motion";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// import { playSound } from "@/utils/sound";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { generateGeminiResponse } from "@/services/gemini";
 
 interface Speciality {
@@ -36,6 +31,7 @@ interface Speciality {
   description: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface AIResponse {
   message: string;
   suggestedSpecialities: string[];
@@ -66,6 +62,7 @@ export default function Home() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
   /* Commented out AI Assistant state
   const [symptoms, setSymptoms] = useState("");

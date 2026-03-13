@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   doc,
@@ -18,7 +18,6 @@ import {
   Image,
   Avatar,
   Chip,
-  Divider,
   Skeleton,
   Button,
   Tabs,
@@ -188,7 +187,7 @@ export default function DoctorDetails() {
     return availableDays;
   };
 
-  const generateDynamicSlots = (dayKey: string) => {
+  const generateDynamicSlots = useCallback((dayKey: string) => {
     if (!doctor?.timeSlots || !doctor?.slotDuration) return [];
 
     const dayNameMap: { [key: string]: string } = {
@@ -238,7 +237,73 @@ export default function DoctorDetails() {
     }
 
     return slots;
-  };
+  }, [doctor]);
+
+  // Function to check if a slot is booked
+  const isSlotBooked = useCallback(async (timestamp: number) => {
+    try {
+      // Query consultations collection for this doctor and time slot
+      const consultationsRef = collection(db, "Consultations");
+      const q = query(
+        consultationsRef,
+        where("doctorId", "==", params.id),
+        where("consultationTime", "==", timestamp),
+        where("cancelledByDoctor", "==", false)
+      );
+
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty; // Return true if there are any bookings
+    } catch (error) {
+      console.error("Error checking slot availability:", error);
+      return true; // Return true (booked) on error to prevent double booking
+    }
+  }, [params.id]);
+
+  // Function to filter and sort available slots
+  const getFilteredSlots = useCallback(async (slots: DaySlots["availableSlots"]) => {
+    let slotsToProcess = slots || [];
+
+    // Fallback if slots are empty but doctor has schedule
+    if (slotsToProcess.length === 0 && doctor?.timeSlots) {
+      slotsToProcess = generateDynamicSlots(selectedDay);
+    }
+
+    if (slotsToProcess.length === 0) return [];
+
+    const now = new Date();
+    const currentTime = now.getTime();
+
+    // Map slots to include calculated timestamps if missing
+    const slotsWithTimestamps = slotsToProcess.map((slot) => ({
+      ...slot,
+      calculatedTimestamp:
+        slot.bookingDate && slot.bookingDate !== 0
+          ? slot.bookingDate
+          : calculateSlotTimestamp(selectedDay, slot.time),
+    }));
+
+    // Filter and check bookings for each slot
+    const availableSlots = await Promise.all(
+      slotsWithTimestamps
+        .filter((slot) => {
+          // For today, only filter if slot time is in the past
+          if (selectedDay === getCurrentDay()) {
+            // Add 10 minutes buffer to current time
+            return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
+          }
+          return true;
+        })
+        .map(async (slot) => {
+          const isBooked = await isSlotBooked(slot.calculatedTimestamp);
+          return { ...slot, isBooked };
+        })
+    );
+
+    // Return only available slots sorted by time
+    return availableSlots
+      .filter((slot) => !slot.isBooked)
+      .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
+  }, [selectedDay, doctor, isSlotBooked, generateDynamicSlots]); // Add relevant dependencies for getFilteredSlots
 
   useEffect(() => {
     const fetchDoctorAndSlots = async () => {
@@ -311,14 +376,15 @@ export default function DoctorDetails() {
         setFilteredSlots
       );
     }
-  }, [selectedDay, slots]);
+  }, [selectedDay, slots, getFilteredSlots]);
 
-  // Function to sort slots by time
+  /* Commented out unused sortSlots
   const sortSlots = (slots: { bookingDate: number; time: string }[]) => {
     return slots.sort((a, b) => a.bookingDate - b.bookingDate);
   };
+  */
 
-  // Function to format epoch to readable date
+  /* Commented out unused formatDate
   const formatDate = (epoch: number) => {
     const date = new Date(epoch);
     return date.toLocaleDateString("en-US", {
@@ -328,8 +394,9 @@ export default function DoctorDetails() {
       day: "numeric",
     });
   };
+  */
 
-  // Group slots by date
+  /* Commented out unused groupSlotsByDate
   const groupSlotsByDate = (slots: DaySlots["availableSlots"]) => {
     const groups: { [key: string]: typeof slots } = {};
     slots.forEach((slot) => {
@@ -341,72 +408,9 @@ export default function DoctorDetails() {
     });
     return groups;
   };
+  */
 
-  // Function to filter and sort available slots
-  const getFilteredSlots = async (slots: DaySlots["availableSlots"]) => {
-    let slotsToProcess = slots || [];
 
-    // Fallback if slots are empty but doctor has schedule
-    if (slotsToProcess.length === 0 && doctor?.timeSlots) {
-      slotsToProcess = generateDynamicSlots(selectedDay);
-    }
-
-    if (slotsToProcess.length === 0) return [];
-
-    const now = new Date();
-    const currentTime = now.getTime();
-
-    // Map slots to include calculated timestamps if missing
-    const slotsWithTimestamps = slotsToProcess.map((slot) => ({
-      ...slot,
-      calculatedTimestamp:
-        slot.bookingDate && slot.bookingDate !== 0
-          ? slot.bookingDate
-          : calculateSlotTimestamp(selectedDay, slot.time),
-    }));
-
-    // Filter and check bookings for each slot
-    const availableSlots = await Promise.all(
-      slotsWithTimestamps
-        .filter((slot) => {
-          // For today, only filter if slot time is in the past
-          if (selectedDay === getCurrentDay()) {
-            // Add 10 minutes buffer to current time
-            return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
-          }
-          return true;
-        })
-        .map(async (slot) => {
-          const isBooked = await isSlotBooked(slot.calculatedTimestamp);
-          return { ...slot, isBooked };
-        })
-    );
-
-    // Return only available slots sorted by time
-    return availableSlots
-      .filter((slot) => !slot.isBooked)
-      .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
-  };
-
-  // Function to check if a slot is booked
-  const isSlotBooked = async (timestamp: number) => {
-    try {
-      // Query consultations collection for this doctor and time slot
-      const consultationsRef = collection(db, "Consultations");
-      const q = query(
-        consultationsRef,
-        where("doctorId", "==", params.id),
-        where("consultationTime", "==", timestamp),
-        where("cancelledByDoctor", "==", false)
-      );
-
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty; // Return true if there are any bookings
-    } catch (error) {
-      console.error("Error checking slot availability:", error);
-      return true; // Return true (booked) on error to prevent double booking
-    }
-  };
 
   const handleBookingClick = async () => {
     if (!auth.currentUser) {
@@ -424,7 +428,7 @@ export default function DoctorDetails() {
       onOpen();
     } else {
       // Existing user - proceed to payment
-      const userData = userDoc.data();
+      const userData = userDoc.data() as unknown as { name: string; email?: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string };
       // If email is missing in Firestore but present in Auth, update it
       if (!userData.email && auth.currentUser?.email) {
         const { updateDoc } = await import("firebase/firestore");
@@ -437,7 +441,7 @@ export default function DoctorDetails() {
     }
   };
 
-  const handlePayment = async (userData: any) => {
+  const handlePayment = async (userData: { name: string; email?: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string }) => {
     try {
       const consultationTime = calculateSlotTimestamp(selectedDay, selectedSlot);
 
@@ -552,7 +556,8 @@ export default function DoctorDetails() {
 
   const saveConsultation = async (
     consultation: Consultation,
-    paymentResponse: any
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _paymentResponse: unknown
   ) => {
     try {
       // Add payment details to consultation

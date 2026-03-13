@@ -96,7 +96,8 @@ export async function POST(request: Request) {
             meetLink: result.data.meet_link,
             message: result.message
         });
-    } catch (error: any) {
+    } catch (err: unknown) {
+        const error = err as { message?: string };
         console.error("Error creating Meet link via scheduler:", error?.message || error);
         return NextResponse.json(
             { error: "Failed to create Meet link", details: error?.message },

@@ -3,12 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Card,
-  CardBody,
   Button,
+  Chip,
   Tabs,
   Tab,
-  Chip,
   Modal,
   ModalContent,
   ModalHeader,
@@ -19,13 +17,12 @@ import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import {
   FaVideo,
-  FaClock,
+  FaStethoscope,
+  FaArrowLeft,
   FaUserMd,
   FaCalendar,
-  FaArrowLeft,
+  FaClock,
   FaComments,
-  FaUser,
-  FaStethoscope,
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
@@ -214,7 +211,7 @@ export default function Bookings() {
             >
               <Tabs
                 selectedKey={selectedTab}
-                onSelectionChange={(key) => setSelectedTab(key as string)}
+                onSelectionChange={(key: React.Key) => setSelectedTab(key as string)}
                 variant="underlined"
                 classNames={{
                   base: "w-full",
@@ -325,7 +322,7 @@ export default function Bookings() {
                             size="sm"
                             className="rounded-full font-bold px-6 h-11"
                             startContent={<FaVideo className="text-sm" />}
-                            onPress={(e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               window.open(consultation.extras.meetLink, "_blank");
                             }}

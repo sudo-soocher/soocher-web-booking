@@ -53,12 +53,12 @@ export const calculateAge = (dob: number): number => {
 };
 
 // Type guard to check if an object is a Patient
-export const isPatient = (user: any): user is Patient => {
+export const isPatient = (user: unknown): user is Patient => {
   return (
-    user &&
+    user !== null &&
     typeof user === "object" &&
     "type" in user &&
-    user.type === "PATIENT"
+    (user as { type: string }).type === "PATIENT"
   );
 };
 

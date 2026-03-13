@@ -16,7 +16,7 @@ import {
   ConfirmationResult,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { FaStethoscope, FaPhoneAlt, FaShieldAlt } from "react-icons/fa";
+import { FaStethoscope, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
@@ -60,9 +60,10 @@ export default function Login() {
       );
       confirmationResultRef.current = confirmation;
       setShowOTPInput(true);
-    } catch (error: any) {
-      console.error("Error sending code:", error);
-      setError(error.message || "Failed to send code. Please try again.");
+    } catch (err: unknown) {
+      console.error("Error sending code:", err);
+      const errorMessage = (err as { message?: string }).message || "Failed to send code. Please try again.";
+      setError(errorMessage);
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
@@ -85,8 +86,8 @@ export default function Login() {
       if (result.user) {
         router.push("/");
       }
-    } catch (error: any) {
-      console.error("Error verifying code:", error);
+    } catch (err: unknown) {
+      console.error("Error verifying code:", err);
       setError("Invalid verification code. Please try again.");
     } finally {
       setIsLoading(false);
@@ -101,8 +102,8 @@ export default function Login() {
       if (result.user) {
         router.push("/");
       }
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
+    } catch (err: unknown) {
+      console.error("Google sign-in error:", err);
       setError("Google sign-in failed.");
     }
   };

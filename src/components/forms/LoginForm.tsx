@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { Button, Input, Divider } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
-import { BsApple } from "react-icons/bs";
 import { auth } from "@/lib/firebase";
 import {
   signInWithPhoneNumber,
@@ -57,9 +56,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       );
       confirmationResultRef.current = confirmation;
       setShowOTPInput(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
       console.error("Error sending code:", error);
-      setError(error.message || "Failed to send code.");
+      setError(err.message || "Failed to send code.");
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;

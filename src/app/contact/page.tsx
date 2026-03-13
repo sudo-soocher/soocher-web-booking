@@ -3,12 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Card,
-    CardBody,
     Input,
     Textarea,
     Button,
-    Chip,
 } from "@nextui-org/react";
 import {
     FaEnvelope,
@@ -176,7 +173,7 @@ export default function ContactPage() {
                         transition={{ delay: 0.1 }}
                         className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed"
                     >
-                        Whether you have a question about our services, need technical support, or just want to share feedback, we're here for you.
+                        Whether you have a question about our services, need technical support, or just want to share feedback, we&apos;re here for you.
                     </motion.p>
                 </div>
             </section>

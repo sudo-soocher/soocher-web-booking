@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../lib/firebase';
-import { collection, getDocs, doc, query, where, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 
 export async function GET(request: Request) {
     try {
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         const slotsRef = collection(db, 'Users', doctorId, 'Available Slots');
         const slotsSnap = await getDocs(slotsRef);
 
-        const slotsData: any = {};
+        const slotsData: Record<string, unknown> = {};
         slotsSnap.forEach((doc) => {
             slotsData[doc.id] = doc.data();
         });
@@ -23,7 +23,8 @@ export async function GET(request: Request) {
             doctorData: docSnap.data(),
             slotsData
         });
-    } catch (error: any) {
+    } catch (err: unknown) {
+        const error = err as { message?: string };
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
