@@ -95,9 +95,14 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       if (result.user) {
         onSuccess();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Google sign-in error:", error);
-      setError("Google sign-in failed.");
+      const err = error as { code?: string; message?: string };
+      if (err.code === "auth/unauthorized-domain") {
+        setError("This domain is not authorized for Google Sign-in. Please add it to your Firebase Console.");
+      } else {
+        setError(err.message || "Google sign-in failed.");
+      }
     }
   };
 
