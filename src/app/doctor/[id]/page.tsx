@@ -62,6 +62,14 @@ interface Doctor {
   knownLanguages: string[];
   isAccountVerified: boolean;
   specialization: string;
+  slotDuration?: number;
+  timeSlots?: {
+    [key: string]: {
+      startTime: string;
+      endTime: string;
+      enabled: boolean;
+    };
+  };
 }
 
 interface DaySlots {
@@ -127,27 +135,101 @@ export default function DoctorDetails() {
     });
   };
 
+  // Function to calculate epoch timestamp from day name and time string
+  const calculateSlotTimestamp = (dayKey: string, timeRange: string) => {
+    try {
+      const [startTime] = timeRange.split(" - "); // e.g., "09:00AM"
+      const [time, period] = startTime.split(/(?=[AP]M)/); // ["09:00", "AM"]
+      const [hours, minutes] = time.split(":").map(Number);
+
+      const date = new Date();
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const currentDayIndex = date.getDay();
+      const selectedDayIndex = days.indexOf(dayKey);
+
+      // Calculate how many days to add to get to the correct day of the week
+      const daysToAdd = (selectedDayIndex - currentDayIndex + 7) % 7;
+      date.setDate(date.getDate() + daysToAdd);
+
+      let hour = hours;
+      if (period === "PM" && hours !== 12) hour += 12;
+      if (period === "AM" && hours === 12) hour = 0;
+      date.setHours(hour, minutes, 0, 0);
+
+      return date.getTime();
+    } catch (error) {
+      console.error("Error calculating slot timestamp:", error);
+      return 0;
+    }
+  };
+
   // Function to get available days
   const getAvailableDays = () => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = new Date();
     const todayIndex = today.getDay();
 
-    // Get next 6 days including today
+    // Get next 4 consecutive days including today
     const availableDays = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 4; i++) {
       const dayIndex = (todayIndex + i) % 7;
       const dayKey = days[dayIndex];
-      if (
-        slots[dayKey]?.isActive &&
-        slots[dayKey]?.availableSlots?.length > 0
-      ) {
-        availableDays.push(dayKey);
-      }
-      if (availableDays.length >= 6) break;
+      availableDays.push(dayKey);
     }
 
     return availableDays;
+  };
+
+  const generateDynamicSlots = (dayKey: string) => {
+    if (!doctor?.timeSlots || !doctor?.slotDuration) return [];
+
+    const dayNameMap: { [key: string]: string } = {
+      Sun: "sunday",
+      Mon: "monday",
+      Tue: "tuesday",
+      Wed: "wednesday",
+      Thu: "thursday",
+      Fri: "friday",
+      Sat: "saturday",
+    };
+
+    const daySchedule = doctor.timeSlots[dayNameMap[dayKey]];
+    if (!daySchedule || !daySchedule.enabled) return [];
+
+    const slots = [];
+    const [startH, startM] = daySchedule.startTime.split(":").map(Number);
+    const [endH, endM] = daySchedule.endTime.split(":").map(Number);
+
+    const startTime = new Date();
+    startTime.setHours(startH, startM, 0, 0);
+
+    const endTime = new Date();
+    endTime.setHours(endH, endM, 0, 0);
+
+    let current = new Date(startTime);
+    while (current < endTime) {
+      const slotStart = new Date(current);
+      const slotEnd = new Date(current.getTime() + doctor.slotDuration * 60000);
+
+      const formatTime = (date: Date) => {
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12 || 12;
+        return `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}${ampm}`;
+      };
+
+      slots.push({
+        time: `${formatTime(slotStart)} - ${formatTime(slotEnd)}`,
+        bookingDate: 0, // Will be calculated by getFilteredSlots
+      });
+
+      current = new Date(slotEnd.getTime());
+    }
+
+    return slots;
   };
 
   useEffect(() => {
@@ -177,23 +259,30 @@ export default function DoctorDetails() {
 
         setSlots(slotsData);
 
-        // Set current day as selected if available and active, otherwise set first active day
+        // Set current day as selected if available, otherwise set first available day
         const currentDay = getCurrentDay();
-        if (slotsData[currentDay]?.isActive) {
+        if (slotsData[currentDay]?.availableSlots?.length > 0) {
           setSelectedDay(currentDay);
         } else {
-          // Find next available day
+          // Find next available day within the next 4 days
           const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
           const currentDayIndex = days.indexOf(currentDay);
 
-          // Check next 7 days starting from current day
-          for (let i = 0; i < 7; i++) {
+          let foundDay = false;
+          // Check next 4 days starting from current day
+          for (let i = 0; i < 4; i++) {
             const nextDayIndex = (currentDayIndex + i) % 7;
             const nextDay = days[nextDayIndex];
-            if (slotsData[nextDay]?.isActive) {
+            if (slotsData[nextDay]?.availableSlots?.length > 0) {
               setSelectedDay(nextDay);
+              foundDay = true;
               break;
             }
+          }
+
+          // If no slots in the next 4 days, just select current day
+          if (!foundDay) {
+            setSelectedDay(currentDay);
           }
         }
       } catch (error) {
@@ -247,25 +336,40 @@ export default function DoctorDetails() {
 
   // Function to filter and sort available slots
   const getFilteredSlots = async (slots: DaySlots["availableSlots"]) => {
-    if (!slots) return [];
+    let slotsToProcess = slots || [];
+
+    // Fallback if slots are empty but doctor has schedule
+    if (slotsToProcess.length === 0 && doctor?.timeSlots) {
+      slotsToProcess = generateDynamicSlots(selectedDay);
+    }
+
+    if (slotsToProcess.length === 0) return [];
 
     const now = new Date();
-    now.setSeconds(0, 0); // Reset seconds and milliseconds
     const currentTime = now.getTime();
+
+    // Map slots to include calculated timestamps if missing
+    const slotsWithTimestamps = slotsToProcess.map((slot) => ({
+      ...slot,
+      calculatedTimestamp:
+        slot.bookingDate && slot.bookingDate !== 0
+          ? slot.bookingDate
+          : calculateSlotTimestamp(selectedDay, slot.time),
+    }));
 
     // Filter and check bookings for each slot
     const availableSlots = await Promise.all(
-      slots
+      slotsWithTimestamps
         .filter((slot) => {
           // For today, only filter if slot time is in the past
           if (selectedDay === getCurrentDay()) {
-            // Add 5 minutes buffer to current time to avoid edge cases
-            return slot.bookingDate > currentTime - 5 * 60 * 1000;
+            // Add 10 minutes buffer to current time
+            return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
           }
           return true;
         })
         .map(async (slot) => {
-          const isBooked = await isSlotBooked(slot);
+          const isBooked = await isSlotBooked(slot.calculatedTimestamp);
           return { ...slot, isBooked };
         })
     );
@@ -273,18 +377,18 @@ export default function DoctorDetails() {
     // Return only available slots sorted by time
     return availableSlots
       .filter((slot) => !slot.isBooked)
-      .sort((a, b) => a.bookingDate - b.bookingDate);
+      .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
   };
 
   // Function to check if a slot is booked
-  const isSlotBooked = async (slot: { bookingDate: number }) => {
+  const isSlotBooked = async (timestamp: number) => {
     try {
       // Query consultations collection for this doctor and time slot
       const consultationsRef = collection(db, "Consultations");
       const q = query(
         consultationsRef,
         where("doctorId", "==", params.id),
-        where("consultationTime", "==", slot.bookingDate),
+        where("consultationTime", "==", timestamp),
         where("cancelledByDoctor", "==", false)
       );
 
@@ -318,24 +422,8 @@ export default function DoctorDetails() {
 
   const handlePayment = async (userData: any) => {
     try {
-      // Convert selected slot time to timestamp
-      const [startTime] = selectedSlot.split(" - "); // e.g., "09:00AM"
-      const [time, period] = startTime.split(/(?=[AP]M)/); // ["09:00", "AM"]
-      const [hours, minutes] = time.split(":").map(Number);
+      const consultationTime = calculateSlotTimestamp(selectedDay, selectedSlot);
 
-      // Create date for selected day
-      const selectedDate = new Date();
-      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const currentDayIndex = selectedDate.getDay();
-      const selectedDayIndex = days.indexOf(selectedDay);
-      const daysToAdd = (selectedDayIndex - currentDayIndex + 7) % 7;
-      selectedDate.setDate(selectedDate.getDate() + daysToAdd);
-
-      // Set the time
-      let hour = hours;
-      if (period === "PM" && hours !== 12) hour += 12;
-      if (period === "AM" && hours === 12) hour = 0;
-      selectedDate.setHours(hour, minutes, 0, 0);
 
       // Calculate consultation duration based on specialization
       const consultationDuration = doctor!.specialization
@@ -343,7 +431,6 @@ export default function DoctorDetails() {
         .includes("psycho")
         ? 50
         : 15;
-      const consultationTime = selectedDate.getTime();
       const consultationExpiration =
         consultationTime + consultationDuration * 60 * 1000; // Convert minutes to milliseconds
 
@@ -683,19 +770,23 @@ export default function DoctorDetails() {
                 {/* Day Selection */}
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold mb-2">Select Day</h3>
-                  <Tabs
-                    selectedKey={selectedDay}
-                    onSelectionChange={(key) => {
-                      setSelectedDay(key as string);
-                      setSelectedSlot(""); // Reset selected slot when day changes
-                    }}
-                    className="w-full"
-                    variant="bordered"
-                  >
-                    {getAvailableDays().map((day) => (
-                      <Tab key={day} title={formatDayLabel(day)} />
-                    ))}
-                  </Tabs>
+                  {getAvailableDays().length > 0 ? (
+                    <Tabs
+                      selectedKey={selectedDay}
+                      onSelectionChange={(key) => {
+                        setSelectedDay(key as string);
+                        setSelectedSlot(""); // Reset selected slot when day changes
+                      }}
+                      className="w-full"
+                      variant="bordered"
+                    >
+                      {getAvailableDays().map((day) => (
+                        <Tab key={day} title={formatDayLabel(day)} />
+                      ))}
+                    </Tabs>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No consultation days configured for this doctor.</p>
+                  )}
                 </div>
 
                 {/* Time Slots */}
@@ -705,8 +796,8 @@ export default function DoctorDetails() {
                   </h3>
                   {selectedDay && (
                     <div className="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto">
-                      {slots[selectedDay]?.availableSlots?.length > 0 ? (
-                        slots[selectedDay].availableSlots.map((slot, index) => {
+                      {filteredSlots.length > 0 ? (
+                        filteredSlots.map((slot, index) => {
                           const isBooked = slot.bookingDate
                             ? slot.bookingDate > Date.now()
                             : false;
