@@ -269,9 +269,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="z-10"
+            className="z-10 will-change-transform"
           >
             <Chip
               variant="flat"
@@ -317,9 +318,10 @@ export default function Home() {
 
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="relative hidden lg:block"
+            className="relative hidden lg:block will-change-transform"
           >
             <div className="w-full aspect-square rounded-[48px] mesh-gradient opacity-20 absolute -rotate-6 top-0" />
             <div className="w-full aspect-square rounded-[48px] border-2 border-primary/10 relative z-10 p-8 glass-effect overflow-hidden">
