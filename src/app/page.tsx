@@ -67,6 +67,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
   const [loading, setLoading] = useState(true);
+  /* Commented out AI Assistant state
   const [symptoms, setSymptoms] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -79,6 +80,7 @@ export default function Home() {
   >([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  */
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -107,6 +109,7 @@ export default function Home() {
     fetchSpecialities();
   }, []);
 
+  /* Commented out AI Assistant effects
   useEffect(() => {
     // Show chat after 10 seconds
     const timer = setTimeout(() => {
@@ -130,6 +133,7 @@ export default function Home() {
     // Scroll to bottom of chat when new message is added
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  */
 
   const handleLogout = async () => {
     try {
@@ -140,6 +144,7 @@ export default function Home() {
     }
   };
 
+  /* Commented out AI Assistant logic
   const handleAIConsultation = async () => {
     if (!symptoms.trim()) return;
 
@@ -180,64 +185,68 @@ export default function Home() {
       setAnalyzing(false);
     }
   };
+  */
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="w-full p-4 bg-white shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-primary">Soocher</h1>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="light"
-              size="sm"
-              onPress={() => router.push("/contact")}
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
+      {/* Navbar - Glass Effect */}
+      <header className="sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <FaStethoscope className="text-white text-xl" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => router.push("/contact")}
+              className="text-sm font-medium text-slate-600 hover:text-primary transition-colors"
             >
               Contact Us
-            </Button>
+            </button>
             {isLoggedIn ? (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
                   <Avatar
                     isBordered
                     as="button"
-                    className="transition-transform"
+                    className="transition-transform ring-offset-2 ring-primary hover:scale-105"
                     color="primary"
                     name={auth.currentUser?.displayName || "User"}
                     size="sm"
                     src={auth.currentUser?.photoURL || undefined}
                   />
                 </DropdownTrigger>
-                <DropdownMenu aria-label="Profile Actions" variant="flat">
-                  <DropdownItem
-                    key="profile"
-                    className="h-14 gap-2"
-                    textValue="Profile Header"
-                  >
-                    <p className="font-semibold">Signed in as</p>
-                    <p className="font-semibold">
+                <DropdownMenu aria-label="Profile Actions" variant="flat" className="p-2">
+                  <DropdownItem key="profile" className="h-14 gap-2 opacity-100 cursor-default">
+                    <p className="text-xs text-slate-500">Signed in as</p>
+                    <p className="font-semibold text-slate-900">
                       {auth.currentUser?.phoneNumber || auth.currentUser?.email}
                     </p>
                   </DropdownItem>
                   <DropdownItem
                     key="my_profile"
-                    startContent={<FaUser className="text-primary" />}
+                    startContent={<FaUser className="text-primary opacity-70" />}
                     onPress={() => router.push("/profile")}
+                    className="rounded-lg"
                   >
                     My Profile
                   </DropdownItem>
                   <DropdownItem
                     key="bookings"
-                    startContent={<FaCalendarCheck className="text-primary" />}
+                    startContent={<FaCalendarCheck className="text-primary opacity-70" />}
                     onPress={() => router.push("/bookings")}
+                    className="rounded-lg"
                   >
                     My Bookings
                   </DropdownItem>
                   <DropdownItem
                     key="logout"
-                    className="text-danger"
+                    className="text-danger rounded-lg"
                     color="danger"
-                    startContent={<FaSignOutAlt className="text-danger" />}
+                    startContent={<FaSignOutAlt />}
                     onPress={handleLogout}
                   >
                     Sign Out
@@ -248,216 +257,242 @@ export default function Home() {
               <Button
                 color="primary"
                 onClick={() => router.push("/login")}
-                size="sm"
-                startContent={<FaUser />}
+                size="md"
+                className="rounded-full font-semibold shadow-xl shadow-primary/20 px-8"
               >
                 Sign In
               </Button>
             )}
           </div>
-        </div>
+        </nav>
       </header>
 
       {/* Hero Section */}
-      <div className="relative bg-primary/10 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-12 pb-24 px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-center"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="z-10"
           >
-            <div className="flex justify-center mb-6">
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="p-4 bg-primary/20 rounded-full"
-              >
-                <FaStethoscope className="text-4xl text-primary" />
-              </motion.div>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
-              Find Your Perfect Healthcare Match
+            <Chip
+              variant="flat"
+              color="primary"
+              className="mb-6 px-4 py-1 text-sm font-medium bg-primary/10 text-primary border-none"
+            >
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                Next Generation Healthcare
+              </span>
+            </Chip>
+            <h1 className="text-5xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
+              Expert Care is <br />
+              <span className="text-primary">Just a Click Away.</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Connect with verified specialists for personalized care and expert
-              consultations
+            <p className="text-lg text-slate-600 mb-10 leading-relaxed max-w-lg">
+              Experience healthcare redefined. Connect with top-tier specialists instantly and manage your health journey with absolute elegance.
             </p>
+            <div className="flex gap-4">
+              <Button
+                size="lg"
+                color="primary"
+                className="rounded-full px-8 font-bold shadow-2xl shadow-primary/25 h-14 text-lg"
+                onClick={() => {
+                  const element = document.getElementById('specialities');
+                  element?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                Find Specialists
+              </Button>
+              {/* Commented out AI Assistant button
+              <Button
+                size="lg"
+                variant="bordered"
+                className="rounded-full px-8 border-2 font-bold h-14 text-lg"
+                onClick={() => setIsChatOpen(true)}
+              >
+                AI Assistant
+              </Button>
+              */}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="relative hidden lg:block"
+          >
+            <div className="w-full aspect-square rounded-[48px] mesh-gradient opacity-20 absolute -rotate-6 top-0" />
+            <div className="w-full aspect-square rounded-[48px] border-2 border-primary/10 relative z-10 p-8 glass-effect overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent" />
+              <div className="relative h-full flex flex-col justify-center items-center text-center space-y-6">
+                <div className="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center">
+                  <FaStethoscope className="text-5xl text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-800">Verified Doctors</h2>
+                <p className="text-slate-500 max-w-sm">Every specialist on Soocher is manually verified to ensure you receive the highest quality care.</p>
+                <div className="flex -space-x-4">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Avatar key={i} isBordered size="md" className="ring-4 ring-white" src={`https://i.pravatar.cc/150?u=${i}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-32 w-96 h-96 bg-primary/5 rounded-full"></div>
-          <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-primary/5 rounded-full"></div>
-        </div>
-      </div>
+      </section>
 
       {/* Specialities Section */}
-      <main className="flex-1 bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Our Specialities
-            </h2>
-            <p className="mt-4 text-lg text-gray-600">
-              Choose from our wide range of medical specialities
-            </p>
+      <main id="specialities" className="flex-1 py-24 px-6 bg-white rounded-t-[64px] shadow-[0_-40px_100px_-20px_rgba(0,0,0,0.05)] border-t border-slate-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+            <div className="space-y-4">
+              <h2 className="text-4xl font-bold text-slate-900 tracking-tight">Our Specialities</h2>
+              <p className="text-lg text-slate-500 max-w-xl">
+                Select from our curated network of medical excellence.
+              </p>
+            </div>
           </div>
 
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
-            className="flex flex-wrap justify-center gap-2"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
           >
             {specialities.map((speciality, index) => (
-              <motion.div key={index} variants={itemVariants} className="flex">
-                <Chip
-                  variant="shadow"
-                  classNames={{
-                    base: "bg-gradient-to-br from-primary-100 to-primary-200 hover:from-primary-200 hover:to-primary-300 transition-all cursor-pointer py-6 px-6",
-                    content: "text-primary-600 font-semibold text-base",
-                  }}
-                  onClick={() =>
-                    router.push(`/${encodeURIComponent(speciality.name)}`)
-                  }
-                  startContent={<FaStethoscope className="text-primary-500" />}
-                >
-                  {speciality.name}
-                </Chip>
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="premium-card p-6 flex flex-col items-center text-center gap-4 cursor-pointer hover:border-primary/30"
+                onClick={() => router.push(`/${encodeURIComponent(speciality.name)}`)}
+              >
+                <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <FaStethoscope className="text-2xl" />
+                </div>
+                <h3 className="font-bold text-slate-800 break-words w-full">{speciality.name}</h3>
+                <p className="text-xs text-slate-500 font-medium">Available Specialists</p>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </main>
 
-      {/* Chat Interface */}
+      {/* Commented out AI Assistant Chat
       <AnimatePresence>
         {isChatOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 w-96 z-50"
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+            className="fixed bottom-6 right-6 w-96 z-[200]"
           >
-            <Card className="shadow-xl border-2 border-primary/20">
-              <CardBody className="p-0">
-                {/* Chat Header */}
-                <div className="flex items-center justify-between p-4 border-b">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-full">
-                      <FaRobot className="text-xl text-primary" />
+            <Card className="shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border-none overflow-hidden rounded-[32px]">
+              <CardBody className="p-0 flex flex-col">
+                <div className="bg-primary p-6 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+                      <FaRobot className="text-2xl" />
                     </div>
-                    <h3 className="font-semibold">Soocher AI Assistant</h3>
+                    <div>
+                      <h3 className="font-bold">Soocher Advisor</h3>
+                      <p className="text-xs opacity-80 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Online
+                      </p>
+                    </div>
                   </div>
                   <Button
                     isIconOnly
                     size="sm"
                     variant="light"
+                    className="text-white hover:bg-white/20 transition-colors"
                     onClick={() => setIsChatOpen(false)}
                   >
-                    ×
+                    <span className="text-xl">×</span>
                   </Button>
                 </div>
 
-                {/* Chat Messages */}
-                <div className="h-96 overflow-y-auto p-4 space-y-4">
+                <div className="h-[400px] overflow-y-auto p-6 bg-slate-50 space-y-4">
                   {messages.map((message, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${message.type === "user"
-                          ? "justify-end"
-                          : "justify-start"
-                        }`}
+                      className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[80%] p-3 rounded-lg ${message.type === "user"
-                            ? "bg-primary text-white"
-                            : "bg-gray-100"
+                        className={`max-w-[85%] p-4 rounded-[20px] shadow-sm ${message.type === "user"
+                          ? "bg-primary text-white rounded-tr-none"
+                          : "bg-white text-slate-700 rounded-tl-none border border-slate-100"
                           }`}
                       >
-                        <p className="whitespace-pre-line text-sm">
-                          {message.content}
-                        </p>
-                        {message.type === "bot" &&
-                          aiResponse?.suggestedSpecialities && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {aiResponse.suggestedSpecialities.map(
-                                (speciality, idx) => (
-                                  <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                  >
-                                    <Button
-                                      size="sm"
-                                      color="primary"
-                                      variant="flat"
-                                      onPress={() => {
-                                        router.push(
-                                          `/${encodeURIComponent(speciality)}`
-                                        );
-                                        setIsChatOpen(false);
-                                      }}
-                                      className="text-xs"
-                                      startContent={
-                                        <FaStethoscope className="text-xs" />
-                                      }
-                                    >
-                                      {speciality}
-                                    </Button>
-                                  </motion.div>
-                                )
-                              )}
-                            </div>
-                          )}
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        {message.type === "bot" && aiResponse?.suggestedSpecialities && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {aiResponse.suggestedSpecialities.map((speciality, idx) => (
+                              <Button
+                                key={idx}
+                                size="sm"
+                                color="primary"
+                                variant="flat"
+                                className="bg-primary/5 text-primary font-bold hover:bg-primary/10 border-none"
+                                onClick={() => {
+                                  router.push(`/${encodeURIComponent(speciality)}`);
+                                  setIsChatOpen(false);
+                                }}
+                              >
+                                {speciality}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ))}
                   {analyzing && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex justify-start"
-                    >
-                      <div className="bg-gray-100 p-3 rounded-lg">
-                        <p className="text-sm">Analyzing your symptoms...</p>
+                    <div className="flex justify-start">
+                      <div className="bg-white p-4 rounded-[20px] rounded-tl-none border border-slate-100 shadow-sm animate-pulse">
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75" />
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150" />
+                        </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
                   <div ref={chatEndRef} />
                 </div>
 
-                {/* Chat Input */}
-                <div className="p-4 border-t">
+                <div className="p-6 bg-white border-t border-slate-100">
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
                       handleAIConsultation();
                     }}
-                    className="flex gap-2"
+                    className="flex gap-3"
                   >
-                    <Textarea
-                      placeholder="Describe your symptoms..."
-                      value={symptoms}
-                      onChange={(e) => setSymptoms(e.target.value)}
-                      minRows={1}
-                      maxRows={4}
-                      className="flex-1"
-                    />
+                    <div className="flex-1 relative">
+                      <Textarea
+                        placeholder="Describe your symptoms..."
+                        value={symptoms}
+                        onChange={(e) => setSymptoms(e.target.value)}
+                        minRows={1}
+                        maxRows={4}
+                        className="bg-slate-50 rounded-2xl"
+                        classNames={{
+                          input: "placeholder:text-slate-400"
+                        }}
+                      />
+                    </div>
                     <Button
                       isIconOnly
                       color="primary"
                       type="submit"
                       isDisabled={!symptoms.trim() || analyzing}
+                      className="rounded-2xl h-12 w-12 shadow-lg shadow-primary/20 shrink-0"
                     >
                       <FaRobot />
                     </Button>
@@ -469,62 +504,20 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Chat Toggle Button with enhanced animations */}
-      <AnimatePresence>
-        {!isChatOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0, y: 20 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: 0,
-              transition: {
-                type: "spring",
-                stiffness: 260,
-                damping: 20,
-              },
-            }}
-            exit={{
-              opacity: 0,
-              scale: 0,
-              y: 20,
-              transition: {
-                duration: 0.2,
-              },
-            }}
-            whileHover={{
-              scale: 1.1,
-              rotate: [0, -10, 10, -10, 0],
-              transition: {
-                duration: 0.5,
-              },
-            }}
-            whileTap={{ scale: 0.9 }}
-            className="fixed bottom-4 right-4 z-50"
-          >
-            <Button
-              isIconOnly
-              color="primary"
-              size="lg"
-              className="rounded-full shadow-lg"
-              onClick={() => setIsChatOpen(true)}
-            >
-              <motion.div
-                animate={{
-                  rotate: [0, 360],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-              >
-                <FaRobot className="text-xl" />
-              </motion.div>
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!isChatOpen && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-8 right-8 z-[150] w-16 h-16 bg-primary rounded-full shadow-[0_20px_50px_rgba(46,109,212,0.4)] flex items-center justify-center text-white border-2 border-white/20 group"
+        >
+          <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20 group-hover:opacity-40 transition-opacity" />
+          <FaRobot className="text-2xl relative z-10" />
+        </motion.button>
+      )}
+      */}
     </div>
   );
 }

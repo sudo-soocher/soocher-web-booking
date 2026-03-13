@@ -15,6 +15,7 @@ import {
   FaComments,
   FaUser,
   FaUserMd,
+  FaStethoscope,
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
@@ -46,207 +47,190 @@ export default function BookingComplete() {
     }
   }, [params.id]);
 
-  const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    });
-  };
-
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <header className="px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+            <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
+            <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-6 py-12">
+          <div className="premium-card h-[600px] animate-pulse bg-slate-50 border-none" />
+        </main>
+      </div>
+    );
   }
 
   if (!consultation) {
-    return <div>Consultation not found</div>;
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center space-y-4">
+        <div className="w-20 h-20 bg-slate-100 rounded-[32px] flex items-center justify-center text-slate-300 text-3xl">
+          <FaClock />
+        </div>
+        <p className="text-xl font-black text-slate-900">Consultation not found</p>
+        <Button color="primary" onPress={() => router.push("/")}>Return Home</Button>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Success Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Booking Confirmed!
-          </h1>
-          <p className="text-gray-600">
-            Your consultation has been successfully scheduled
-          </p>
-        </motion.div>
-
-        {/* Consultation Ticket */}
-        <Card className="mb-8 overflow-hidden">
-          <div className="bg-primary text-white py-4 px-6">
-            <h2 className="text-xl font-semibold">Consultation Ticket</h2>
-            <p className="text-sm opacity-80">#{consultation.consultationId}</p>
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Navbar */}
+      <header className="px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <FaStethoscope className="text-white text-xl" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Confidential Ticket</p>
+        </nav>
+      </header>
 
-          <CardBody className="p-6 relative">
-            {/* Decorative circles for ticket effect */}
-            <div className="absolute -left-4 top-1/2 w-8 h-8 bg-gray-50 rounded-full transform -translate-y-1/2"></div>
-            <div className="absolute -right-4 top-1/2 w-8 h-8 bg-gray-50 rounded-full transform -translate-y-1/2"></div>
-
-            {/* Dotted line */}
-            <div className="border-t border-dashed border-gray-300 my-4"></div>
-
-            <div className="space-y-6">
-              {/* Doctor Info */}
-              <div className="flex items-center gap-4">
-                <FaUserMd className="text-xl text-primary" />
-                <div>
-                  <h3 className="font-semibold">Doctor</h3>
-                  <p className="text-gray-600">{consultation.doctorName}</p>
-                </div>
-              </div>
-
-              {/* Patient Info */}
-              <div className="flex items-center gap-4">
-                <FaUser className="text-xl text-primary" />
-                <div>
-                  <h3 className="font-semibold">Patient</h3>
-                  <p className="text-gray-600">
-                    {consultation.extras.patientDetails.patientName}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Age: {consultation.extras.patientDetails.patientAge} •
-                    Gender: {consultation.extras.patientDetails.gender}
-                  </p>
-                </div>
-              </div>
-
-              {/* Video Consultation Time */}
-              <div className="flex items-center gap-4">
-                <FaVideo className="text-xl text-primary" />
-                <div>
-                  <h3 className="font-semibold">Video Consultation</h3>
-                  <p className="text-gray-600">
-                    {formatDateTime(consultation.consultationTime)}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Expires at:{" "}
-                    {formatDateTime(consultation.consultationExpiration)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Chat Availability */}
-              <div className="flex items-center gap-4">
-                <FaComments className="text-xl text-primary" />
-                <div>
-                  <h3 className="font-semibold">Chat Available Until</h3>
-                  <p className="text-gray-600">
-                    {formatDateTime(consultation.chatExpiration)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Dotted line */}
-            <div className="border-t border-dashed border-gray-300 my-4"></div>
-
-            {/* QR Code placeholder */}
-            <div className="flex justify-center mt-4">
-              <div className="text-center">
-                <Image
-                  src="/qr-code.png"
-                  alt="QR Code"
-                  className="w-32 h-32 mx-auto"
-                />
-                <p className="text-sm text-gray-500 mt-2">
-                  Scan to join consultation
-                </p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Download App Section */}
-        <Card className="bg-primary/5">
-          <CardBody className="p-6">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-1">
-                <h2 className="text-xl font-bold mb-2">Download Soocher App</h2>
-                <p className="text-gray-600 mb-4">
-                  Get the best experience with our mobile app. Join your
-                  consultation, manage appointments, and more.
-                </p>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <FaMobile />
-                    <span>Easy to use interface</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <FaDownload />
-                    <span>Available for iOS and Android</span>
-                  </div>
-                </div>
-                {/* Store Buttons - Always visible */}
-                <div className="flex gap-4 mt-6">
-                  <a
-                    href="https://apps.apple.com/app/soocher"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-1/2 md:w-auto"
-                  >
-                    <Image
-                      src="/app-store.png"
-                      alt="Download on App Store"
-                      className="w-full md:w-auto h-12 cursor-pointer"
-                    />
-                  </a>
-                  <a
-                    href="https://play.google.com/store/apps/details?id=com.soocher"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-1/2 md:w-auto"
-                  >
-                    <Image
-                      src="/play-store.png"
-                      alt="Get it on Play Store"
-                      className="w-full md:w-auto h-12 cursor-pointer"
-                    />
-                  </a>
-                </div>
-              </div>
-              {/* QR Code - Only visible on desktop */}
-              <div className="hidden md:block w-48 h-48">
-                <Image
-                  src="/qr-code.png"
-                  alt="QR Code"
-                  className="w-full h-full"
-                />
-                <p className="text-center text-sm text-gray-600 mt-2">
-                  Scan to download
-                </p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-center gap-4 mt-8">
-          <Button
-            color="primary"
-            variant="flat"
-            onPress={() => router.push("/bookings")}
+      <main className="max-w-2xl mx-auto px-6 py-12 pb-24">
+        <div className="space-y-12">
+          {/* Success Message */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-4"
           >
-            View All Bookings
-          </Button>
-          <Button color="primary" onPress={() => router.push("/")}>
-            Book Another Consultation
-          </Button>
+            <div className="w-20 h-20 bg-success/10 text-success rounded-[32px] flex items-center justify-center text-4xl mx-auto shadow-xl shadow-success/5">
+              <FaCheckCircle />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                Booking <span className="text-success italic">Confirmed.</span>
+              </h1>
+              <p className="text-slate-500 font-medium italic">Your sanctuary for health has been secured.</p>
+            </div>
+          </motion.div>
+
+          {/* Consultation Ticket */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="premium-card overflow-hidden border-none ring-1 ring-slate-100">
+              <div className="bg-primary p-8 text-white relative">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Session Ticket</p>
+                    <h2 className="text-2xl font-black tracking-tight italic">Premium Consultation</h2>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Ref ID</p>
+                    <p className="font-mono text-sm">#{consultation.consultationId.slice(0, 12).toUpperCase()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-10 relative">
+                {/* Decorative notches for ticket */}
+                <div className="absolute -left-4 top-[0%] w-8 h-8 bg-[#F8FAFC] rounded-full ring-1 ring-slate-100 shadow-inner" />
+                <div className="absolute -right-4 top-[0%] w-8 h-8 bg-[#F8FAFC] rounded-full ring-1 ring-slate-100 shadow-inner" />
+
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary">
+                      <FaUserMd className="text-xs" />
+                      <p className="text-[10px] font-black uppercase tracking-widest">Specialist</p>
+                    </div>
+                    <p className="text-lg font-black text-slate-900">{consultation.doctorName}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary">
+                      <FaUser className="text-xs" />
+                      <p className="text-[10px] font-black uppercase tracking-widest">Patient</p>
+                    </div>
+                    <p className="text-lg font-black text-slate-900 truncate">
+                      {consultation.extras.patientDetails.patientName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="h-px bg-slate-100 border-t border-dashed border-slate-200" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-3 bg-slate-50 rounded-xl text-slate-400">
+                        <FaCalendar />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Appointment</p>
+                        <p className="font-black text-slate-900 italic">
+                          {new Date(consultation.consultationTime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </p>
+                        <p className="text-sm font-bold text-slate-400 leading-tight">
+                          {new Date(consultation.consultationTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-3 bg-success/5 rounded-xl text-success/60">
+                        <FaVideo />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Channel</p>
+                        <p className="font-black text-slate-900 italic">HD Video + Chat</p>
+                        <p className="text-sm font-bold text-slate-400 leading-tight italic">
+                          Active for 24 hours
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 flex flex-col items-center space-y-4">
+                  <div className="p-4 bg-slate-50 rounded-[32px] ring-1 ring-slate-100">
+                    {/* Placeholder for QR Code */}
+                    <div className="w-32 h-32 bg-white rounded-2xl flex items-center justify-center border-4 border-slate-50 shadow-inner overflow-hidden grayscale opacity-20">
+                      <FaStethoscope className="text-6xl text-slate-200" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">Scan to Sync</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Navigation */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              variant="flat"
+              size="lg"
+              className="h-16 rounded-2xl font-black text-slate-600 bg-slate-100 hover:bg-slate-200"
+              onPress={() => router.push("/bookings")}
+            >
+              View Consultations
+            </Button>
+            <Button
+              color="primary"
+              size="lg"
+              className="h-16 rounded-2xl font-black shadow-xl shadow-primary/20"
+              onPress={() => router.push("/")}
+            >
+              Book Another
+            </Button>
+          </div>
         </div>
-      </div>
+      </main>
+
+      <footer className="py-12 border-t border-slate-100 bg-white">
+        <div className="max-w-2xl mx-auto px-6 text-center space-y-4">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] leading-loose">
+            Soocher Premium Health Systems • AES-256 Encrypted
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

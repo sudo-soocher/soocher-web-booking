@@ -25,6 +25,7 @@ import {
   FaArrowLeft,
   FaComments,
   FaUser,
+  FaStethoscope,
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
@@ -152,237 +153,326 @@ export default function Bookings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="max-w-7xl mx-auto space-y-4"
-        >
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <header className="px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
+              <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-6 py-12 space-y-6">
+          <div className="w-48 h-8 bg-slate-200 rounded-lg animate-pulse mb-8" />
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="w-full">
-              <CardBody className="h-32 animate-pulse bg-gray-200" />
-            </Card>
+            <div key={i} className="premium-card h-40 animate-pulse bg-slate-100 border-none" />
           ))}
-        </motion.div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-8"
-        >
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <FaStethoscope className="text-white text-xl" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+          </div>
           <Button
-            variant="light"
-            startContent={<FaArrowLeft />}
+            variant="flat"
+            size="sm"
+            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+            startContent={<FaArrowLeft className="text-xs" />}
             onPress={() => router.push("/")}
           >
             Back
           </Button>
-          <h1 className="text-2xl font-bold">My Consultations</h1>
-        </motion.div>
+        </nav>
+      </header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Tabs
-            selectedKey={selectedTab}
-            onSelectionChange={(key) => setSelectedTab(key as string)}
-            className="mb-8"
-          >
-            <Tab
-              key="upcoming"
-              title={
-                <div className="flex items-center gap-2">
-                  <FaCalendar />
-                  <span>Upcoming</span>
-                  <Chip size="sm" variant="flat">
-                    {filterConsultations("upcoming").length}
-                  </Chip>
-                </div>
-              }
-            />
-            <Tab
-              key="active"
-              title={
-                <div className="flex items-center gap-2">
-                  <FaVideo />
-                  <span>Active</span>
-                  <Chip size="sm" variant="flat">
-                    {filterConsultations("active").length}
-                  </Chip>
-                </div>
-              }
-            />
-            <Tab
-              key="past"
-              title={
-                <div className="flex items-center gap-2">
-                  <FaClock />
-                  <span>Past</span>
-                  <Chip size="sm" variant="flat">
-                    {filterConsultations("past").length}
-                  </Chip>
-                </div>
-              }
-            />
-          </Tabs>
-        </motion.div>
+      <main className="max-w-7xl mx-auto px-6 py-12 pb-24">
+        <div className="space-y-12">
+          {/* Page Heading */}
+          <div className="space-y-2">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+              My <span className="text-primary italic">Consultations</span>
+            </h1>
+            <p className="text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
+          </div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-4"
-        >
-          {filterConsultations(
-            selectedTab as "upcoming" | "active" | "past"
-          ).map((consultation) => (
+          <div className="space-y-8">
+            {/* Tabs */}
             <motion.div
-              key={consultation.consultationId}
-              variants={itemVariants}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <Card
-                isPressable
-                className="hover:shadow-md transition-shadow"
-                onPress={() => {
-                  setSelectedConsultation(consultation);
-                  onOpen();
+              <Tabs
+                selectedKey={selectedTab}
+                onSelectionChange={(key) => setSelectedTab(key as string)}
+                variant="underlined"
+                classNames={{
+                  base: "w-full",
+                  tabList: "gap-8 w-full relative rounded-none p-0 border-b border-slate-200",
+                  cursor: "w-full bg-primary",
+                  tab: "max-w-fit px-0 h-12",
+                  tabContent: "group-data-[selected=true]:text-primary group-data-[selected=true]:font-bold text-slate-400 font-medium transition-all"
                 }}
               >
-                <CardBody className="p-6">
-                  <div className="flex flex-col md:flex-row justify-between gap-4">
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-4">
-                        <FaUserMd className="text-xl text-primary mt-1" />
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {consultation.doctorName}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Patient:{" "}
-                            {consultation.extras.patientDetails.patientName}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                        <FaCalendar className="text-xl text-primary mt-1" />
-                        <div>
-                          <h4 className="font-medium">Consultation Time</h4>
-                          <p className="text-sm text-gray-600">
-                            {formatDateTime(consultation.consultationTime)}
-                          </p>
-                        </div>
-                      </div>
+                <Tab
+                  key="upcoming"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>Upcoming</span>
+                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center">
+                        {filterConsultations("upcoming").length}
+                      </span>
                     </div>
+                  }
+                />
+                <Tab
+                  key="active"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>In-Progress</span>
+                      <span className="w-5 h-5 rounded-full bg-success/10 text-success text-[10px] flex items-center justify-center">
+                        {filterConsultations("active").length}
+                      </span>
+                    </div>
+                  }
+                />
+                <Tab
+                  key="past"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>Completed</span>
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] flex items-center justify-center">
+                        {filterConsultations("past").length}
+                      </span>
+                    </div>
+                  }
+                />
+              </Tabs>
+            </motion.div>
 
-                    <div className="flex flex-col gap-4 items-end">
-                      {getStatusChip(consultation)}
+            {/* List */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 gap-6"
+            >
+              {filterConsultations(
+                selectedTab as "upcoming" | "active" | "past"
+              ).map((consultation) => (
+                <motion.div
+                  key={consultation.consultationId}
+                  variants={itemVariants}
+                >
+                  <div
+                    onClick={() => {
+                      setSelectedConsultation(consultation);
+                      onOpen();
+                    }}
+                    className="premium-card p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
+                  >
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                      <div className="flex flex-col md:flex-row gap-8 flex-1">
+                        {/* Doctor Info */}
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 bg-primary/5 rounded-[20px] flex items-center justify-center text-primary text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                            <FaUserMd />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
+                              {consultation.doctorName}
+                            </h3>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                              Patient: {consultation.extras.patientDetails.patientName}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Divider for desktop */}
+                        <div className="hidden md:block w-px h-12 bg-slate-100" />
+
+                        {/* Date Info */}
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                            <FaCalendar />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">
+                              {new Date(consultation.consultationTime).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                              {new Date(consultation.consultationTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-end">
+                        {consultation.extras.meetLink && (Date.now() <= consultation.consultationExpiration) && (
+                          <Button
+                            color="success"
+                            variant="flat"
+                            size="sm"
+                            className="rounded-full font-bold px-6 h-11"
+                            startContent={<FaVideo className="text-sm" />}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              window.open(consultation.extras.meetLink, "_blank");
+                            }}
+                          >
+                            Join Meeting
+                          </Button>
+                        )}
+
+                        <div className="flex items-center gap-3 md:gap-6">
+                          <div className="flex items-center gap-2">
+                            <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest text-slate-300">Status</span>
+                            {getStatusChip(consultation)}
+                          </div>
+
+                          <div className="w-11 h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm">
+                            <span className="text-slate-300 group-hover:text-white transition-colors text-lg">→</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
+                </motion.div>
+              ))}
 
-          {filterConsultations(selectedTab as "upcoming" | "active" | "past")
-            .length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <FaClock className="text-4xl text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">
-                No {selectedTab} consultations found
-              </p>
+              {filterConsultations(selectedTab as "upcoming" | "active" | "past")
+                .length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-32 flex flex-col items-center justify-center space-y-4"
+                  >
+                    <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-4xl text-slate-200">
+                      <FaClock />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-black text-slate-900">No appointments found</p>
+                      <p className="text-slate-400 font-medium">Your {selectedTab} consultations will appear here.</p>
+                    </div>
+                  </motion.div>
+                )}
             </motion.div>
-          )}
-        </motion.div>
-      </div>
+          </div>
+        </div>
+      </main>
 
       {/* Consultation Details Modal */}
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        size="2xl"
-        scrollBehavior="inside"
+        size="lg"
+        classNames={{
+          backdrop: "bg-slate-900/40 backdrop-blur-sm",
+          base: "rounded-[32px] border-none shadow-2xl",
+          header: "border-b border-slate-100 p-8",
+          body: "p-8",
+        }}
       >
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                Consultation Details
+              <ModalHeader>
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Appointment Details</h2>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest italic">Reference: {selectedConsultation?.consultationId.slice(0, 8)}</p>
+                </div>
               </ModalHeader>
-              <ModalBody className="p-6">
+              <ModalBody>
                 {selectedConsultation && (
-                  <div className="space-y-6">
-                    <div className="flex items-start gap-4">
-                      <FaUserMd className="text-xl text-primary mt-1" />
-                      <div>
-                        <h3 className="font-semibold">Doctor</h3>
-                        <p className="text-gray-600">
-                          {selectedConsultation.doctorName}
-                        </p>
+                  <div className="space-y-8">
+                    {/* Doctor/Patient Summary */}
+                    <div className="grid grid-cols-2 gap-8 p-6 bg-slate-50 rounded-[24px]">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Doctor</p>
+                        <p className="font-black text-slate-900">{selectedConsultation.doctorName}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Patient</p>
+                        <p className="font-black text-slate-900 font-bold">{selectedConsultation.extras.patientDetails.patientName}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-4">
-                      <FaUser className="text-xl text-primary mt-1" />
-                      <div>
-                        <h3 className="font-semibold">Patient</h3>
-                        <p className="text-gray-600">
-                          {
-                            selectedConsultation.extras.patientDetails
-                              .patientName
-                          }
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Age:{" "}
-                          {
-                            selectedConsultation.extras.patientDetails
-                              .patientAge
-                          }{" "}
-                          • Gender:{" "}
-                          {selectedConsultation.extras.patientDetails.gender}
-                        </p>
+                    <div className="space-y-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                          <FaCalendar />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-black text-slate-900">Time & Date</p>
+                          <p className="text-slate-500 font-medium">
+                            {formatDateTime(selectedConsultation.consultationTime)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-success/10 text-success rounded-xl flex items-center justify-center">
+                          <FaVideo />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-black text-slate-900">Video Link Duration</p>
+                          <p className="text-slate-500 font-medium text-sm">
+                            Available until {new Date(selectedConsultation.consultationExpiration).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedConsultation.extras.meetLink && (Date.now() <= selectedConsultation.consultationExpiration) && (
+                        <div className="p-4 bg-success/5 border border-success/10 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success">
+                              <FaVideo className="text-xs" />
+                            </div>
+                            <p className="text-sm font-bold text-success">Google Meet is ready</p>
+                          </div>
+                          <Button
+                            color="success"
+                            size="sm"
+                            className="rounded-xl font-bold"
+                            onPress={() => window.open(selectedConsultation.extras.meetLink, "_blank")}
+                          >
+                            Join Now
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center">
+                          <FaComments />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-black text-slate-900">Patient Chat</p>
+                          <p className="text-slate-500 font-medium text-sm">
+                            Chat closes on {new Date(selectedConsultation.chatExpiration).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-4">
-                      <FaVideo className="text-xl text-primary mt-1" />
-                      <div>
-                        <h3 className="font-semibold">Video Consultation</h3>
-                        <p className="text-gray-600">
-                          {formatDateTime(
-                            selectedConsultation.consultationTime
-                          )}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Expires at:{" "}
-                          {formatDateTime(
-                            selectedConsultation.consultationExpiration
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-4">
-                      <FaComments className="text-xl text-primary mt-1" />
-                      <div>
-                        <h3 className="font-semibold">Chat Available Until</h3>
-                        <p className="text-gray-600">
-                          {formatDateTime(selectedConsultation.chatExpiration)}
-                        </p>
-                      </div>
+                    <div className="pt-4">
+                      <Button
+                        color="primary"
+                        size="lg"
+                        className="w-full h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
+                        onPress={onClose}
+                      >
+                        Dismiss Details
+                      </Button>
                     </div>
                   </div>
                 )}

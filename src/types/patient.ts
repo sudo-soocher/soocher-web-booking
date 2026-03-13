@@ -13,6 +13,7 @@ export interface Patient {
   dob: number; // Unix timestamp
   gender: "Male" | "Female" | "Other";
   phoneNumber: string;
+  email: string;
   type: "PATIENT";
 
   // Location
@@ -65,12 +66,14 @@ export const isPatient = (user: any): user is Patient => {
 export const createNewPatient = (
   uid: string,
   name: string,
-  phoneNumber: string
+  phoneNumber: string,
+  email: string
 ): Patient => {
   return {
     uid,
     name,
     phoneNumber,
+    email,
     type: "PATIENT",
     dob: 0,
     gender: "Other",
