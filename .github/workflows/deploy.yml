@@ -1,0 +1,24 @@
+name: Deploy Soocher Web
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 139.59.0.173
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/soocher/web
+            git pull origin main
+            npm install
+            rm -rf .next
+            npm run build
+            supervisorctl restart soocher-web
