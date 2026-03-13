@@ -9,17 +9,20 @@ import { Patient, createNewPatient } from "@/types/patient";
 interface NewUserFormProps {
   uid: string;
   phoneNumber: string;
+  email?: string;
   onSuccess: () => void;
 }
 
 export default function NewUserForm({
   uid,
   phoneNumber,
+  email: initialEmail,
   onSuccess,
 }: NewUserFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    email: initialEmail || "",
     dob: "",
     gender: "",
     currentState: "",
@@ -35,7 +38,8 @@ export default function NewUserForm({
       const patient: Patient = createNewPatient(
         uid,
         formData.name,
-        phoneNumber
+        phoneNumber,
+        formData.email
       );
 
       // Update with form data
@@ -60,6 +64,14 @@ export default function NewUserForm({
         label="Full Name"
         value={formData.name}
         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        required
+      />
+
+      <Input
+        label="Email Address"
+        type="email"
+        value={formData.email}
+        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         required
       />
 

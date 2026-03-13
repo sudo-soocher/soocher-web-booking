@@ -13,7 +13,7 @@ import {
 } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { FaArrowLeft, FaUser, FaSave } from "react-icons/fa";
+import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaCalendarAlt, FaVenusMars, FaMapMarkerAlt, FaAllergies, FaPills, FaNotesMedical } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Patient } from "@/types/patient";
 
@@ -49,7 +49,7 @@ export default function Profile() {
           setProfile(data);
           setFormData({
             name: data.name || "",
-            dob: new Date(data.dob).toISOString().split("T")[0],
+            dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
             gender: data.gender || "",
             currentState: data.currentState || "",
             currentCity: data.currentCity || "",
@@ -87,10 +87,9 @@ export default function Profile() {
       };
 
       await updateDoc(doc(db, "Users", auth.currentUser.uid), updatedData);
-      // Show success message or notification
+      // Optional: Add a success toast here
     } catch (error) {
       console.error("Error updating profile:", error);
-      // Show error message
     } finally {
       setSaving(false);
     }
@@ -98,161 +97,217 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <CardBody className="p-8">
-              <div className="space-y-6 animate-pulse">
-                <div className="h-32 w-32 rounded-full bg-gray-200 mx-auto" />
-                <div className="space-y-4">
-                  <div className="h-10 bg-gray-200 rounded" />
-                  <div className="h-10 bg-gray-200 rounded" />
-                  <div className="h-10 bg-gray-200 rounded" />
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <header className="px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
+              <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-3xl mx-auto px-6 py-12">
+          <div className="premium-card p-12 space-y-8 animate-pulse bg-slate-50 border-none">
+            <div className="w-32 h-32 rounded-[40px] bg-slate-200 mx-auto" />
+            <div className="space-y-6">
+              <div className="h-12 bg-slate-200 rounded-2xl w-full" />
+              <div className="h-12 bg-slate-200 rounded-2xl w-full" />
+              <div className="h-32 bg-slate-200 rounded-2xl w-full" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-8"
-        >
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <FaStethoscope className="text-white text-xl" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+          </div>
           <Button
-            variant="light"
-            startContent={<FaArrowLeft />}
+            variant="flat"
+            size="sm"
+            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+            startContent={<FaArrowLeft className="text-xs" />}
             onPress={() => router.back()}
           >
             Back
           </Button>
-          <h1 className="text-2xl font-bold">My Profile</h1>
-        </motion.div>
+        </nav>
+      </header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card>
-            <CardBody className="p-8">
-              <div className="flex flex-col items-center mb-8">
+      <main className="max-w-4xl mx-auto px-6 py-12 pb-24">
+        <div className="space-y-12">
+          {/* Page Heading */}
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+              Personal <span className="text-primary italic">Profile</span>
+            </h1>
+            <p className="text-slate-500 font-medium tracking-tight">Manage your medical identity and preferences.</p>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="premium-card p-8 md:p-12 border-none ring-1 ring-slate-100"
+          >
+            {/* Profile Header */}
+            <div className="flex flex-col items-center mb-12 space-y-4">
+              <div className="relative group">
                 <Avatar
-                  className="w-32 h-32 text-large mb-4"
+                  className="w-32 h-32 md:w-40 md:h-40 text-large rounded-[48px] shadow-2xl shadow-primary/10"
                   src={profile?.profileImage}
                   name={profile?.name}
                   showFallback
-                  isBordered
-                  color="primary"
+                  fallback={<FaUser className="text-4xl text-slate-300" />}
                 />
-                <h2 className="text-xl font-semibold">{profile?.name}</h2>
-                <p className="text-gray-600">
-                  {profile?.phoneNumber || auth.currentUser?.email}
+                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white cursor-pointer hover:scale-110 transition-transform">
+                  <span className="text-xs">Edit</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <h2 className="text-2xl font-black text-slate-900">{profile?.name || "Patient Name"}</h2>
+                <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest mt-1">
+                  ID: {auth.currentUser?.uid.slice(0, 8)}
                 </p>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  label="Full Name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-
-                <Input
-                  label="Date of Birth"
-                  type="date"
-                  value={formData.dob}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dob: e.target.value })
-                  }
-                />
-
-                <Select
-                  label="Gender"
-                  value={formData.gender}
-                  onChange={(e) =>
-                    setFormData({ ...formData, gender: e.target.value })
-                  }
-                >
-                  <SelectItem key="Male" value="Male">
-                    Male
-                  </SelectItem>
-                  <SelectItem key="Female" value="Female">
-                    Female
-                  </SelectItem>
-                  <SelectItem key="Other" value="Other">
-                    Other
-                  </SelectItem>
-                </Select>
-
-                <Input
-                  label="State"
-                  value={formData.currentState}
-                  onChange={(e) =>
-                    setFormData({ ...formData, currentState: e.target.value })
-                  }
-                />
-
-                <Input
-                  label="City"
-                  value={formData.currentCity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, currentCity: e.target.value })
-                  }
-                />
-
-                <Input
-                  label="Allergies"
-                  value={formData.allergies}
-                  onChange={(e) =>
-                    setFormData({ ...formData, allergies: e.target.value })
-                  }
-                />
-
-                <Input
-                  label="Regular Medications"
-                  value={formData.regularMedications}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      regularMedications: e.target.value,
-                    })
-                  }
-                />
-
-                <Input
-                  label="Medical Conditions"
-                  value={formData.medicalConditions}
-                  className="md:col-span-2"
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      medicalConditions: e.target.value,
-                    })
-                  }
-                />
+            {/* Form Sections */}
+            <div className="space-y-12">
+              <div className="space-y-6">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm">
+                    <FaUser />
+                  </span>
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Full Name"
+                    variant="bordered"
+                    radius="lg"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  />
+                  <Input
+                    label="Date of Birth"
+                    type="date"
+                    variant="bordered"
+                    radius="lg"
+                    value={formData.dob}
+                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  />
+                  <Select
+                    label="Gender"
+                    variant="bordered"
+                    radius="lg"
+                    selectedKeys={[formData.gender]}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    classNames={{ trigger: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  >
+                    <SelectItem key="Male" value="Male">Male</SelectItem>
+                    <SelectItem key="Female" value="Female">Female</SelectItem>
+                    <SelectItem key="Other" value="Other">Other</SelectItem>
+                  </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="State"
+                      variant="bordered"
+                      radius="lg"
+                      value={formData.currentState}
+                      onChange={(e) => setFormData({ ...formData, currentState: e.target.value })}
+                      classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    />
+                    <Input
+                      label="City"
+                      variant="bordered"
+                      radius="lg"
+                      value={formData.currentCity}
+                      onChange={(e) => setFormData({ ...formData, currentCity: e.target.value })}
+                      classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <Button
-                color="primary"
-                className="w-full mt-8"
-                startContent={<FaSave />}
-                isLoading={saving}
-                onPress={handleSave}
-              >
-                Save Changes
-              </Button>
-            </CardBody>
-          </Card>
-        </motion.div>
-      </div>
+              <div className="space-y-6">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-xl bg-success/10 text-success flex items-center justify-center text-sm">
+                    <FaNotesMedical />
+                  </span>
+                  Medical Profile
+                </h3>
+                <div className="grid grid-cols-1 gap-6">
+                  <Input
+                    label="Known Allergies"
+                    variant="bordered"
+                    radius="lg"
+                    value={formData.allergies}
+                    placeholder="e.g. Peanuts, Penicillin..."
+                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  />
+                  <Input
+                    label="Regular Medications"
+                    variant="bordered"
+                    radius="lg"
+                    value={formData.regularMedications}
+                    placeholder="e.g. Insulin, Aspirin..."
+                    onChange={(e) => setFormData({ ...formData, regularMedications: e.target.value })}
+                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  />
+                  <Input
+                    label="Medical Conditions"
+                    variant="bordered"
+                    radius="lg"
+                    value={formData.medicalConditions}
+                    placeholder="e.g. Diabetes, Hypertension..."
+                    className="md:col-span-2"
+                    onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
+                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-8">
+                <Button
+                  color="primary"
+                  size="lg"
+                  className="w-full h-16 rounded-2xl text-lg font-black shadow-xl shadow-primary/20"
+                  startContent={!saving && <FaSave className="opacity-60 text-sm" />}
+                  isLoading={saving}
+                  onPress={handleSave}
+                >
+                  {saving ? "Synthesizing Changes..." : "Enshrine Profile"}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </main>
+
+      <footer className="py-12 border-t border-slate-100 bg-white">
+        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 grayscale opacity-50">
+            <FaStethoscope className="text-primary text-xl" />
+            <span className="font-bold text-slate-900 tracking-tight text-lg">Soocher</span>
+          </div>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-loose text-right">
+            Your data is stored with <span className="text-success">AES-256</span> encryption
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

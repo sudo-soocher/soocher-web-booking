@@ -65,7 +65,7 @@ const faqs = [
     },
     {
         q: "Is my health data secure?",
-        a: "Absolutely. All data is encrypted and stored securely on Firebase. We never share your information with third parties.",
+        a: "Absolutely. All data is encrypted and stored securely. We never share your information with third parties.",
     },
 ];
 
@@ -126,347 +126,299 @@ export default function ContactPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
-            {/* Header */}
-            <header className="w-full p-4 bg-white shadow-md">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <button
-                        onClick={() => router.push("/")}
-                        className="flex items-center gap-2 text-primary font-semibold hover:opacity-80 transition-opacity"
-                    >
-                        <FaArrowLeft className="text-sm" />
-                        <span className="text-xl font-bold">Soocher</span>
-                    </button>
-                    <Chip
-                        startContent={<FaHeadset className="text-primary" />}
+        <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
+            {/* Navbar - Glass Effect */}
+            <header className="sticky top-0 z-40 w-full px-6 py-4">
+                <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                            <FaStethoscope className="text-white text-xl" />
+                        </div>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+                    </div>
+                    <Button
                         variant="flat"
-                        color="primary"
+                        size="sm"
+                        className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                        startContent={<FaArrowLeft className="text-xs" />}
+                        onPress={() => router.push("/")}
                     >
-                        24/7 Support
-                    </Chip>
-                </div>
+                        Back
+                    </Button>
+                </nav>
             </header>
 
-            {/* Hero */}
-            <div className="relative bg-primary/10 py-16 overflow-hidden">
-                {/* Decorative blobs */}
-                <div className="absolute -top-32 -right-32 w-96 h-96 bg-primary/5 rounded-full pointer-events-none" />
-                <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-primary/5 rounded-full pointer-events-none" />
+            {/* Hero Section */}
+            <section className="relative pt-12 pb-24 px-6 overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 opacity-10">
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-primary blur-[100px] rounded-full" />
+                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary blur-[100px] rounded-full" />
+                </div>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="relative max-w-7xl mx-auto px-4 text-center"
-                >
-                    <div className="flex justify-center mb-5">
-                        <motion.div
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                            className="p-4 bg-primary/20 rounded-full"
-                        >
-                            <FaHeadset className="text-4xl text-primary" />
-                        </motion.div>
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
-                        We're Here to Help
-                    </h1>
-                    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Have a question, feedback, or need support? Our team is just a
-                        message away.
-                    </p>
-                </motion.div>
-            </div>
+                <div className="max-w-4xl mx-auto text-center space-y-6 relative z-10">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="inline-flex p-4 bg-white rounded-[32px] shadow-xl shadow-primary/5 text-primary"
+                    >
+                        <FaHeadset className="text-4xl" />
+                    </motion.div>
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight"
+                    >
+                        How can we <span className="text-primary italic">help you?</span>
+                    </motion.h1>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed"
+                    >
+                        Whether you have a question about our services, need technical support, or just want to share feedback, we're here for you.
+                    </motion.p>
+                </div>
+            </section>
 
-            <main className="flex-1 py-14">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-                    {/* Contact Info Cards */}
+            <main className="flex-1 pb-24 px-6">
+                <div className="max-w-7xl mx-auto space-y-24">
+                    {/* Contact Channels */}
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
-                        animate="visible"
-                        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
                     >
                         {contactCards.map((card, idx) => (
-                            <motion.div key={idx} variants={itemVariants}>
-                                <Card
-                                    className={`bg-gradient-to-br ${card.color} border border-gray-100 hover:shadow-lg transition-shadow`}
-                                >
-                                    <CardBody className="flex flex-col items-center text-center py-8 gap-3">
-                                        <div className="p-3 bg-white/60 rounded-full shadow-sm">
-                                            <card.icon className={`text-2xl ${card.iconColor}`} />
-                                        </div>
-                                        <h3 className="font-bold text-gray-800 text-lg">
-                                            {card.title}
-                                        </h3>
-                                        <p className="font-semibold text-gray-700">{card.detail}</p>
-                                        <p className="text-sm text-gray-500">{card.sub}</p>
-                                    </CardBody>
-                                </Card>
+                            <motion.div key={idx} variants={itemVariants} className="premium-card p-10 flex flex-col items-center text-center space-y-6 border-none ring-1 ring-slate-100">
+                                <div className={`w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center text-2xl ${card.iconColor.replace('text-', 'text-opacity-80 text-')}`}>
+                                    <card.icon />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black text-slate-900">{card.title}</h3>
+                                    <p className="text-primary font-bold">{card.detail}</p>
+                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-widest leading-loose">
+                                        {card.sub}
+                                    </p>
+                                </div>
                             </motion.div>
                         ))}
                     </motion.div>
 
-                    {/* Main Content: Form + FAQ */}
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-
-                        {/* Contact Form */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
+                        {/* Form Section */}
                         <motion.div
                             initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="lg:col-span-3"
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="space-y-10"
                         >
-                            <Card className="shadow-md">
-                                <CardBody className="p-8">
-                                    <div className="flex items-center gap-3 mb-7">
-                                        <div className="p-2 bg-primary/10 rounded-full">
-                                            <FaPaperPlane className="text-primary text-lg" />
+                            <div className="space-y-4">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Drop us a line</h2>
+                                <p className="text-slate-500 font-medium">Rest assured, we read every single message.</p>
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                {submitted ? (
+                                    <motion.div
+                                        key="success"
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="premium-card p-12 text-center space-y-6"
+                                    >
+                                        <div className="w-20 h-20 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto text-4xl">
+                                            <FaCheckCircle />
                                         </div>
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-gray-900">
-                                                Send Us a Message
-                                            </h2>
-                                            <p className="text-sm text-gray-500">
-                                                Fill out the form and we'll get back to you shortly
-                                            </p>
+                                        <div className="space-y-2">
+                                            <h3 className="text-2xl font-black text-slate-900">Successfully Sent</h3>
+                                            <p className="text-slate-500 font-medium">Your message is on its way to our team. Expect a response soon!</p>
                                         </div>
-                                    </div>
-
-                                    <AnimatePresence mode="wait">
-                                        {submitted ? (
-                                            <motion.div
-                                                key="success"
-                                                initial={{ opacity: 0, scale: 0.9 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="flex flex-col items-center justify-center py-16 gap-5"
-                                            >
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    transition={{
-                                                        type: "spring",
-                                                        stiffness: 200,
-                                                        damping: 15,
-                                                    }}
-                                                >
-                                                    <FaCheckCircle className="text-6xl text-green-500" />
-                                                </motion.div>
-                                                <h3 className="text-2xl font-bold text-gray-800">
-                                                    Message Received!
-                                                </h3>
-                                                <p className="text-gray-500 text-center max-w-xs">
-                                                    Thank you for reaching out. We'll respond within 24
-                                                    hours.
-                                                </p>
-                                                <Button
-                                                    color="primary"
-                                                    variant="flat"
-                                                    onPress={() => {
-                                                        setSubmitted(false);
-                                                        setForm({
-                                                            name: "",
-                                                            email: "",
-                                                            phone: "",
-                                                            subject: "",
-                                                            message: "",
-                                                        });
-                                                    }}
-                                                >
-                                                    Send Another Message
-                                                </Button>
-                                            </motion.div>
-                                        ) : (
-                                            <motion.form
-                                                key="form"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                onSubmit={handleSubmit}
-                                                className="space-y-5"
-                                            >
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <Input
-                                                        label="Full Name"
-                                                        name="name"
-                                                        value={form.name}
-                                                        onChange={handleChange}
-                                                        isRequired
-                                                        isInvalid={!!errors.name}
-                                                        errorMessage={errors.name}
-                                                        startContent={
-                                                            <FaStethoscope className="text-gray-400 text-sm flex-shrink-0" />
-                                                        }
-                                                        placeholder="John Doe"
-                                                    />
-                                                    <Input
-                                                        label="Phone Number"
-                                                        name="phone"
-                                                        value={form.phone}
-                                                        onChange={handleChange}
-                                                        isRequired
-                                                        isInvalid={!!errors.phone}
-                                                        errorMessage={errors.phone}
-                                                        startContent={
-                                                            <FaPhone className="text-gray-400 text-sm flex-shrink-0" />
-                                                        }
-                                                        placeholder="+91 98765 43210"
-                                                    />
-                                                </div>
-
-                                                <Input
-                                                    label="Email Address"
-                                                    name="email"
-                                                    type="email"
-                                                    value={form.email}
-                                                    onChange={handleChange}
-                                                    isRequired
-                                                    isInvalid={!!errors.email}
-                                                    errorMessage={errors.email}
-                                                    startContent={
-                                                        <FaEnvelope className="text-gray-400 text-sm flex-shrink-0" />
-                                                    }
-                                                    placeholder="you@example.com"
-                                                />
-
-                                                <Input
-                                                    label="Subject"
-                                                    name="subject"
-                                                    value={form.subject}
-                                                    onChange={handleChange}
-                                                    isRequired
-                                                    isInvalid={!!errors.subject}
-                                                    errorMessage={errors.subject}
-                                                    placeholder="e.g. Booking issue, Refund request..."
-                                                />
-
-                                                <Textarea
-                                                    label="Message"
-                                                    name="message"
-                                                    value={form.message}
-                                                    onChange={handleChange}
-                                                    isRequired
-                                                    isInvalid={!!errors.message}
-                                                    errorMessage={errors.message}
-                                                    minRows={5}
-                                                    placeholder="Describe your issue or question in detail..."
-                                                />
-
-                                                <Button
-                                                    type="submit"
-                                                    color="primary"
-                                                    size="lg"
-                                                    className="w-full font-semibold"
-                                                    isLoading={submitting}
-                                                    startContent={
-                                                        !submitting && <FaPaperPlane className="text-sm" />
-                                                    }
-                                                >
-                                                    {submitting ? "Sending..." : "Send Message"}
-                                                </Button>
-                                            </motion.form>
-                                        )}
-                                    </AnimatePresence>
-                                </CardBody>
-                            </Card>
+                                        <Button
+                                            color="primary"
+                                            size="lg"
+                                            variant="flat"
+                                            className="rounded-full px-8 font-bold"
+                                            onPress={() => setSubmitted(false)}
+                                        >
+                                            Send Another
+                                        </Button>
+                                    </motion.div>
+                                ) : (
+                                    <motion.form
+                                        key="form"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        onSubmit={handleSubmit}
+                                        className="space-y-6"
+                                    >
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <Input
+                                                label="Full Name"
+                                                name="name"
+                                                variant="bordered"
+                                                radius="lg"
+                                                value={form.name}
+                                                onChange={handleChange}
+                                                isInvalid={!!errors.name}
+                                                errorMessage={errors.name}
+                                                classNames={{
+                                                    inputWrapper: "border-slate-200 hover:border-primary/50 focus-within:!border-primary",
+                                                    label: "font-bold text-slate-400"
+                                                }}
+                                            />
+                                            <Input
+                                                label="Phone"
+                                                name="phone"
+                                                variant="bordered"
+                                                radius="lg"
+                                                value={form.phone}
+                                                onChange={handleChange}
+                                                isInvalid={!!errors.phone}
+                                                errorMessage={errors.phone}
+                                                classNames={{
+                                                    inputWrapper: "border-slate-200 hover:border-primary/50 focus-within:!border-primary",
+                                                    label: "font-bold text-slate-400"
+                                                }}
+                                            />
+                                        </div>
+                                        <Input
+                                            label="Email Address"
+                                            name="email"
+                                            variant="bordered"
+                                            radius="lg"
+                                            value={form.email}
+                                            onChange={handleChange}
+                                            isInvalid={!!errors.email}
+                                            errorMessage={errors.email}
+                                            classNames={{
+                                                inputWrapper: "border-slate-200 hover:border-primary/50 focus-within:!border-primary",
+                                                label: "font-bold text-slate-400"
+                                            }}
+                                        />
+                                        <Input
+                                            label="Subject"
+                                            name="subject"
+                                            variant="bordered"
+                                            radius="lg"
+                                            value={form.subject}
+                                            onChange={handleChange}
+                                            isInvalid={!!errors.subject}
+                                            errorMessage={errors.subject}
+                                            classNames={{
+                                                inputWrapper: "border-slate-200 hover:border-primary/50 focus-within:!border-primary",
+                                                label: "font-bold text-slate-400"
+                                            }}
+                                        />
+                                        <Textarea
+                                            label="Your Message"
+                                            name="message"
+                                            variant="bordered"
+                                            radius="lg"
+                                            minRows={4}
+                                            value={form.message}
+                                            onChange={handleChange}
+                                            isInvalid={!!errors.message}
+                                            errorMessage={errors.message}
+                                            classNames={{
+                                                inputWrapper: "border-slate-200 hover:border-primary/50 focus-within:!border-primary",
+                                                label: "font-bold text-slate-400"
+                                            }}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            color="primary"
+                                            size="lg"
+                                            className="w-full rounded-2xl h-16 text-lg font-black shadow-xl shadow-primary/20"
+                                            isLoading={submitting}
+                                            startContent={!submitting && <FaPaperPlane className="text-sm opacity-60" />}
+                                        >
+                                            Release Message
+                                        </Button>
+                                    </motion.form>
+                                )}
+                            </AnimatePresence>
                         </motion.div>
 
-                        {/* FAQ */}
+                        {/* FAQ Section */}
                         <motion.div
                             initial={{ opacity: 0, x: 30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
-                            className="lg:col-span-2 flex flex-col gap-6"
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="space-y-10"
                         >
-                            {/* Response time badge */}
-                            <Card className="bg-primary text-white shadow-md">
-                                <CardBody className="flex flex-row items-center gap-4 p-5">
-                                    <div className="p-3 bg-white/20 rounded-full">
-                                        <FaClock className="text-2xl text-white" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-lg">Avg. Response Time</p>
-                                        <p className="text-primary-100 text-sm">
-                                            Under 4 hours on business days
-                                        </p>
-                                    </div>
-                                </CardBody>
-                            </Card>
+                            <div className="space-y-4">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Quick answers</h2>
+                                <p className="text-slate-500 font-medium">Common questions that might solve your query instantly.</p>
+                            </div>
 
-                            {/* FAQ Accordion */}
-                            <Card className="shadow-md">
-                                <CardBody className="p-6">
-                                    <h2 className="text-xl font-bold text-gray-900 mb-5">
-                                        Frequently Asked Questions
-                                    </h2>
-                                    <div className="space-y-3">
-                                        {faqs.map((faq, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="border border-gray-100 rounded-xl overflow-hidden"
+                            <div className="space-y-4">
+                                {faqs.map((faq, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="premium-card p-2 border-none ring-1 ring-slate-100 overflow-hidden"
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
+                                            className="w-full flex items-center justify-between p-6 text-left"
+                                        >
+                                            <span className="font-bold text-slate-700">{faq.q}</span>
+                                            <motion.div
+                                                animate={{
+                                                    rotate: expandedFaq === idx ? 180 : 0,
+                                                    color: expandedFaq === idx ? "#2e6dd4" : "#94a3b8"
+                                                }}
+                                                className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center"
                                             >
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setExpandedFaq(expandedFaq === idx ? null : idx)
-                                                    }
-                                                    className="w-full flex items-center justify-between p-4 text-left gap-2 hover:bg-gray-50 transition-colors"
+                                                <span className="text-xs font-black">↓</span>
+                                            </motion.div>
+                                        </button>
+                                        <AnimatePresence>
+                                            {expandedFaq === idx && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: "auto", opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    className="px-6 pb-6"
                                                 >
-                                                    <span className="font-semibold text-gray-800 text-sm">
-                                                        {faq.q}
-                                                    </span>
-                                                    <motion.span
-                                                        animate={{ rotate: expandedFaq === idx ? 180 : 0 }}
-                                                        transition={{ duration: 0.2 }}
-                                                        className="text-primary text-lg flex-shrink-0"
-                                                    >
-                                                        ▾
-                                                    </motion.span>
-                                                </button>
-                                                <AnimatePresence>
-                                                    {expandedFaq === idx && (
-                                                        <motion.div
-                                                            initial={{ height: 0, opacity: 0 }}
-                                                            animate={{ height: "auto", opacity: 1 }}
-                                                            exit={{ height: 0, opacity: 0 }}
-                                                            transition={{ duration: 0.25 }}
-                                                            className="overflow-hidden"
-                                                        >
-                                                            <p className="px-4 pb-4 text-sm text-gray-600 leading-relaxed">
-                                                                {faq.a}
-                                                            </p>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        ))}
+                                                    <p className="text-slate-500 font-medium leading-relaxed">
+                                                        {faq.a}
+                                                    </p>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                </CardBody>
-                            </Card>
+                                ))}
+                            </div>
+
+                            <div className="p-8 bg-primary rounded-[32px] text-white space-y-4 shadow-2xl shadow-primary/20">
+                                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-xl">
+                                    <FaClock />
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="font-black text-xl tracking-tight">Rapid Response</h4>
+                                    <p className="text-white/80 text-sm font-medium">Our average response time is under 4 hours on business days.</p>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 </div>
             </main>
 
-            {/* Footer */}
-            <footer className="bg-white border-t py-8 mt-4">
-                <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-gray-500 text-sm">
-                        © {new Date().getFullYear()} Soocher. All rights reserved.
+            <footer className="py-12 border-t border-slate-100 bg-white">
+                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-2 grayscale opacity-50">
+                        <FaStethoscope className="text-primary" />
+                        <span className="font-bold text-slate-900 tracking-tight text-lg">Soocher</span>
+                    </div>
+                    <p className="text-slate-400 text-sm font-medium">
+                        © {new Date().getFullYear()} Soocher. All rights reserved. Built with elegance.
                     </p>
-                    <div className="flex gap-4 text-sm text-gray-400">
-                        <button
-                            onClick={() => router.push("/")}
-                            className="hover:text-primary transition-colors"
-                        >
-                            Home
-                        </button>
-                        <button
-                            onClick={() => router.push("/bookings")}
-                            className="hover:text-primary transition-colors"
-                        >
-                            My Bookings
-                        </button>
+                    <div className="flex gap-8 text-sm font-bold text-slate-400">
+                        <button onClick={() => router.push("/")} className="hover:text-primary transition-colors">Home</button>
+                        <button onClick={() => router.push("/bookings")} className="hover:text-primary transition-colors">My Bookings</button>
                     </div>
                 </div>
             </footer>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Card, CardBody, Image, Avatar, Skeleton } from "@nextui-org/react";
+import { Card, CardBody, Image, Avatar, Skeleton, Button, Chip } from "@nextui-org/react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import {
@@ -13,6 +13,7 @@ import {
   FaUserMd,
   FaStethoscope,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 interface Doctor {
   id: string;
@@ -108,105 +109,114 @@ export default function SpecialityPage() {
   };
 
   if (loading) {
-    return <LoadingSkeleton />;
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <header className="px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+            <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
+            <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="premium-card h-48 animate-pulse bg-slate-50 border-none" />
+          ))}
+        </main>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Hero Section */}
-      <div className="relative bg-primary/10 py-20">
-        <div className="absolute top-4 left-4 md:left-8">
-          <h1
-            className="text-2xl font-bold text-primary cursor-pointer"
-            onClick={() => router.push("/")}
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <FaStethoscope className="text-white text-xl" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+          </div>
+          <Button
+            variant="flat"
+            size="sm"
+            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+            startContent={<FaArrowLeft className="text-xs" />}
+            onPress={() => router.push("/")}
           >
-            Soocher
-          </h1>
-        </div>
+            Back
+          </Button>
+        </nav>
+      </header>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="p-4 bg-primary/20 rounded-full">
-                <FaStethoscope className="text-4xl text-primary" />
-              </div>
+      {/* Hero Section */}
+      <div className="relative overflow-hidden py-24">
+        <div className="absolute inset-0 bg-[#F8FAFC]" />
+        <div className="absolute top-0 right-0 w-[50%] h-[100%] bg-primary/5 rounded-l-[100px] -z-10 blur-3xl opacity-50" />
+        <div className="max-w-7xl mx-auto px-6 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6 max-w-3xl"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary font-black text-[10px] uppercase tracking-widest">
+              <FaStethoscope className="text-sm" />
+              Speciality Center
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
-              {capitalizeFirstLetter(getDecodedSpeciality())}
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 leading-tight tracking-tight">
+              Top tier <br />
+              <span className="text-primary italic">{capitalizeFirstLetter(getDecodedSpeciality())}</span> Specialists.
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Find the best {getDecodedSpeciality()} specialists for your health
-              needs
+            <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-xl">
+              Connect with the most prestigious {getDecodedSpeciality().toLowerCase()} specialists, verified for excellence and patient care.
             </p>
-          </div>
-        </div>
-        {/* Decorative Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-32 w-96 h-96 bg-primary/5 rounded-full"></div>
-          <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-primary/5 rounded-full"></div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="bg-white py-12 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-primary mb-2">
-                {localDoctors.length + otherDoctors.length}
-              </div>
-              <div className="text-gray-600">Available Doctors</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-primary mb-2">
-                {getDecodedSpeciality().toLowerCase().includes("psycho")
-                  ? "50 mins"
-                  : "15 mins"}
-              </div>
-              <div className="text-gray-600">Consultation Duration</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-primary mb-2">24/7</div>
-              <div className="text-gray-600">Available Support</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-primary mb-2">100%</div>
-              <div className="text-gray-600">Verified Doctors</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Doctors Section */}
-      <main className="flex-1 bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Doctors List */}
+      <main className="max-w-7xl mx-auto px-6 pb-24">
+        <div className="space-y-16">
           {cityParam && localDoctors.length > 0 && (
-            <>
-              <h2 className="text-2xl font-bold mb-8">
-                {capitalizeFirstLetter(getDecodedSpeciality())} Specialists in{" "}
-                {capitalizeFirstLetter(cityParam)}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div className="space-y-8">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Specialists in <span className="text-primary">{capitalizeFirstLetter(cityParam)}</span>
+                </h2>
+                <div className="h-px flex-1 bg-slate-100" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {localDoctors.map((doctor) => (
                   <DoctorCard key={doctor.id} doctor={doctor} router={router} />
                 ))}
               </div>
-            </>
+            </div>
           )}
 
-          <h2 className="text-2xl font-bold mb-8">
-            {cityParam
-              ? `Other Available ${capitalizeFirstLetter(
-                  getDecodedSpeciality()
-                )} Specialists`
-              : `Available ${capitalizeFirstLetter(
-                  getDecodedSpeciality()
-                )} Specialists`}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {otherDoctors.map((doctor) => (
-              <DoctorCard key={doctor.id} doctor={doctor} router={router} />
-            ))}
+          <div className="space-y-8">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                {cityParam ? "Other Available Specialists" : `All ${capitalizeFirstLetter(getDecodedSpeciality())} Specialists`}
+              </h2>
+              <div className="h-px flex-1 bg-slate-100" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {otherDoctors.map((doctor) => (
+                <DoctorCard key={doctor.id} doctor={doctor} router={router} />
+              ))}
+            </div>
+
+            {localDoctors.length === 0 && otherDoctors.length === 0 && (
+              <div className="py-24 text-center space-y-4 bg-slate-50 rounded-[40px]">
+                <div className="w-20 h-20 bg-slate-100 rounded-[32px] flex items-center justify-center text-slate-300 text-3xl mx-auto">
+                  <FaUserMd />
+                </div>
+                <div>
+                  <p className="text-xl font-black text-slate-900">No specialists found</p>
+                  <p className="text-slate-400 font-medium">Try another speciality or location.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -214,91 +224,73 @@ export default function SpecialityPage() {
   );
 }
 
-const LoadingSkeleton = () => (
-  <div className="min-h-screen p-8">
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <Card key={i} className="w-full">
-          <CardBody className="p-4">
-            <div className="flex items-start gap-4">
-              <Skeleton className="rounded-xl w-24 h-24" />
-              <div className="flex-1 space-y-3">
-                <Skeleton className="h-6 w-3/4 rounded-lg" />
-                <Skeleton className="h-4 w-1/2 rounded-lg" />
-                <Skeleton className="h-4 w-2/3 rounded-lg" />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      ))}
-    </div>
-  </div>
-);
-
 const DoctorCard = ({ doctor, router }: { doctor: Doctor; router: any }) => (
-  <Card
-    isPressable
-    isHoverable
-    className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-    onPress={() => router.push(`/doctor/${doctor.id}`)}
+  <motion.div
+    whileHover={{ y: -8 }}
+    transition={{ duration: 0.3 }}
   >
-    <CardBody className="p-4">
-      <div className="flex items-start gap-4">
-        <div className="relative z-0">
+    <div
+      onClick={() => router.push(`/doctor/${doctor.id}`)}
+      className="premium-card p-6 group cursor-pointer border-none ring-1 ring-slate-100 hover:ring-primary/20 transition-all"
+    >
+      <div className="flex items-start gap-6">
+        <div className="relative">
           {doctor.profileImage ? (
             <Image
               src={doctor.profileImage}
               alt={doctor.name}
-              className="w-24 h-24 rounded-xl object-cover shadow-md"
+              className="w-24 h-24 rounded-[24px] object-cover shadow-xl group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <Avatar
-              name={doctor.name}
-              className="w-24 h-24 text-large rounded-xl shadow-md bg-primary/10"
-              classNames={{
-                name: "text-xl font-semibold",
-              }}
-            />
+            <div className="w-24 h-24 rounded-[24px] bg-primary/5 flex items-center justify-center text-primary text-3xl">
+              <FaUserMd />
+            </div>
           )}
-          <div className="absolute -bottom-3 -right-3 bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
-            ₹
-            {doctor.consultationFees ? Number(doctor.consultationFees) + 50 : 0}
+          <div className="absolute -bottom-2 -right-2 bg-white text-primary px-3 py-1 rounded-full text-xs font-black shadow-lg border border-slate-50">
+            ₹{doctor.consultationFees ? Number(doctor.consultationFees) + 50 : 0}
           </div>
         </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-lg text-black/90">
-            {doctor.specialization?.toLowerCase().includes("psycho")
-              ? doctor.name
-              : `Dr. ${doctor.name}`}
-          </h3>
-          <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-            <FaStar className="text-yellow-400" />
-            <span>{doctor.averageRating.toFixed(1)}</span>
-            <span className="mx-2">•</span>
-            <span>{doctor.numExp} years exp.</span>
+
+        <div className="flex-1 space-y-3">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
+              {doctor.specialization?.toLowerCase().includes("psycho")
+                ? doctor.name
+                : `Dr. ${doctor.name}`}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
+                <FaStar className="text-amber-500 text-[10px]" />
+                <span className="text-[10px] font-black text-amber-700">{doctor.averageRating.toFixed(1)}</span>
+              </div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-loose">
+                {doctor.numExp} Years Experience
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-            <FaMapMarkerAlt className="text-gray-400" />
-            <span>
+
+          <div className="flex items-center gap-2 text-slate-400">
+            <FaMapMarkerAlt className="text-xs" />
+            <span className="text-xs font-bold truncate">
               {doctor.currentCity}, {doctor.currentState}
             </span>
           </div>
-          <div className="flex flex-wrap gap-1 mt-2">
+
+          <div className="flex flex-wrap gap-2 pt-1">
             {(doctor.knownLanguages?.length
               ? doctor.knownLanguages.slice(0, 2)
               : ["English"]
             ).map((language, idx) => (
-              <div
+              <span
                 key={idx}
-                className="flex items-center gap-1 text-sm text-gray-600"
+                className="px-3 py-1 bg-slate-50 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest"
               >
-                <FaLanguage className="text-gray-400" />
-                <span>{language}</span>
-              </div>
+                {language}
+              </span>
             ))}
           </div>
         </div>
       </div>
-    </CardBody>
-  </Card>
+    </div>
+  </motion.div>
 );

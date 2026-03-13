@@ -28,6 +28,7 @@ import {
   ModalHeader,
   ModalBody,
   useDisclosure,
+  Spinner,
 } from "@nextui-org/react";
 import {
   FaStar,
@@ -37,7 +38,10 @@ import {
   FaUserMd,
   FaArrowLeft,
   FaClock,
+  FaStethoscope,
 } from "react-icons/fa";
+
+import { motion } from "framer-motion";
 
 import { initializeRazorpay } from "@/services/payment";
 import { createNewConsultation } from "@/types/consultation";
@@ -62,6 +66,7 @@ interface Doctor {
   knownLanguages: string[];
   isAccountVerified: boolean;
   specialization: string;
+  email?: string;
   slotDuration?: number;
   timeSlots?: {
     [key: string]: {
@@ -103,6 +108,9 @@ export default function DoctorDetails() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
+  const [isBookingProcessing, setIsBookingProcessing] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   // Function to get current day name
   const getCurrentDay = () => {
@@ -416,7 +424,16 @@ export default function DoctorDetails() {
       onOpen();
     } else {
       // Existing user - proceed to payment
-      await handlePayment(userDoc.data());
+      const userData = userDoc.data();
+      // If email is missing in Firestore but present in Auth, update it
+      if (!userData.email && auth.currentUser?.email) {
+        const { updateDoc } = await import("firebase/firestore");
+        await updateDoc(doc(db, "Users", auth.currentUser.uid), {
+          email: auth.currentUser.email
+        });
+        userData.email = auth.currentUser.email;
+      }
+      await handlePayment(userData);
     }
   };
 
@@ -436,31 +453,10 @@ export default function DoctorDetails() {
 
       // Create consultation document
       const consultationId = crypto.randomUUID();
-      // Create a meeting room for video consultation
-      const createMeetingRoom = async () => {
-        try {
-          const response = await fetch('https://api.videosdk.live/v2/rooms', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `${process.env.NEXT_PUBLIC_VIDEOSDK_API_KEY}`
-            }
-          });
 
-          if (!response.ok) {
-            throw new Error('Failed to create meeting room');
-          }
+      // Use consultationId as the meetingRoomId placeholder (Meet link will be added later by scheduler)
+      const meetingRoomId = consultationId;
 
-          const roomData = await response.json();
-          return roomData.roomId;
-        } catch (error) {
-          console.error('Error creating meeting room:', error);
-          return null;
-        }
-      };
-
-      // Get meeting room ID for the consultation
-      const meetingRoomId = await createMeetingRoom();
       const consultation = createNewConsultation(
         consultationId,
         userData.name,
@@ -486,13 +482,25 @@ export default function DoctorDetails() {
         patientName: userData.name,
         consultationId,
         onSuccess: async (response) => {
+          setIsBookingProcessing(true);
+          setBookingStatus("Verifying payment and securing your slot...");
+
           // 1. Save the consultation to Firestore (existing logic unchanged)
-          await saveConsultation(consultation, response);
+          try {
+            await saveConsultation(consultation, response);
+          } catch (error) {
+            console.error("Save consultation failed:", error);
+            setError("Payment received but failed to save booking. Please contact support.");
+            setIsBookingProcessing(false);
+            return;
+          }
 
           // 2. Create a Google Meet link for the consultation
+          setBookingStatus("Scheduling your Google Meet session...");
           let meetLink: string | null = null;
           try {
-            const meetResponse = await fetch("/api/create-meet-link", {
+            console.log(">>> [FRONTEND] Triggering meet schedule API...");
+            const meetResponse = await fetch("/api/schedule-meet", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -500,11 +508,8 @@ export default function DoctorDetails() {
                 consultationTime,
                 doctorName: doctor!.name,
                 patientName: userData.name,
-                durationMinutes: doctor!.specialization
-                  ?.toLowerCase()
-                  .includes("psycho")
-                  ? 50
-                  : 15,
+                patientEmail: userData.email || auth.currentUser?.email || "",
+                specialization: doctor!.specialization || "",
               }),
             });
             if (meetResponse.ok) {
@@ -529,33 +534,12 @@ export default function DoctorDetails() {
             );
           }
 
-          // 4. Fetch patient FCM token and send push notification
-          try {
-            const userDocSnap = await getDoc(
-              doc(db, "Users", userData.uid)
-            );
-            const fcmToken = userDocSnap.data()?.fcmToken || null;
-
-            await fetch("/api/send-booking-notification", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                fcmToken,
-                patientName: userData.name,
-                doctorName: doctor!.name,
-                consultationTime,
-                meetLink,
-              }),
-            });
-          } catch (fcmError) {
-            console.error(
-              "FCM notification failed (non-fatal):",
-              fcmError
-            );
-          }
-
-          // 5. Navigate to booking complete page
-          router.push(`/booking-complete/${consultationId}`);
+          // Complete booking - external service handles notifications
+          setBookingStatus("Booking confirmed! Redirecting...");
+          setTimeout(() => {
+            setIsBookingProcessing(false);
+            router.push(`/booking-complete/${consultationId}`);
+          }, 1500);
         },
         onFailure: (error) => {
           console.error("Payment failed:", error);
@@ -607,153 +591,188 @@ export default function DoctorDetails() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-8">
-        <Card className="w-full">
-          <CardBody className="p-6">
-            <div className="flex flex-col md:flex-row gap-6">
-              <Skeleton className="rounded-xl w-48 h-48" />
-              <div className="flex-1 space-y-4">
-                <Skeleton className="h-8 w-1/3 rounded-lg" />
-                <Skeleton className="h-4 w-1/4 rounded-lg" />
-                <Skeleton className="h-4 w-2/3 rounded-lg" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-8 w-24 rounded-full" />
-                  <Skeleton className="h-8 w-24 rounded-full" />
-                </div>
-              </div>
+      <div className="min-h-screen bg-[#F8FAFC] p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <Skeleton className="h-10 w-24 rounded-full" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <Card className="premium-card">
+                <CardBody className="p-8">
+                  <div className="flex flex-col md:flex-row gap-8">
+                    <Skeleton className="rounded-[32px] w-48 h-48" />
+                    <div className="flex-1 space-y-4">
+                      <Skeleton className="h-10 w-1/2 rounded-xl" />
+                      <Skeleton className="h-6 w-1/3 rounded-lg" />
+                      <Skeleton className="h-20 w-full rounded-2xl" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
             </div>
-          </CardBody>
-        </Card>
+            <div className="lg:col-span-1">
+              <Skeleton className="h-[500px] w-full rounded-[32px]" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!doctor) {
-    return <div>Doctor not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-slate-800">Doctor not found</h1>
+          <Button color="primary" variant="flat" onPress={() => router.push("/")}>
+            Go Back Home
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full p-4 md:p-8">
-      <div className="max-w-[1920px] mx-auto">
-        <Button
-          className="mb-4"
-          variant="light"
-          startContent={<FaArrowLeft />}
-          onPress={() => router.back()}
-        >
-          Back
-        </Button>
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Navbar Container */}
+      <header className="w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <FaStethoscope className="text-white text-xl" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+          </div>
+          <Button
+            variant="flat"
+            size="sm"
+            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+            startContent={<FaArrowLeft className="text-xs" />}
+            onPress={() => router.back()}
+          >
+            Back
+          </Button>
+        </nav>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Doctor Info Card */}
-          <div className="lg:col-span-2">
-            <Card className="w-full">
-              <CardBody className="p-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Doctor Image Section */}
-                  <div className="relative">
-                    {doctor.profileImage ? (
-                      <Image
-                        src={doctor.profileImage}
-                        alt={doctor.name}
-                        className="w-48 h-48 rounded-xl object-cover shadow-md"
-                      />
-                    ) : (
-                      <Avatar
-                        name={doctor.name}
-                        className="w-48 h-48 text-large rounded-xl shadow-md bg-primary/10"
-                        classNames={{
-                          name: "text-2xl font-semibold",
-                        }}
-                      />
-                    )}
+      <div className="max-w-7xl mx-auto px-6 py-8 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Main Info Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="premium-card overflow-hidden">
+              <CardBody className="p-0">
+                <div className="h-32 bg-gradient-to-tr from-primary to-primary-600 opacity-90" />
+                <div className="px-8 pb-8">
+                  <div className="flex flex-col md:flex-row gap-8 -mt-12 items-end md:items-center">
+                    <div className="relative">
+                      {doctor.profileImage ? (
+                        <Image
+                          src={doctor.profileImage}
+                          alt={doctor.name}
+                          className="w-40 h-40 rounded-[32px] object-cover ring-8 ring-white shadow-xl"
+                        />
+                      ) : (
+                        <Avatar
+                          name={doctor.name}
+                          className="w-40 h-40 text-4xl font-bold rounded-[32px] ring-8 ring-white shadow-xl bg-primary/10 text-primary"
+                        />
+                      )}
+                      <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2 pt-12 md:pt-0">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                          {doctor.specialization?.toLowerCase().includes("psycho")
+                            ? doctor.name
+                            : `Dr. ${doctor.name}`}
+                        </h1>
+                        <Chip size="sm" color="success" variant="flat" className="bg-success-50 text-success-600 font-bold border-none">
+                          Verified Specialist
+                        </Chip>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-slate-500 font-medium">
+                        <div className="flex items-center gap-2">
+                          <FaUserMd className="text-primary/70" />
+                          <span>{doctor.specialization}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <FaStar className="text-amber-400" />
+                          <span className="text-slate-900 font-bold">{doctor.averageRating.toFixed(1)}</span>
+                          <span className="text-slate-400">Rating</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <FaClock className="text-primary/70" />
+                          <span>{doctor.numExp} Years Experience</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Doctor Info Section */}
-                  <div className="flex-1">
-                    <h1 className="text-2xl font-bold mb-2">
-                      {doctor.specialization?.toLowerCase().includes("psycho")
-                        ? doctor.name
-                        : `Dr. ${doctor.name}`}
-                    </h1>
+                  <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-6">
+                      <div className="space-y-3">
+                        <h2 className="text-lg font-bold text-slate-900">Professional Bio</h2>
+                        <p className="text-slate-600 leading-relaxed">
+                          {doctor.aboutMe || "A highly dedicated and experienced medical professional committed to providing exceptional healthcare and personalized treatment plans for every patient."}
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-2 text-gray-600 mb-4">
-                      <FaUserMd className="text-primary" />
-                      <span>{doctor.specialization}</span>
-                      <span className="mx-2">•</span>
-                      <FaStar className="text-yellow-400" />
-                      <span>{doctor.averageRating.toFixed(1)}</span>
-                      <span className="mx-2">•</span>
-                      <span>{doctor.numExp} years exp.</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-gray-600 mb-4">
-                      <FaHospital className="text-gray-400" />
-                      <span>{doctor.worksAt}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-gray-600 mb-4">
-                      <FaMapMarkerAlt className="text-gray-400" />
-                      <span>
-                        {doctor.currentCity}, {doctor.currentState}
-                      </span>
-                    </div>
-
-                    <Divider className="my-4" />
-
-                    <div className="mb-4">
-                      <h2 className="font-semibold mb-2">About</h2>
-                      <p className="text-gray-600">{doctor.aboutMe}</p>
-                    </div>
-
-                    <div className="mb-4">
-                      <h2 className="font-semibold mb-2">Languages</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {(doctor.knownLanguages?.length
-                          ? doctor.knownLanguages
-                          : ["English"]
-                        ).map((language, idx) => (
-                          <Chip
-                            key={idx}
-                            startContent={
-                              <FaLanguage className="text-gray-400" />
-                            }
-                          >
-                            {language}
-                          </Chip>
-                        ))}
+                      <div className="space-y-3">
+                        <h2 className="text-lg font-bold text-slate-900">Practice Details</h2>
+                        <div className="space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                          <div className="flex items-center gap-4 text-slate-700">
+                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
+                              <FaHospital />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 font-bold uppercase">Clinic/Hospital</p>
+                              <p className="font-semibold">{doctor.worksAt || "Private Practice"}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-slate-700">
+                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
+                              <FaMapMarkerAlt />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 font-bold uppercase">Location</p>
+                              <p className="font-semibold">{doctor.currentCity}, {doctor.currentState}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                      <Card>
-                        <CardBody className="text-center">
-                          <p className="text-sm text-gray-600">
-                            Online Consultations
-                          </p>
-                          <p className="text-xl font-bold">
-                            {doctor.numOnline}
-                          </p>
-                        </CardBody>
-                      </Card>
-                      <Card>
-                        <CardBody className="text-center">
-                          <p className="text-sm text-gray-600">
-                            Offline Consultations
-                          </p>
-                          <p className="text-xl font-bold">
-                            {doctor.numOffline}
-                          </p>
-                        </CardBody>
-                      </Card>
-                      <Card>
-                        <CardBody className="text-center">
-                          <p className="text-sm text-gray-600">
-                            Years of Experience
-                          </p>
-                          <p className="text-xl font-bold">{doctor.numExp}</p>
-                        </CardBody>
-                      </Card>
+                    <div className="space-y-8">
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-bold text-slate-900">Patient Communication</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {(doctor.knownLanguages?.length ? doctor.knownLanguages : ["English", "Hindi"]).map((language, idx) => (
+                            <Chip
+                              key={idx}
+                              variant="flat"
+                              className="bg-primary/5 text-primary border-none px-4 font-semibold"
+                              startContent={<FaLanguage className="text-xs opacity-60" />}
+                            >
+                              {language}
+                            </Chip>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-bold text-slate-900">Analytics Overview</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                            <p className="text-2xl font-black text-primary">{doctor.numOnline || 0}+</p>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Online Consul</p>
+                          </div>
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                            <p className="text-2xl font-black text-slate-800">{String(doctor.numExp).padStart(2, '0')}</p>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Years Active</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -761,112 +780,112 @@ export default function DoctorDetails() {
             </Card>
           </div>
 
-          {/* Booking Card */}
-          <div className="lg:col-span-1">
-            <Card className="w-full sticky top-4">
-              <CardBody className="p-6">
-                <h2 className="text-xl font-bold mb-6">Book Consultation</h2>
+          {/* Booking Column */}
+          <div className="lg:col-span-1 border-none">
+            <Card className="premium-card sticky top-32 overflow-hidden border-2 border-primary/10">
+              <CardBody className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Book Now</h2>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Consultation Fee</p>
+                    <p className="text-2xl font-black text-primary">₹{doctor?.consultationFees ? Number(doctor.consultationFees) + 50 : 0}</p>
+                  </div>
+                </div>
 
-                {/* Day Selection */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold mb-2">Select Day</h3>
-                  {getAvailableDays().length > 0 ? (
-                    <Tabs
-                      selectedKey={selectedDay}
-                      onSelectionChange={(key) => {
-                        setSelectedDay(key as string);
-                        setSelectedSlot(""); // Reset selected slot when day changes
-                      }}
-                      className="w-full"
-                      variant="bordered"
+                <div className="space-y-8">
+                  {/* Day Selection */}
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">1. Select Appointment Date</label>
+                    {getAvailableDays().length > 0 ? (
+                      <Tabs
+                        selectedKey={selectedDay}
+                        onSelectionChange={(key) => {
+                          setSelectedDay(key as string);
+                          setSelectedSlot("");
+                        }}
+                        className="w-full"
+                        variant="underlined"
+                        classNames={{
+                          tabList: "gap-6 w-full relative rounded-none p-0 border-b border-divider",
+                          cursor: "w-full bg-primary",
+                          tab: "max-w-fit px-0 h-12",
+                          tabContent: "group-data-[selected=true]:text-primary font-bold text-sm"
+                        }}
+                      >
+                        {getAvailableDays().map((day) => (
+                          <Tab key={day} title={formatDayLabel(day)} />
+                        ))}
+                      </Tabs>
+                    ) : (
+                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                        <p className="text-amber-700 text-xs font-medium">No booking slots currently configured.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Time Slots */}
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">2. Select Preferred Time</label>
+                    {selectedDay && (
+                      <div className="grid grid-cols-2 gap-3 max-h-[300px] pr-2 overflow-y-auto custom-scrollbar">
+                        {filteredSlots.length > 0 ? (
+                          filteredSlots.map((slot, index) => {
+                            const isBooked = slot.isBooked;
+                            const isSelected = selectedSlot === slot.time;
+                            return (
+                              <button
+                                key={index}
+                                disabled={isBooked}
+                                onClick={() => !isBooked && setSelectedSlot(slot.time)}
+                                className={`
+                                  flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-200
+                                  ${isBooked ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100' :
+                                    isSelected ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' :
+                                      'bg-white border-slate-100 hover:border-primary/30 text-slate-600'}
+                                `}
+                              >
+                                <span className={`text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>Session</span>
+                                <span className="text-sm font-black">{slot.time.split(' - ')[0]}</span>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="col-span-2 py-12 text-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
+                            <FaClock className="mx-auto text-3xl text-slate-300 mb-3" />
+                            <p className="text-slate-400 text-sm font-medium">No available slots</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Book Button */}
+                  <div className="pt-4">
+                    <Button
+                      color="primary"
+                      className="w-full rounded-[24px] h-16 text-lg font-black shadow-[0_20px_40px_rgba(46,109,212,0.3)] disabled:opacity-50 disabled:shadow-none"
+                      isDisabled={!selectedSlot}
+                      onPress={handleBookingClick}
                     >
-                      {getAvailableDays().map((day) => (
-                        <Tab key={day} title={formatDayLabel(day)} />
-                      ))}
-                    </Tabs>
-                  ) : (
-                    <p className="text-gray-500 text-sm">No consultation days configured for this doctor.</p>
-                  )}
-                </div>
-
-                {/* Time Slots */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold mb-2">
-                    Available Slots
-                  </h3>
-                  {selectedDay && (
-                    <div className="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto">
-                      {filteredSlots.length > 0 ? (
-                        filteredSlots.map((slot, index) => {
-                          const isBooked = slot.bookingDate
-                            ? slot.bookingDate > Date.now()
-                            : false;
-                          return (
-                            <Button
-                              key={index}
-                              size="sm"
-                              variant={
-                                selectedSlot === slot.time
-                                  ? "solid"
-                                  : "bordered"
-                              }
-                              color={isBooked ? "default" : "primary"}
-                              onPress={() =>
-                                !isBooked && setSelectedSlot(slot.time)
-                              }
-                              startContent={<FaClock className="text-xs" />}
-                              className="justify-start"
-                              isDisabled={isBooked}
-                            >
-                              <div className="flex justify-between items-center w-full">
-                                <span>{slot.time}</span>
-                                {isBooked && (
-                                  <span className="text-xs text-gray-500">
-                                    Booked
-                                  </span>
-                                )}
-                              </div>
-                            </Button>
-                          );
-                        })
-                      ) : (
-                        <p className="text-gray-500 col-span-2 text-center py-4">
-                          No slots available for this day
-                        </p>
-                      )}
+                      Process Booking
+                    </Button>
+                    <div className="mt-6 space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] text-slate-400 font-bold flex items-center justify-between">
+                        <span>CONSULTATION PERIOD</span>
+                        <span className="text-slate-600 uppercase">
+                          {doctor.specialization?.toLowerCase().includes("psycho") ? "50 MINUTES" : "15 MINUTES"}
+                        </span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold flex items-center justify-between">
+                        <span>CANCELLATION POLICY</span>
+                        <span className="text-green-600 uppercase">FREE CANCELLATION</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold flex items-center justify-between">
+                        <span>CONFIRMATION</span>
+                        <span className="text-slate-600 uppercase">INSTANT VIA SMS</span>
+                      </p>
                     </div>
-                  )}
-                  {selectedDay === getCurrentDay() && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      * Showing slots available after current time
-                    </p>
-                  )}
-                </div>
-
-                {/* Book Button */}
-                <Button
-                  color="primary"
-                  className="w-full"
-                  size="lg"
-                  isDisabled={!selectedSlot}
-                  onPress={handleBookingClick}
-                >
-                  Book Consultation @ ₹
-                  {doctor?.consultationFees
-                    ? Number(doctor.consultationFees) + 50
-                    : 0}
-                </Button>
-
-                <div className="mt-4 text-xs text-gray-500">
-                  <p>• Platform fee: ₹50</p>
-                  <p>
-                    • Consultation duration:{" "}
-                    {doctor.specialization?.toLowerCase().includes("psycho")
-                      ? "50 minutes"
-                      : "15 minutes"}
-                  </p>
-                  <p>• Free cancellation available</p>
-                  <p>• Booking confirmation via SMS/Email</p>
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -883,32 +902,50 @@ export default function DoctorDetails() {
           setShowNewUserForm(false);
         }}
         size="lg"
+        classNames={{
+          backdrop: "bg-[#2e6dd4]/20 backdrop-blur-md",
+          base: "rounded-[32px] border-none",
+          header: "border-b border-slate-100 p-8",
+          body: "p-8",
+        }}
+        motionProps={{
+          variants: {
+            enter: { y: 0, opacity: 1, transition: { duration: 0.3, ease: "easeOut" } },
+            exit: { y: 20, opacity: 0, transition: { duration: 0.2, ease: "easeIn" } },
+          }
+        }}
       >
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>
-                {showLoginForm
-                  ? "Sign In to Continue"
-                  : showNewUserForm
-                    ? "Complete Your Profile"
-                    : "Patient Details"}
+              <ModalHeader className="flex flex-col gap-1">
+                <h2 className="text-2xl font-black text-slate-900">
+                  {showLoginForm
+                    ? "Welcome Back"
+                    : showNewUserForm
+                      ? "Create Your Profile"
+                      : "Patient Information"}
+                </h2>
+                <p className="text-sm font-medium text-slate-400 italic">
+                  Complete these details to finalize your appointment.
+                </p>
               </ModalHeader>
               <ModalBody>
                 {showLoginForm ? (
                   <LoginForm
                     onSuccess={() => {
                       setShowLoginForm(false);
-                      handleBookingClick(); // Re-trigger the flow
+                      handleBookingClick();
                     }}
                   />
                 ) : showNewUserForm ? (
                   <NewUserForm
                     uid={auth.currentUser!.uid}
                     phoneNumber={auth.currentUser!.phoneNumber || ""}
+                    email={auth.currentUser!.email || ""}
                     onSuccess={() => {
                       onClose();
-                      handleBookingClick(); // Re-trigger the flow
+                      handleBookingClick();
                     }}
                   />
                 ) : (
@@ -926,6 +963,48 @@ export default function DoctorDetails() {
           )}
         </ModalContent>
       </Modal>
+
+      {/* Booking Loading Modal */}
+      <Modal
+        isOpen={isBookingProcessing}
+        isDismissable={false}
+        hideCloseButton
+        classNames={{
+          backdrop: "bg-[#2e6dd4]/20 backdrop-blur-xl",
+          base: "bg-white/80 backdrop-blur-xl rounded-[40px] border-none shadow-2xl",
+        }}
+      >
+        <ModalContent>
+          <ModalBody className="py-12 px-8">
+            <div className="flex flex-col items-center justify-center text-center space-y-8">
+              <div className="relative">
+                <Spinner size="lg" color="primary" labelColor="primary" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full animate-ping" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Processing Booking</h3>
+                <p className="text-slate-500 font-medium px-4">{bookingStatus}</p>
+              </div>
+            </div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Error Message Toast/Alert */}
+      {error && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-danger text-white p-4 rounded-2xl shadow-xl flex items-center justify-between"
+          >
+            <span className="text-sm font-bold">{error}</span>
+            <Button size="sm" variant="light" color="default" className="text-white min-w-unit-12" onPress={() => setError("")}>Dismiss</Button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
