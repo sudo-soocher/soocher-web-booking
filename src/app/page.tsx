@@ -353,28 +353,42 @@ export default function Home() {
             </div>
           </div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
-          >
-            {specialities.map((speciality, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                className="premium-card p-6 flex flex-col items-center text-center gap-4 cursor-pointer hover:border-primary/30"
-                onClick={() => router.push(`/${encodeURIComponent(speciality.name)}`)}
-              >
-                <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                  <FaStethoscope className="text-2xl" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {loading ? (
+              [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                <div key={i} className="premium-card p-6 h-48 animate-pulse bg-slate-50 border-none flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-slate-200/50 rounded-2xl" />
+                  <div className="w-24 h-4 bg-slate-200/50 rounded-lg" />
+                  <div className="w-16 h-3 bg-slate-200/50 rounded-lg" />
                 </div>
-                <h3 className="font-bold text-slate-800 break-words w-full">{speciality.name}</h3>
-                <p className="text-xs text-slate-500 font-medium">Available Specialists</p>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))
+            ) : (
+              specialities.map((speciality, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.1 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  className="premium-card p-6 flex flex-col items-center text-center gap-4 cursor-pointer hover:border-primary/30"
+                  onClick={() => router.push(`/${encodeURIComponent(speciality.name)}`)}
+                >
+                  <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                    <FaStethoscope className="text-2xl" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 break-words w-full">
+                    {speciality.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">Available Specialists</p>
+                </motion.div>
+              ))
+            )}
+            {!loading && specialities.length === 0 && (
+              <div className="col-span-full py-12 text-center">
+                <p className="text-slate-400 font-medium italic">No specialities listed at the moment.</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
