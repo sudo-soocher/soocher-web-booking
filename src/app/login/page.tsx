@@ -104,7 +104,12 @@ export default function Login() {
       }
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
-      setError("Google sign-in failed.");
+      const firebaseErr = err as { code?: string; message?: string };
+      if (firebaseErr.code === "auth/unauthorized-domain") {
+        setError("This domain is not authorized for Google Sign-in. Please add it to your Firebase Console.");
+      } else {
+        setError(firebaseErr.message || "Google sign-in failed.");
+      }
     }
   };
 
