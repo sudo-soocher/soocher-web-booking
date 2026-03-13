@@ -322,7 +322,7 @@ export default function Bookings() {
                             size="sm"
                             className="rounded-full font-bold px-6 h-11"
                             startContent={<FaVideo className="text-sm" />}
-                            onClick={(e) => {
+                            onClick={(e: React.MouseEvent) => {
                               e.stopPropagation();
                               window.open(consultation.extras.meetLink, "_blank");
                             }}
