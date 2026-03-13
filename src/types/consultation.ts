@@ -146,9 +146,9 @@ export const createNewConsultation = (
 };
 
 // Type guard to check if an object is a Consultation
-export const isConsultation = (obj: any): obj is Consultation => {
+export const isConsultation = (obj: unknown): obj is Consultation => {
   return (
-    obj &&
+    obj !== null &&
     typeof obj === "object" &&
     "consultationId" in obj &&
     "patientName" in obj &&

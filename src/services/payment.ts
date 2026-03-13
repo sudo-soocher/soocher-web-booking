@@ -6,8 +6,8 @@ interface PaymentOptions {
   doctorName: string;
   patientName: string;
   consultationId: string;
-  onSuccess: (response: any) => void;
-  onFailure: (error: any) => void;
+  onSuccess: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
+  onFailure: (error: unknown) => void;
 }
 
 export const initializeRazorpay = async (options: PaymentOptions) => {
@@ -20,7 +20,7 @@ export const initializeRazorpay = async (options: PaymentOptions) => {
 
   try {
     // Create order using our proxy API route
-    const order = await createRazorpayOrder(options.amount, options.currency);
+    const order = await createRazorpayOrder(options.amount);
 
     const razorpayOptions = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -29,7 +29,7 @@ export const initializeRazorpay = async (options: PaymentOptions) => {
       name: "Soocher",
       description: `Consultation with ${options.doctorName}`,
       order_id: order.id,
-      handler: function (response: any) {
+      handler: function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) {
         options.onSuccess(response);
       },
       prefill: {
@@ -43,7 +43,8 @@ export const initializeRazorpay = async (options: PaymentOptions) => {
       },
     };
 
-    const paymentObject = new (window as any).Razorpay(razorpayOptions);
+    const Razorpay = (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay;
+    const paymentObject = new Razorpay(razorpayOptions);
     paymentObject.open();
   } catch (error) {
     console.error("Error in initializeRazorpay:", error);
@@ -51,7 +52,7 @@ export const initializeRazorpay = async (options: PaymentOptions) => {
   }
 };
 
-const createRazorpayOrder = async (amount: number, currency: string) => {
+const createRazorpayOrder = async (amount: number) => {
   try {
     // Call our proxy API route instead of directly calling Cloud Function
     const response = await fetch("/api/create-razorpay-order", {

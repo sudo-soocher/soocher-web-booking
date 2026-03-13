@@ -3,17 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Card,
-  CardBody,
   Button,
   Input,
-  Avatar,
   Select,
   SelectItem,
+  Avatar,
 } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaCalendarAlt, FaVenusMars, FaMapMarkerAlt, FaAllergies, FaPills, FaNotesMedical } from "react-icons/fa";
+import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Patient } from "@/types/patient";
 

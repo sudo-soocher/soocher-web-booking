@@ -13,7 +13,7 @@ const getAvailableSpecialities = async (): Promise<string[]> => {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return data.specialityName.map((s: any) => s.name) || [];
+      return data.specialityName.map((s: { name: string }) => s.name) || [];
     }
     return [];
   } catch (error) {
@@ -111,6 +111,7 @@ export const generateGeminiResponse = async (
         suggestedSpecialities: parsedResponse.suggestedSpecialities,
       };
     } catch (parseError) {
+      console.error("Error parsing AI response:", parseError);
       // Fallback if JSON parsing fails
       return {
         message: text,

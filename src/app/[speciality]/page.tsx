@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Card, CardBody, Image, Avatar, Skeleton, Button, Chip } from "@nextui-org/react";
+import { Image, Button } from "@nextui-org/react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import {
   FaStar,
-  FaLanguage,
   FaMapMarkerAlt,
   FaArrowLeft,
   FaUserMd,
@@ -54,7 +53,7 @@ export default function SpecialityPage() {
         const doctorsRef = collection(db, "Users");
         const decodedSpeciality = getDecodedSpeciality();
 
-        let baseQuery = query(
+        const baseQuery = query(
           doctorsRef,
           where("specialization", "==", decodedSpeciality),
           where("isAccountVerified", "==", true)
@@ -224,7 +223,7 @@ export default function SpecialityPage() {
   );
 }
 
-const DoctorCard = ({ doctor, router }: { doctor: Doctor; router: any }) => (
+const DoctorCard = ({ doctor, router }: { doctor: Doctor; router: ReturnType<typeof useRouter> }) => (
   <motion.div
     whileHover={{ y: -8 }}
     transition={{ duration: 0.3 }}
