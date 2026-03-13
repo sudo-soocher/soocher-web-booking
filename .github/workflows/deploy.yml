@@ -21,4 +21,5 @@ jobs:
             npm install
             rm -rf .next
             npm run build
+            sudo fuser -k 5000/tcp || true
             supervisorctl restart soocher-web
