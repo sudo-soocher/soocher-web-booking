@@ -12,8 +12,9 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Patient } from "@/types/patient";
+import { Footer } from "@/components/layout/Footer";
 
 export default function Profile() {
   const router = useRouter();
@@ -122,8 +123,8 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <FaStethoscope className="text-white text-xl" />
@@ -142,23 +143,23 @@ export default function Profile() {
         </nav>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-12 pb-24">
-        <div className="space-y-12">
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
+        <div className="space-y-8 md:space-y-12">
           {/* Page Heading */}
           <div className="text-center space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
               Personal <span className="text-primary italic">Profile</span>
             </h1>
-            <p className="text-slate-500 font-medium tracking-tight">Manage your medical identity and preferences.</p>
+            <p className="text-sm md:text-base text-slate-500 font-medium tracking-tight">Manage your medical identity and preferences.</p>
           </div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="premium-card p-8 md:p-12 border-none ring-1 ring-slate-100"
+            className="premium-card p-6 sm:p-8 md:p-12 border-none ring-1 ring-slate-100"
           >
             {/* Profile Header */}
-            <div className="flex flex-col items-center mb-12 space-y-4">
+            <div className="flex flex-col items-center mb-8 md:mb-12 space-y-4">
               <div className="relative group">
                 <Avatar
                   className="w-32 h-32 md:w-40 md:h-40 text-large rounded-[48px] shadow-2xl shadow-primary/10"
@@ -218,7 +219,7 @@ export default function Profile() {
                     <SelectItem key="Female" value="Female">Female</SelectItem>
                     <SelectItem key="Other" value="Other">Other</SelectItem>
                   </Select>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="State"
                       variant="bordered"
@@ -295,17 +296,7 @@ export default function Profile() {
         </div>
       </main>
 
-      <footer className="py-12 border-t border-slate-100 bg-white">
-        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2 grayscale opacity-50">
-            <FaStethoscope className="text-primary text-xl" />
-            <span className="font-bold text-slate-900 tracking-tight text-lg">Soocher</span>
-          </div>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-loose text-right">
-            Your data is stored with <span className="text-success">AES-256</span> encryption
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

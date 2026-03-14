@@ -75,20 +75,20 @@ export default function BookingComplete() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Navbar */}
-      <header className="px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+      <header className="px-4 md:px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <FaStethoscope className="text-white text-xl" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
-          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Confidential Ticket</p>
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic hidden sm:block">Confidential Ticket</p>
         </nav>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-12 pb-24">
-        <div className="space-y-12">
+      <main className="max-w-2xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
+        <div className="space-y-8 md:space-y-12">
           {/* Success Message */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -99,7 +99,7 @@ export default function BookingComplete() {
               <FaCheckCircle />
             </div>
             <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
                 Booking <span className="text-success italic">Confirmed.</span>
               </h1>
               <p className="text-slate-500 font-medium italic">Your sanctuary for health has been secured.</p>
@@ -113,11 +113,11 @@ export default function BookingComplete() {
             transition={{ delay: 0.2 }}
           >
             <div className="premium-card overflow-hidden border-none ring-1 ring-slate-100">
-              <div className="bg-primary p-8 text-white relative">
+              <div className="bg-primary p-6 md:p-8 text-white relative">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Session Ticket</p>
-                    <h2 className="text-2xl font-black tracking-tight italic">Premium Consultation</h2>
+                    <h2 className="text-xl md:text-2xl font-black tracking-tight italic">Premium Consultation</h2>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Ref ID</p>
@@ -126,25 +126,25 @@ export default function BookingComplete() {
                 </div>
               </div>
 
-              <div className="p-8 space-y-10 relative">
+              <div className="p-6 md:p-8 space-y-8 md:space-y-10 relative">
                 {/* Decorative notches for ticket */}
                 <div className="absolute -left-4 top-[0%] w-8 h-8 bg-[#F8FAFC] rounded-full ring-1 ring-slate-100 shadow-inner" />
                 <div className="absolute -right-4 top-[0%] w-8 h-8 bg-[#F8FAFC] rounded-full ring-1 ring-slate-100 shadow-inner" />
 
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-4 md:gap-8">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary">
+                    <div className="flex items-center gap-1 md:gap-2 text-primary">
                       <FaUserMd className="text-xs" />
                       <p className="text-[10px] font-black uppercase tracking-widest">Specialist</p>
                     </div>
-                    <p className="text-lg font-black text-slate-900">{consultation.doctorName}</p>
+                    <p className="text-base md:text-lg font-black text-slate-900">{consultation.doctorName}</p>
                   </div>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary">
+                    <div className="flex items-center gap-1 md:gap-2 text-primary">
                       <FaUser className="text-xs" />
                       <p className="text-[10px] font-black uppercase tracking-widest">Patient</p>
                     </div>
-                    <p className="text-lg font-black text-slate-900 truncate">
+                    <p className="text-base md:text-lg font-black text-slate-900 truncate">
                       {consultation.extras.patientDetails.patientName}
                     </p>
                   </div>
@@ -221,8 +221,8 @@ export default function BookingComplete() {
         </div>
       </main>
 
-      <footer className="py-12 border-t border-slate-100 bg-white">
-        <div className="max-w-2xl mx-auto px-6 text-center space-y-4">
+      <footer className="py-8 md:py-12 border-t border-slate-100 bg-white">
+        <div className="max-w-2xl mx-auto px-4 md:px-6 text-center space-y-4">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] leading-loose">
             Soocher Premium Health Systems • AES-256 Encrypted
           </p>

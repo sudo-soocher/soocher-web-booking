@@ -26,6 +26,7 @@ import {
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
+import { Footer } from "@/components/layout/Footer";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -151,8 +152,8 @@ export default function Bookings() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC]">
-        <header className="px-6 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+        <header className="px-4 md:px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
               <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
@@ -160,7 +161,7 @@ export default function Bookings() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-6 py-12 space-y-6">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6">
           <div className="w-48 h-8 bg-slate-200 rounded-lg animate-pulse mb-8" />
           {[1, 2, 3].map((i) => (
             <div key={i} className="premium-card h-40 animate-pulse bg-slate-100 border-none" />
@@ -173,8 +174,8 @@ export default function Bookings() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <FaStethoscope className="text-white text-xl" />
@@ -193,17 +194,17 @@ export default function Bookings() {
         </nav>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 pb-24">
-        <div className="space-y-12">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
+        <div className="space-y-8 md:space-y-12">
           {/* Page Heading */}
           <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
               My <span className="text-primary italic">Consultations</span>
             </h1>
-            <p className="text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
+            <p className="text-sm md:text-base text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8">
             {/* Tabs */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -276,20 +277,20 @@ export default function Bookings() {
                       setSelectedConsultation(consultation);
                       onOpen();
                     }}
-                    className="premium-card p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
+                    className="premium-card p-4 md:p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
                   >
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                      <div className="flex flex-col md:flex-row gap-8 flex-1">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+                      <div className="flex flex-col md:flex-row gap-4 md:gap-8 flex-1 w-full">
                         {/* Doctor Info */}
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 bg-primary/5 rounded-[20px] flex items-center justify-center text-primary text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/5 rounded-[16px] md:rounded-[20px] flex items-center justify-center text-primary text-xl md:text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                             <FaUserMd />
                           </div>
                           <div>
-                            <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
+                            <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
                               {consultation.doctorName}
                             </h3>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                            <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider">
                               Patient: {consultation.extras.patientDetails.patientName}
                             </p>
                           </div>
@@ -299,46 +300,46 @@ export default function Bookings() {
                         <div className="hidden md:block w-px h-12 bg-slate-100" />
 
                         {/* Date Info */}
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 md:gap-4">
                           <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                            <FaCalendar />
+                            <FaCalendar className="text-sm md:text-base" />
                           </div>
                           <div>
                             <p className="text-sm font-black text-slate-900">
                               {new Date(consultation.consultationTime).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
                               {new Date(consultation.consultationTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-end">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-none border-slate-100">
                         {consultation.extras.meetLink && (Date.now() <= consultation.consultationExpiration) && (
                           <Button
                             color="success"
                             variant="flat"
                             size="sm"
-                            className="rounded-full font-bold px-6 h-11"
+                            className="rounded-full font-bold px-4 md:px-6 h-9 md:h-11"
                             startContent={<FaVideo className="text-sm" />}
                             onClick={(e: React.MouseEvent) => {
                               e.stopPropagation();
                               window.open(consultation.extras.meetLink, "_blank");
                             }}
                           >
-                            Join Meeting
+                            Join<span className="hidden sm:inline">&nbsp;Meeting</span>
                           </Button>
                         )}
 
-                        <div className="flex items-center gap-3 md:gap-6">
+                        <div className="flex items-center gap-2 md:gap-6 ml-auto sm:ml-0">
                           <div className="flex items-center gap-2">
                             <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest text-slate-300">Status</span>
                             {getStatusChip(consultation)}
                           </div>
 
-                          <div className="w-11 h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm">
-                            <span className="text-slate-300 group-hover:text-white transition-colors text-lg">→</span>
+                          <div className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm ml-2 md:ml-0">
+                            <span className="text-slate-300 group-hover:text-white transition-colors text-sm md:text-lg">→</span>
                           </div>
                         </div>
                       </div>
@@ -368,16 +369,16 @@ export default function Bookings() {
         </div>
       </main>
 
-      {/* Consultation Details Modal */}
       <Modal
         isOpen={isOpen}
         onClose={onClose}
         size="lg"
+        placement="bottom-center"
         classNames={{
           backdrop: "bg-slate-900/40 backdrop-blur-sm",
-          base: "rounded-[32px] border-none shadow-2xl",
-          header: "border-b border-slate-100 p-8",
-          body: "p-8",
+          base: "rounded-t-[32px] md:rounded-[32px] border-none shadow-2xl m-0 md:m-1 sm:m-0",
+          header: "border-b border-slate-100 p-6 md:p-8",
+          body: "p-6 md:p-8",
         }}
       >
         <ModalContent>
@@ -385,22 +386,22 @@ export default function Bookings() {
             <>
               <ModalHeader>
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Appointment Details</h2>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest italic">Reference: {selectedConsultation?.consultationId.slice(0, 8)}</p>
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Appointment Details</h2>
+                  <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest italic">Reference: {selectedConsultation?.consultationId.slice(0, 8)}</p>
                 </div>
               </ModalHeader>
               <ModalBody>
                 {selectedConsultation && (
-                  <div className="space-y-8">
+                  <div className="space-y-6 md:space-y-8">
                     {/* Doctor/Patient Summary */}
-                    <div className="grid grid-cols-2 gap-8 p-6 bg-slate-50 rounded-[24px]">
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-4 md:gap-8 p-4 md:p-6 bg-slate-50 rounded-[20px] md:rounded-[24px]">
+                      <div className="space-y-1 md:space-y-2">
                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Doctor</p>
-                        <p className="font-black text-slate-900">{selectedConsultation.doctorName}</p>
+                        <p className="text-sm md:text-base font-black text-slate-900">{selectedConsultation.doctorName}</p>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1 md:space-y-2">
                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Patient</p>
-                        <p className="font-black text-slate-900 font-bold">{selectedConsultation.extras.patientDetails.patientName}</p>
+                        <p className="text-sm md:text-base font-black text-slate-900 font-bold">{selectedConsultation.extras.patientDetails.patientName}</p>
                       </div>
                     </div>
 
@@ -478,6 +479,7 @@ export default function Bookings() {
           )}
         </ModalContent>
       </Modal>
+      <Footer />
     </div>
   );
 }

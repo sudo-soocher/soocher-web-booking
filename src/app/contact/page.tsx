@@ -19,6 +19,7 @@ import {
     FaStethoscope,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { Footer } from "@/components/layout/Footer";
 
 const contactCards = [
     {
@@ -125,8 +126,8 @@ export default function ContactPage() {
     return (
         <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
             {/* Navbar - Glass Effect */}
-            <header className="sticky top-0 z-40 w-full px-6 py-4">
-                <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+            <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
+                <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
                         <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                             <FaStethoscope className="text-white text-xl" />
@@ -146,7 +147,7 @@ export default function ContactPage() {
             </header>
 
             {/* Hero Section */}
-            <section className="relative pt-12 pb-24 px-6 overflow-hidden">
+            <section className="relative pt-8 md:pt-12 pb-16 md:pb-24 px-4 md:px-6 overflow-hidden">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 opacity-10">
                     <div className="absolute top-0 left-0 w-64 h-64 bg-primary blur-[100px] rounded-full" />
                     <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary blur-[100px] rounded-full" />
@@ -163,7 +164,7 @@ export default function ContactPage() {
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight"
+                        className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight"
                     >
                         How can we <span className="text-primary italic">help you?</span>
                     </motion.h1>
@@ -178,8 +179,8 @@ export default function ContactPage() {
                 </div>
             </section>
 
-            <main className="flex-1 pb-24 px-6">
-                <div className="max-w-7xl mx-auto space-y-24">
+            <main className="flex-1 pb-16 md:pb-24 px-4 md:px-6">
+                <div className="max-w-7xl mx-auto space-y-16 md:space-y-24">
                     {/* Contact Channels */}
                     <motion.div
                         variants={containerVariants}
@@ -204,17 +205,17 @@ export default function ContactPage() {
                         ))}
                     </motion.div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20 items-start">
                         {/* Form Section */}
                         <motion.div
                             initial={{ opacity: 0, x: -30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
-                            className="space-y-10"
+                            className="space-y-8 md:space-y-10"
                         >
                             <div className="space-y-4">
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Drop us a line</h2>
-                                <p className="text-slate-500 font-medium">Rest assured, we read every single message.</p>
+                                <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Drop us a line</h2>
+                                <p className="text-slate-500 font-medium text-sm md:text-base">Rest assured, we read every single message.</p>
                             </div>
 
                             <AnimatePresence mode="wait">
@@ -359,9 +360,9 @@ export default function ContactPage() {
                                         <button
                                             type="button"
                                             onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                                            className="w-full flex items-center justify-between p-6 text-left"
+                                            className="w-full flex items-center justify-between p-4 md:p-6 text-left"
                                         >
-                                            <span className="font-bold text-slate-700">{faq.q}</span>
+                                            <span className="font-bold text-slate-700 text-sm md:text-base">{faq.q}</span>
                                             <motion.div
                                                 animate={{
                                                     rotate: expandedFaq === idx ? 180 : 0,
@@ -378,9 +379,9 @@ export default function ContactPage() {
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: "auto", opacity: 1 }}
                                                     exit={{ height: 0, opacity: 0 }}
-                                                    className="px-6 pb-6"
+                                                    className="px-4 md:px-6 pb-4 md:pb-6"
                                                 >
-                                                    <p className="text-slate-500 font-medium leading-relaxed">
+                                                    <p className="text-slate-500 font-medium leading-relaxed text-sm md:text-base">
                                                         {faq.a}
                                                     </p>
                                                 </motion.div>
@@ -404,21 +405,7 @@ export default function ContactPage() {
                 </div>
             </main>
 
-            <footer className="py-12 border-t border-slate-100 bg-white">
-                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-2 grayscale opacity-50">
-                        <FaStethoscope className="text-primary" />
-                        <span className="font-bold text-slate-900 tracking-tight text-lg">Soocher</span>
-                    </div>
-                    <p className="text-slate-400 text-sm font-medium">
-                        © {new Date().getFullYear()} Soocher. All rights reserved. Built with elegance.
-                    </p>
-                    <div className="flex gap-8 text-sm font-bold text-slate-400">
-                        <button onClick={() => router.push("/")} className="hover:text-primary transition-colors">Home</button>
-                        <button onClick={() => router.push("/bookings")} className="hover:text-primary transition-colors">My Bookings</button>
-                    </div>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 }
