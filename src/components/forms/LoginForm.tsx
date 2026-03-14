@@ -45,6 +45,12 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!phoneNumber || phoneNumber.length <= 4) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     try {

@@ -6,7 +6,6 @@ import {
   Input,
 } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
-import { BsApple } from "react-icons/bs";
 import { auth } from "@/lib/firebase";
 import {
   signInWithPhoneNumber,
@@ -49,6 +48,12 @@ export default function Login() {
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!phoneNumber || phoneNumber.length <= 4) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     try {
@@ -165,15 +170,15 @@ export default function Login() {
       </div>
 
       {/* Form Side */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-8 bg-[#F8FAFC]">
+      <div className="w-full lg:w-[40%] flex items-center justify-center p-4 md:p-8 bg-[#F8FAFC]">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-full max-w-sm space-y-10"
+          className="w-full max-w-sm space-y-6 md:space-y-10"
         >
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Access Soocher</h2>
-            <p className="text-slate-500 font-medium tracking-tight italic text-lg">Your health sanctuary awaits.</p>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Access Soocher</h2>
+            <p className="text-slate-500 font-medium tracking-tight italic text-base md:text-lg">Your health sanctuary awaits.</p>
           </div>
 
           <div className="space-y-8">
@@ -235,24 +240,15 @@ export default function Login() {
             </div>
 
             {/* Social Logins */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="w-full">
               <Button
                 variant="bordered"
                 radius="lg"
-                className="h-14 font-bold border-slate-200 hover:bg-white"
+                className="w-full h-14 font-bold border-slate-200 hover:bg-white"
                 onClick={handleGoogleLogin}
                 startContent={<FcGoogle className="text-2xl" />}
               >
                 Google
-              </Button>
-              <Button
-                variant="bordered"
-                radius="lg"
-                className="h-14 font-bold border-slate-200 hover:bg-white"
-                onClick={() => console.log("Apple sign-in")}
-                startContent={<BsApple className="text-xl" />}
-              >
-                Apple
               </Button>
             </div>
           </div>

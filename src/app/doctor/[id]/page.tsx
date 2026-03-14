@@ -49,6 +49,7 @@ import { calculateAge } from "@/types/patient";
 import { Consultation } from "@/types/consultation";
 import LoginForm from "@/components/forms/LoginForm";
 import PatientForm from "@/components/forms/PatientForm";
+import { Footer } from "@/components/layout/Footer";
 
 interface Doctor {
   name: string;
@@ -639,8 +640,8 @@ export default function DoctorDetails() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Navbar Container */}
-      <header className="w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+      <header className="w-full px-4 md:px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <FaStethoscope className="text-white text-xl" />
@@ -659,44 +660,44 @@ export default function DoctorDetails() {
         </nav>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 pb-24">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Main Info Column */}
           <div className="lg:col-span-2 space-y-8">
             <Card className="premium-card overflow-hidden">
               <CardBody className="p-0">
                 <div className="h-32 bg-gradient-to-tr from-primary to-primary-600 opacity-90" />
-                <div className="px-8 pb-8">
-                  <div className="flex flex-col md:flex-row gap-8 -mt-12 items-end md:items-center">
-                    <div className="relative">
+                <div className="px-4 md:px-8 pb-8">
+                  <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-end text-center md:text-left">
+                    <div className="relative -mt-12 md:-mt-16 z-10">
                       {doctor.profileImage ? (
                         <Image
                           src={doctor.profileImage}
                           alt={doctor.name}
-                          className="w-40 h-40 rounded-[32px] object-cover ring-8 ring-white shadow-xl"
+                          className="w-32 h-32 md:w-40 md:h-40 rounded-[24px] md:rounded-[32px] object-cover ring-8 ring-white shadow-xl bg-white"
                         />
                       ) : (
                         <Avatar
                           name={doctor.name}
-                          className="w-40 h-40 text-4xl font-bold rounded-[32px] ring-8 ring-white shadow-xl bg-primary/10 text-primary"
+                          className="w-32 h-32 md:w-40 md:h-40 text-4xl font-bold rounded-[24px] md:rounded-[32px] ring-8 ring-white shadow-xl bg-primary/10 text-primary"
                         />
                       )}
-                      <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                      <div className="absolute -bottom-2 -right-2 md:bottom-2 md:-right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                       </div>
                     </div>
-                    <div className="flex-1 space-y-2 pt-12 md:pt-0">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    <div className="flex-1 space-y-3 pt-4 md:pt-0 w-full">
+                      <div className="flex flex-col md:flex-row items-center gap-3">
+                        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
                           {doctor.specialization?.toLowerCase().includes("psycho")
                             ? doctor.name
                             : `Dr. ${doctor.name}`}
                         </h1>
-                        <Chip size="sm" color="success" variant="flat" className="bg-success-50 text-success-600 font-bold border-none">
+                        <Chip size="sm" color="success" variant="flat" className="bg-success-50 text-success-600 font-bold border-none mt-2 md:mt-0">
                           Verified Specialist
                         </Chip>
                       </div>
-                      <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-slate-500 font-medium">
+                      <div className="flex flex-col md:flex-row flex-wrap items-center justify-center md:justify-start gap-y-2 gap-x-6 text-slate-500 font-medium text-sm md:text-base">
                         <div className="flex items-center gap-2">
                           <FaUserMd className="text-primary/70" />
                           <span>{doctor.specialization}</span>
@@ -1010,6 +1011,7 @@ export default function DoctorDetails() {
           </motion.div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

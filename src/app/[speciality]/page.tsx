@@ -13,21 +13,10 @@ import {
   FaStethoscope,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { Footer } from "@/components/layout/Footer";
 
-interface Doctor {
-  id: string;
-  name: string;
-  profileImage: string;
-  aboutMe: string;
-  worksAt: string;
-  numExp: number;
-  currentState: string;
-  currentCity: string;
-  consultationFees: number;
-  averageRating: number;
-  knownLanguages: string[];
-  specialization: string;
-}
+import { Doctor } from "@/types/doctor";
+import { DoctorCard } from "@/components/doctor/DoctorCard";
 
 export default function SpecialityPage() {
   const params = useParams();
@@ -121,6 +110,7 @@ export default function SpecialityPage() {
             <div key={i} className="premium-card h-48 animate-pulse bg-slate-50 border-none" />
           ))}
         </main>
+        <Footer />
       </div>
     );
   }
@@ -128,8 +118,8 @@ export default function SpecialityPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <FaStethoscope className="text-white text-xl" />
@@ -149,24 +139,24 @@ export default function SpecialityPage() {
       </header>
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden py-24">
+      <div className="relative overflow-hidden py-16 md:py-24">
         <div className="absolute inset-0 bg-[#F8FAFC]" />
         <div className="absolute top-0 right-0 w-[50%] h-[100%] bg-primary/5 rounded-l-[100px] -z-10 blur-3xl opacity-50" />
-        <div className="max-w-7xl mx-auto px-6 relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 relative text-center md:text-left">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6 max-w-3xl"
+            className="space-y-4 md:space-y-6 max-w-3xl mx-auto md:mx-0"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary font-black text-[10px] uppercase tracking-widest">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary font-black text-[10px] uppercase tracking-widest mx-auto md:mx-0">
               <FaStethoscope className="text-sm" />
               Speciality Center
             </div>
-            <h1 className="text-5xl md:text-7xl font-black text-slate-900 leading-tight tracking-tight">
-              Top tier <br />
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-slate-900 leading-tight tracking-tight">
+              Top tier <br className="hidden md:block" />
               <span className="text-primary italic">{capitalizeFirstLetter(getDecodedSpeciality())}</span> Specialists.
             </h1>
-            <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-xl">
+            <p className="text-base md:text-xl text-slate-500 font-medium leading-relaxed max-w-xl mx-auto md:mx-0">
               Connect with the most prestigious {getDecodedSpeciality().toLowerCase()} specialists, verified for excellence and patient care.
             </p>
           </motion.div>
@@ -174,122 +164,53 @@ export default function SpecialityPage() {
       </div>
 
       {/* Doctors List */}
-      <main className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="space-y-16">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 pb-24">
+        <div className="space-y-12 md:space-y-16">
           {cityParam && localDoctors.length > 0 && (
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
                   Specialists in <span className="text-primary">{capitalizeFirstLetter(cityParam)}</span>
                 </h2>
                 <div className="h-px flex-1 bg-slate-100" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {localDoctors.map((doctor) => (
-                  <DoctorCard key={doctor.id} doctor={doctor} router={router} />
+                  <DoctorCard key={doctor.id} doctor={doctor} />
                 ))}
               </div>
             </div>
           )}
 
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8">
             <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
                 {cityParam ? "Other Available Specialists" : `All ${capitalizeFirstLetter(getDecodedSpeciality())} Specialists`}
               </h2>
               <div className="h-px flex-1 bg-slate-100" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {otherDoctors.map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} router={router} />
+                <DoctorCard key={doctor.id} doctor={doctor} />
               ))}
             </div>
 
             {localDoctors.length === 0 && otherDoctors.length === 0 && (
-              <div className="py-24 text-center space-y-4 bg-slate-50 rounded-[40px]">
-                <div className="w-20 h-20 bg-slate-100 rounded-[32px] flex items-center justify-center text-slate-300 text-3xl mx-auto">
+              <div className="py-16 md:py-24 text-center space-y-4 bg-slate-50 rounded-[32px] md:rounded-[40px] px-4">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-100 rounded-2xl md:rounded-[32px] flex items-center justify-center text-slate-300 text-2xl md:text-3xl mx-auto">
                   <FaUserMd />
                 </div>
                 <div>
-                  <p className="text-xl font-black text-slate-900">No specialists found</p>
-                  <p className="text-slate-400 font-medium">Try another speciality or location.</p>
+                  <p className="text-lg md:text-xl font-black text-slate-900">No specialists found</p>
+                  <p className="text-sm md:text-base text-slate-400 font-medium">Try another speciality or location.</p>
                 </div>
               </div>
             )}
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
 
-const DoctorCard = ({ doctor, router }: { doctor: Doctor; router: ReturnType<typeof useRouter> }) => (
-  <motion.div
-    whileHover={{ y: -8 }}
-    transition={{ duration: 0.3 }}
-  >
-    <div
-      onClick={() => router.push(`/doctor/${doctor.id}`)}
-      className="premium-card p-6 group cursor-pointer border-none ring-1 ring-slate-100 hover:ring-primary/20 transition-all"
-    >
-      <div className="flex items-start gap-6">
-        <div className="relative">
-          {doctor.profileImage ? (
-            <Image
-              src={doctor.profileImage}
-              alt={doctor.name}
-              className="w-24 h-24 rounded-[24px] object-cover shadow-xl group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-[24px] bg-primary/5 flex items-center justify-center text-primary text-3xl">
-              <FaUserMd />
-            </div>
-          )}
-          <div className="absolute -bottom-2 -right-2 bg-white text-primary px-3 py-1 rounded-full text-xs font-black shadow-lg border border-slate-50">
-            ₹{doctor.consultationFees ? Number(doctor.consultationFees) + 50 : 0}
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-3">
-          <div>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
-              {doctor.specialization?.toLowerCase().includes("psycho")
-                ? doctor.name
-                : `Dr. ${doctor.name}`}
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
-                <FaStar className="text-amber-500 text-[10px]" />
-                <span className="text-[10px] font-black text-amber-700">{doctor.averageRating.toFixed(1)}</span>
-              </div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-loose">
-                {doctor.numExp} Years Experience
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-slate-400">
-            <FaMapMarkerAlt className="text-xs" />
-            <span className="text-xs font-bold truncate">
-              {doctor.currentCity}, {doctor.currentState}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            {(doctor.knownLanguages?.length
-              ? doctor.knownLanguages.slice(0, 2)
-              : ["English"]
-            ).map((language, idx) => (
-              <span
-                key={idx}
-                className="px-3 py-1 bg-slate-50 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest"
-              >
-                {language}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  </motion.div>
-);

@@ -8,6 +8,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  Skeleton,
 } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
@@ -25,6 +26,7 @@ import { motion } from "framer-motion";
 // import { playSound } from "@/utils/sound";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { generateGeminiResponse } from "@/services/gemini";
+import { Footer } from "@/components/layout/Footer";
 
 interface Speciality {
   name: string;
@@ -187,8 +189,8 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
       {/* Navbar - Glass Effect */}
-      <header className="sticky top-0 z-40 w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
+      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <FaStethoscope className="text-white text-xl" />
@@ -196,13 +198,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
 
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => router.push("/contact")}
-              className="text-sm font-medium text-slate-600 hover:text-primary transition-colors"
-            >
-              Contact Us
-            </button>
+          <div className="flex items-center gap-3 md:gap-6">
             {isLoggedIn ? (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
@@ -265,37 +261,37 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-12 pb-24 px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative pt-8 md:pt-12 pb-16 md:pb-24 px-4 md:px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center text-center lg:text-left">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="z-10 will-change-transform"
+            className="z-10 will-change-transform flex flex-col items-center lg:items-start"
           >
             <Chip
               variant="flat"
               color="primary"
-              className="mb-6 px-4 py-1 text-sm font-medium bg-primary/10 text-primary border-none"
+              className="mb-4 md:mb-6 px-4 py-1 text-xs md:text-sm font-medium bg-primary/10 text-primary border-none"
             >
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 Next Generation Healthcare
               </span>
             </Chip>
-            <h1 className="text-5xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
-              Expert Care is <br />
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-6 md:mb-8">
+              Expert Care is <br className="hidden md:block" />
               <span className="text-primary">Just a Click Away.</span>
             </h1>
-            <p className="text-lg text-slate-600 mb-10 leading-relaxed max-w-lg">
+            <p className="text-base md:text-lg text-slate-600 mb-8 md:mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
               Experience healthcare redefined. Connect with top-tier specialists instantly and manage your health journey with absolute elegance.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 w-full md:w-auto justify-center lg:justify-start">
               <Button
                 size="lg"
                 color="primary"
-                className="rounded-full px-8 font-bold shadow-2xl shadow-primary/25 h-14 text-lg"
+                className="rounded-full px-6 md:px-8 font-bold shadow-2xl shadow-primary/25 h-12 md:h-14 text-base md:text-lg w-full md:w-auto"
                 onClick={() => {
                   const element = document.getElementById('specialities');
                   element?.scrollIntoView({ behavior: 'smooth' });
@@ -344,24 +340,24 @@ export default function Home() {
       </section>
 
       {/* Specialities Section */}
-      <main id="specialities" className="flex-1 py-24 px-6 bg-white rounded-t-[64px] shadow-[0_-40px_100px_-20px_rgba(0,0,0,0.05)] border-t border-slate-100">
+      <main id="specialities" className="flex-1 py-16 md:py-24 px-4 md:px-6 bg-white rounded-t-[48px] md:rounded-t-[64px] shadow-[0_-40px_100px_-20px_rgba(0,0,0,0.05)] border-t border-slate-100">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-            <div className="space-y-4">
-              <h2 className="text-4xl font-bold text-slate-900 tracking-tight">Our Specialities</h2>
-              <p className="text-lg text-slate-500 max-w-xl">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-16 gap-4 md:gap-6 text-center md:text-left">
+            <div className="space-y-3 md:space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Our Specialities</h2>
+              <p className="text-base md:text-lg text-slate-500 max-w-xl mx-auto md:mx-0">
                 Select from our curated network of medical excellence.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {loading ? (
               [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <div key={i} className="premium-card p-6 h-48 animate-pulse bg-slate-50 border-none flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-slate-200/50 rounded-2xl" />
-                  <div className="w-24 h-4 bg-slate-200/50 rounded-lg" />
-                  <div className="w-16 h-3 bg-slate-200/50 rounded-lg" />
+                <div key={i} className="premium-card p-4 md:p-6 h-40 md:h-48 border-none ring-1 ring-slate-100 flex flex-col items-center gap-3 md:gap-4 justify-center">
+                  <Skeleton className="w-12 h-12 md:w-16 md:h-16 rounded-2xl" />
+                  <Skeleton className="w-20 md:w-24 h-4 rounded-lg" />
+                  <Skeleton className="w-14 md:w-16 h-3 rounded-lg" />
                 </div>
               ))
             ) : (
@@ -372,13 +368,13 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.1 }}
                   transition={{ duration: 0.5, delay: index * 0.05 }}
-                  className="premium-card p-6 flex flex-col items-center text-center gap-4 cursor-pointer hover:border-primary/30"
-                  onClick={() => router.push(`/${encodeURIComponent(speciality.name)}`)}
+                  className="premium-card p-4 md:p-6 flex flex-col items-center text-center gap-3 md:gap-4 cursor-pointer hover:border-primary/30"
+                  onClick={() => router.push(`/doctors?speciality=${encodeURIComponent(speciality.name)}`)}
                 >
-                  <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    <FaStethoscope className="text-2xl" />
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                    <FaStethoscope className="text-xl md:text-2xl" />
                   </div>
-                  <h3 className="font-bold text-slate-800 break-words w-full">
+                  <h3 className="font-bold text-slate-800 break-words w-full text-sm md:text-base">
                     {speciality.name}
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">Available Specialists</p>
@@ -531,6 +527,7 @@ export default function Home() {
         </motion.button>
       )}
       */}
+      <Footer />
     </div>
   );
 }
