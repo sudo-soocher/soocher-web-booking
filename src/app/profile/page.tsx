@@ -1,14 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Button,
-  Input,
-  Select,
-  SelectItem,
-  Avatar,
-} from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical } from "react-icons/fa";

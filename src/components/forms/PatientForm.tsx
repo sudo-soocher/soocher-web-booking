@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Input, Button, Select, SelectItem, Textarea } from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Input, Select, SelectItem, Textarea } from "@nextui-org/react";
 import { db } from "@/lib/firebase";
 import { addDoc, collection } from "firebase/firestore";
 

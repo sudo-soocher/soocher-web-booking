@@ -1,15 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
-import {
-  Button,
-  Chip,
-  Avatar,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Skeleton,
-} from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Chip, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -66,6 +61,7 @@ export default function Home() {
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
+  const [navigatingSpeciality, setNavigatingSpeciality] = useState<string | null>(null);
   /* Commented out AI Assistant state
   const [symptoms, setSymptoms] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
@@ -369,10 +365,17 @@ export default function Home() {
                   viewport={{ once: true, amount: 0.1 }}
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   className="premium-card p-4 md:p-6 flex flex-col items-center text-center gap-3 md:gap-4 cursor-pointer hover:border-primary/30"
-                  onClick={() => router.push(`/doctors?speciality=${encodeURIComponent(speciality.name)}`)}
+                  onClick={() => {
+                    setNavigatingSpeciality(speciality.name);
+                    router.push(`/doctors?speciality=${encodeURIComponent(speciality.name)}`);
+                  }}
                 >
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    <FaStethoscope className="text-xl md:text-2xl" />
+                    {navigatingSpeciality === speciality.name ? (
+                      <Spinner size="sm" color="primary" />
+                    ) : (
+                      <FaStethoscope className="text-xl md:text-2xl" />
+                    )}
                   </div>
                   <h3 className="font-bold text-slate-800 break-words w-full text-sm md:text-base">
                     {speciality.name}

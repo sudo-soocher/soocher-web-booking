@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import {
-  Button,
-  Input,
-} from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
 import { auth } from "@/lib/firebase";
 import {

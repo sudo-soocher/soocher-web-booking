@@ -1,14 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-    Button,
-    Select,
-    SelectItem,
-    Skeleton,
-    Divider,
-} from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Select, SelectItem, Skeleton, Divider } from "@nextui-org/react";
 import { db } from "@/lib/firebase";
 import {
     collection,
