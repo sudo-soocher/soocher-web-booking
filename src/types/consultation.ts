@@ -50,6 +50,9 @@ export interface Consultation {
 
   // Job Information (for scheduling)
   jobName: string;
+
+  // Booking source
+  booking_type: string;
 }
 
 // Helper function to check if consultation is active
@@ -142,6 +145,7 @@ export const createNewConsultation = (
     badExperiencePatient: null,
     reasonForCancellation: null,
     jobName: "", // This will be set by the backend
+    booking_type: "web",
   };
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Image } from "@nextui-org/react";
+import { Image, Spinner } from "@nextui-org/react";
 import { FaStar, FaMapMarkerAlt, FaUserMd } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -10,8 +10,11 @@ interface DoctorCardProps {
     doctor: Doctor;
 }
 
+import { useState } from "react";
+
 export const DoctorCard = ({ doctor }: DoctorCardProps) => {
     const router = useRouter();
+    const [isNavigating, setIsNavigating] = useState(false);
 
     return (
         <motion.div
@@ -19,9 +22,17 @@ export const DoctorCard = ({ doctor }: DoctorCardProps) => {
             transition={{ duration: 0.3 }}
         >
             <div
-                onClick={() => router.push(`/doctor/${doctor.id}`)}
-                className="premium-card p-4 md:p-6 group cursor-pointer border-none ring-1 ring-slate-100 hover:ring-primary/20 transition-all"
+                onClick={() => {
+                    setIsNavigating(true);
+                    router.push(`/doctor/${doctor.id}`);
+                }}
+                className="premium-card p-4 md:p-6 group cursor-pointer border-none ring-1 ring-slate-100 hover:ring-primary/20 transition-all relative overflow-hidden"
             >
+                {isNavigating && (
+                    <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-[40px]">
+                        <Spinner size="lg" color="primary" />
+                    </div>
+                )}
                 <div className="flex items-start gap-4 md:gap-6">
                     <div className="relative">
                         {doctor.profileImage ? (

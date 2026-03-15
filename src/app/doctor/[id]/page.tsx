@@ -12,23 +12,8 @@ import {
   where,
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import {
-  Card,
-  CardBody,
-  Image,
-  Avatar,
-  Chip,
-  Skeleton,
-  Button,
-  Tabs,
-  Tab,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  useDisclosure,
-  Spinner,
-} from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Card, CardBody, Image, Avatar, Chip, Skeleton, Tabs, Tab, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@nextui-org/react";
 import {
   FaStar,
   FaLanguage,

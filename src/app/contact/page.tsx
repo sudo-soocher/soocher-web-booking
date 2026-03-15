@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-    Input,
-    Textarea,
-    Button,
-} from "@nextui-org/react";
+import { Button } from "@/components/ui/Button";
+import { Input, Textarea } from "@nextui-org/react";
 import {
     FaEnvelope,
     FaPhone,
