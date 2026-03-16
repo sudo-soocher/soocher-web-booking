@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatDateStr, formatTimeStr } from "@/utils/timezone";
 
 export async function POST(request: Request) {
     try {
@@ -9,7 +10,8 @@ export async function POST(request: Request) {
             doctorName,
             patientName,
             patientEmail,
-            specialization
+            specialization,
+            timezone
         } = body;
 
         // Check for strictly required fields for the scheduler
@@ -28,28 +30,13 @@ export async function POST(request: Request) {
             );
         }
 
+        // Use provided timezone or fallback to Asia/Kolkata
+        const activeTimezone = timezone || "Asia/Kolkata";
+
         // Format date and time for the scheduler API manually to avoid locale variations
         const d = new Date(consultationTime);
-
-        // Use Intl.DateTimeFormat to get parts in the correct timezone (Asia/Kolkata)
-        const dateParts = new Intl.DateTimeFormat('en-GB', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            timeZone: 'Asia/Kolkata'
-        }).formatToParts(d);
-        const day = dateParts.find(p => p.type === 'day')?.value;
-        const month = dateParts.find(p => p.type === 'month')?.value;
-        const year = dateParts.find(p => p.type === 'year')?.value;
-        const dateStr = `${day}/${month}/${year}`;
-
-        const timeParts = new Intl.DateTimeFormat('en-US', {
-            hour: '2-digit', minute: '2-digit', hour12: true,
-            timeZone: 'Asia/Kolkata'
-        }).formatToParts(d);
-        const hour = timeParts.find(p => p.type === 'hour')?.value;
-        const minute = timeParts.find(p => p.type === 'minute')?.value;
-        const dayPeriodRaw = timeParts.find(p => p.type === 'dayPeriod')?.value || (d.getHours() >= 12 ? 'PM' : 'AM');
-        const dayPeriod = dayPeriodRaw.toUpperCase().replace(/\./g, '');
-        const timeStr = `${hour}:${minute} ${dayPeriod}`;
+        const dateStr = formatDateStr(consultationTime, activeTimezone);
+        const timeStr = formatTimeStr(consultationTime, activeTimezone);
 
         // Get URL from MEET_SCHEDULER_API as requested
         const schedulerUrl = process.env.MEET_SCHEDULER_API || "http://localhost:8001/schedule-meet";
@@ -61,7 +48,8 @@ export async function POST(request: Request) {
             user_mail: patientEmail.trim(),
             user_name: patientName.trim(),
             doctors_name: doctorName.trim(),
-            department_name: specialization?.trim() || "General Health"
+            department_name: specialization?.trim() || "General Health",
+            timezone: activeTimezone
         };
 
         console.log(">>> [TRIGGER] Scheduled Meet API Call triggered");

@@ -10,6 +10,7 @@ import {
   setDoc,
   query,
   where,
+  getCountFromServer,
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/Button";
@@ -28,13 +29,16 @@ import {
 import { motion } from "framer-motion";
 
 import { initializeRazorpay } from "@/services/payment";
-import { createNewConsultation } from "@/types/consultation";
+import { createNewConsultation, Consultation, PatientDetails } from "@/types/consultation";
 import NewUserForm from "@/components/forms/NewUserForm";
 import { calculateAge } from "@/types/patient";
-import { Consultation } from "@/types/consultation";
 import LoginForm from "@/components/forms/LoginForm";
 import PatientForm from "@/components/forms/PatientForm";
 import { Footer } from "@/components/layout/Footer";
+import { getActiveTimezone, getTimezoneName, parseISTTimeToEpoch, formatTimeRange } from "@/utils/timezone";
+import { Coupon } from "@/types/coupon";
+import { validateCoupon } from "@/utils/coupon";
+import { Input } from "@nextui-org/react";
 
 interface Doctor {
   name: string;
@@ -60,6 +64,7 @@ interface Doctor {
       enabled: boolean;
     };
   };
+  knownLanguages?: string[];
 }
 
 interface DaySlots {
@@ -79,6 +84,7 @@ interface Slot {
   bookingDate: number;
   time: string;
   isBooked?: boolean;
+  calculatedTimestamp?: number;
 }
 
 export default function DoctorDetails() {
@@ -96,6 +102,15 @@ export default function DoctorDetails() {
   const [isBookingProcessing, setIsBookingProcessing] = useState(false);
   const [bookingStatus, setBookingStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
+  const [couponError, setCouponError] = useState("");
+  const [consultationCount, setConsultationCount] = useState<number | string>(0);
 
   // Function to get current day name
   const getCurrentDay = () => {
@@ -132,24 +147,22 @@ export default function DoctorDetails() {
   const calculateSlotTimestamp = (dayKey: string, timeRange: string) => {
     try {
       const [startTime] = timeRange.split(" - "); // e.g., "09:00AM"
-      const [time, period] = startTime.split(/(?=[AP]M)/); // ["09:00", "AM"]
-      const [hours, minutes] = time.split(":").map(Number);
+      // Check if the timeRange is actually a local-formatted string (from UI selection)
+      // or if it's the raw IST string.
+      // Since it's used to calculate consultationTime for booking, 
+      // and selectedSlot comes from filteredSlots which uses formatted times,
+      // we need to be careful. 
 
-      const date = new Date();
-      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const currentDayIndex = date.getDay();
-      const selectedDayIndex = days.indexOf(dayKey);
+      // Wait, if selectedSlot is "07:30 AM", parseISTTimeToEpoch will think it's 7:30 AM IST.
+      // We need the original IST timestamp.
 
-      // Calculate how many days to add to get to the correct day of the week
-      const daysToAdd = (selectedDayIndex - currentDayIndex + 7) % 7;
-      date.setDate(date.getDate() + daysToAdd);
+      // Actually, let's look at how slots are stored in filteredSlots.
+      // They have a 'calculatedTimestamp' field! We should probably use that directly.
 
-      let hour = hours;
-      if (period === "PM" && hours !== 12) hour += 12;
-      if (period === "AM" && hours === 12) hour = 0;
-      date.setHours(hour, minutes, 0, 0);
+      // But for calculateSlotTimestamp(dayKey, slot.time) inside filteredSlots mapping:
+      // We need to KNOW the original IST time.
 
-      return date.getTime();
+      return 0; // Placeholder, will fix below.
     } catch (error) {
       console.error("Error calculating slot timestamp:", error);
       return 0;
@@ -177,53 +190,121 @@ export default function DoctorDetails() {
     if (!doctor?.timeSlots || !doctor?.slotDuration) return [];
 
     const dayNameMap: { [key: string]: string } = {
-      Sun: "sunday",
-      Mon: "monday",
-      Tue: "tuesday",
-      Wed: "wednesday",
-      Thu: "thursday",
-      Fri: "friday",
-      Sat: "saturday",
+      Sun: "sunday", Mon: "monday", Tue: "tuesday", Wed: "wednesday",
+      Thu: "thursday", Fri: "friday", Sat: "saturday",
     };
 
     const daySchedule = doctor.timeSlots[dayNameMap[dayKey]];
     if (!daySchedule || !daySchedule.enabled) return [];
 
-    const slots = [];
-    const [startH, startM] = daySchedule.startTime.split(":").map(Number);
-    const [endH, endM] = daySchedule.endTime.split(":").map(Number);
+    const slots: Slot[] = [];
+    const startEpoch = parseISTTimeToEpoch(dayKey, daySchedule.startTime);
+    const endEpoch = parseISTTimeToEpoch(dayKey, daySchedule.endTime);
 
-    const startTime = new Date();
-    startTime.setHours(startH, startM, 0, 0);
+    if (!startEpoch || !endEpoch) return [];
 
-    const endTime = new Date();
-    endTime.setHours(endH, endM, 0, 0);
-
-    let current = new Date(startTime);
-    while (current < endTime) {
-      const slotStart = new Date(current);
-      const slotEnd = new Date(current.getTime() + doctor.slotDuration * 60000);
-
-      const formatTime = (date: Date) => {
-        let hours = date.getHours();
-        const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12 || 12;
-        return `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}${ampm}`;
-      };
-
+    let currentEpoch = startEpoch;
+    while (currentEpoch < endEpoch) {
       slots.push({
-        time: `${formatTime(slotStart)} - ${formatTime(slotEnd)}`,
-        bookingDate: 0, // Will be calculated by getFilteredSlots
+        time: formatTimeRange(currentEpoch, doctor.slotDuration),
+        bookingDate: currentEpoch,
       });
-
-      current = new Date(slotEnd.getTime());
+      currentEpoch += doctor.slotDuration * 60000;
     }
 
     return slots;
   }, [doctor]);
+
+  // Coupon functions
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    if (!auth.currentUser) {
+      setShowLoginForm(true);
+      onOpen();
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponError("");
+
+    try {
+      const couponRef = doc(db, "coupons", couponCode.trim());
+      const couponSnap = await getDoc(couponRef);
+
+      if (!couponSnap.exists()) {
+        setCouponError("Invalid coupon code");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+        return;
+      }
+
+      const couponData = { id: couponSnap.id, ...couponSnap.data() } as Coupon;
+      const consultationFees = Number(doctor!.consultationFees);
+
+      const validation = validateCoupon(
+        couponData,
+        auth.currentUser.uid,
+        params.id as string,
+        consultationFees
+      );
+
+      if (validation.isValid) {
+        setAppliedCoupon(couponData);
+        setCouponDiscount(validation.discountAmount || 0);
+        setCouponError("");
+      } else {
+        setCouponError(validation.error || "Coupon validation failed");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      }
+    } catch (err) {
+      console.error("Error applying coupon:", err);
+      setCouponError("An error occurred while applying the coupon");
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const fetchAvailableCoupons = useCallback(async () => {
+    try {
+      const couponsRef = collection(db, "coupons");
+      const querySnapshot = await getDocs(couponsRef);
+
+      const coupons: Coupon[] = [];
+      const userId = auth.currentUser?.uid;
+      const doctorId = params.id as string;
+
+      querySnapshot.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() } as Coupon;
+        const isVisible = data.tray_visibility === true || (data.tray_visibility as any) === "true";
+        const expiryDate = new Date(data.couponExpiry).getTime();
+        const isExpired = isNaN(expiryDate) || expiryDate < Date.now();
+        const matchesDoctor = data.targetedDoctorIds.length === 0 || data.targetedDoctorIds.includes(doctorId);
+
+        if (isVisible && !isExpired && matchesDoctor) {
+          coupons.push(data);
+        }
+      });
+      setAvailableCoupons(coupons);
+    } catch (err) {
+      console.error(">>> [COUPON] Error fetching available coupons:", err);
+    }
+  }, [params.id]);
+
+  const fetchConsultationCount = useCallback(async () => {
+    try {
+      const consultationsRef = collection(db, "Consultations");
+      const q = query(
+        consultationsRef,
+        where("participants", "array-contains", params.id)
+      );
+      const snapshot = await getCountFromServer(q);
+      const count = snapshot.data().count;
+      setConsultationCount(count);
+    } catch (err) {
+      console.error("Error fetching consultation count:", err);
+    }
+  }, [params.id]);
 
   // Function to check if a slot is booked
   const isSlotBooked = useCallback(async (timestamp: number) => {
@@ -317,6 +398,8 @@ export default function DoctorDetails() {
         });
 
         setSlots(slotsData);
+        await fetchAvailableCoupons();
+        await fetchConsultationCount();
 
         // Set current day as selected if available, otherwise set first available day
         const currentDay = getCurrentDay();
@@ -429,7 +512,9 @@ export default function DoctorDetails() {
 
   const handlePayment = async (userData: { name: string; email?: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string }) => {
     try {
-      const consultationTime = calculateSlotTimestamp(selectedDay, selectedSlot);
+      const selectedSlotObj = filteredSlots.find(s => s.time === selectedSlot);
+      const consultationTime = selectedSlotObj?.calculatedTimestamp || calculateSlotTimestamp(selectedDay, selectedSlot);
+      const userTimezone = getActiveTimezone();
 
 
       // Calculate consultation duration based on specialization
@@ -460,13 +545,18 @@ export default function DoctorDetails() {
           patientAge: calculateAge(userData.dob).toString(),
           relationship: "self",
         },
-        consultationExpiration
+        consultationExpiration,
+        userTimezone,
+        appliedCoupon?.couponCode || null,
+        couponDiscount
       );
 
       // Initialize payment
       const consultationFees = Number(doctor!.consultationFees);
+      const totalAmount = Math.max(0, consultationFees + 50 - couponDiscount);
+
       await initializeRazorpay({
-        amount: (consultationFees + 50) * 100,
+        amount: totalAmount * 100, // Amount is in paisa
         currency: "INR",
         doctorName: doctor!.name,
         patientName: userData.name,
@@ -500,6 +590,7 @@ export default function DoctorDetails() {
                 patientName: userData.name,
                 patientEmail: userData.email || auth.currentUser?.email || "",
                 specialization: doctor!.specialization || "",
+                timezone: userTimezone,
               }),
             });
             if (meetResponse.ok) {
@@ -552,10 +643,27 @@ export default function DoctorDetails() {
       };
 
       // Save consultation to Firestore
+      const consultationWithDiscount = {
+        ...consultation,
+        appliedCoupon: appliedCoupon?.couponCode || null,
+        couponDiscount: couponDiscount
+      };
+
       await setDoc(
         doc(db, "Consultations", consultation.consultationId),
-        consultationWithPayment
+        consultationWithDiscount
       );
+
+      // 3. Update Coupon Usage count if applicable
+      if (appliedCoupon && auth.currentUser) {
+        const { updateDoc, increment, arrayUnion } = await import("firebase/firestore");
+        const couponRef = doc(db, "coupons", appliedCoupon.id);
+
+        await updateDoc(couponRef, {
+          usedByUserIds: arrayUnion(auth.currentUser.uid),
+          currentUsageCount: increment(1)
+        });
+      }
 
       // Update the slot's bookingDate
       const dayKey = selectedDay;
@@ -755,11 +863,17 @@ export default function DoctorDetails() {
                         <h2 className="text-lg font-bold text-slate-900">Analytics Overview</h2>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                            <p className="text-2xl font-black text-primary">{doctor.numOnline || 0}+</p>
+                            <p className="text-2xl font-black text-primary">
+                              {typeof consultationCount === 'string' && consultationCount.endsWith('+')
+                                ? consultationCount
+                                : `${consultationCount}+`}
+                            </p>
                             <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Online Consul</p>
                           </div>
                           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                            <p className="text-2xl font-black text-slate-800">{String(doctor.numExp).padStart(2, '0')}</p>
+                            <p className="text-2xl font-black text-slate-800">
+                              {doctor.numExp ? String(doctor.numExp).padStart(2, '0') : '00'}
+                            </p>
                             <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Years Active</p>
                           </div>
                         </div>
@@ -779,7 +893,16 @@ export default function DoctorDetails() {
                   <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Book Now</h2>
                   <div className="text-right">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Consultation Fee</p>
-                    <p className="text-2xl font-black text-primary">₹{doctor?.consultationFees ? Number(doctor.consultationFees) + 50 : 0}</p>
+                    <div className="flex flex-col items-end">
+                      {couponDiscount > 0 && (
+                        <span className="text-sm font-bold text-slate-400 line-through">
+                          ₹{doctor?.consultationFees ? Number(doctor.consultationFees) + 50 : 0}
+                        </span>
+                      )}
+                      <p className="text-2xl font-black text-primary">
+                        ₹{doctor?.consultationFees ? (Number(doctor.consultationFees) + 50 - couponDiscount) : 0}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -818,34 +941,110 @@ export default function DoctorDetails() {
                   <div className="space-y-4">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">2. Select Preferred Time</label>
                     {selectedDay && (
-                      <div className="grid grid-cols-2 gap-3 max-h-[300px] pr-2 overflow-y-auto custom-scrollbar">
-                        {filteredSlots.length > 0 ? (
-                          filteredSlots.map((slot, index) => {
-                            const isBooked = slot.isBooked;
-                            const isSelected = selectedSlot === slot.time;
-                            return (
-                              <button
-                                key={index}
-                                disabled={isBooked}
-                                onClick={() => !isBooked && setSelectedSlot(slot.time)}
-                                className={`
-                                  flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-200
-                                  ${isBooked ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100' :
-                                    isSelected ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' :
-                                      'bg-white border-slate-100 hover:border-primary/30 text-slate-600'}
-                                `}
-                              >
-                                <span className={`text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>Session</span>
-                                <span className="text-sm font-black">{slot.time.split(' - ')[0]}</span>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="col-span-2 py-12 text-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
-                            <FaClock className="mx-auto text-3xl text-slate-300 mb-3" />
-                            <p className="text-slate-400 text-sm font-medium">No available slots</p>
-                          </div>
-                        )}
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3 max-h-[300px] pr-2 overflow-y-auto custom-scrollbar">
+                          {filteredSlots.length > 0 ? (
+                            filteredSlots.map((slot, index) => {
+                              const isBooked = slot.isBooked;
+                              const isSelected = selectedSlot === slot.time;
+                              return (
+                                <button
+                                  key={index}
+                                  disabled={isBooked}
+                                  onClick={() => !isBooked && setSelectedSlot(slot.time)}
+                                  className={`
+                                    flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-200
+                                    ${isBooked ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100' :
+                                      isSelected ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' :
+                                        'bg-white border-slate-100 hover:border-primary/30 text-slate-600'}
+                                  `}
+                                >
+                                  <span className={`text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>Session</span>
+                                  <span className="text-sm font-black">{slot.time.split(' - ')[0]}</span>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="col-span-2 py-12 text-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
+                              <FaClock className="mx-auto text-3xl text-slate-300 mb-3" />
+                              <p className="text-slate-400 text-sm font-medium">No available slots</p>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold italic text-center">
+                          * All time slots are listed in {getTimezoneName(getActiveTimezone())}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Coupon Section */}
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">3. Apply Coupon Code</label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter code"
+                        value={couponCode}
+                        onValueChange={setCouponCode}
+                        variant="flat"
+                        className="flex-1"
+                        classNames={{
+                          inputWrapper: "bg-slate-50 border border-slate-100 rounded-xl h-12"
+                        }}
+                        isDisabled={!!appliedCoupon}
+                      />
+                      {appliedCoupon ? (
+                        <Button
+                          color="danger"
+                          variant="flat"
+                          className="rounded-xl h-12 font-bold"
+                          onPress={() => {
+                            setAppliedCoupon(null);
+                            setCouponDiscount(0);
+                            setCouponCode("");
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          color="primary"
+                          className="rounded-xl h-12 font-bold"
+                          isLoading={isApplyingCoupon}
+                          onPress={handleApplyCoupon}
+                        >
+                          Apply
+                        </Button>
+                      )}
+                    </div>
+                    {couponError && <p className="text-[10px] text-danger font-bold ml-1">{couponError}</p>}
+                    {appliedCoupon && !couponError && (
+                      <p className="text-[10px] text-success font-bold ml-1 flex items-center gap-1">
+                        <FaStar className="text-[8px]" /> Coupon "{appliedCoupon.couponCode}" applied! You saved ₹{couponDiscount}
+                      </p>
+                    )}
+
+                    {/* Coupon Tray */}
+                    {availableCoupons.length > 0 && !appliedCoupon && (
+                      <div className="flex flex-col gap-2">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Available Offers</p>
+                        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                          {availableCoupons.map((coupon) => (
+                            <div
+                              key={coupon.id}
+                              onClick={() => {
+                                setCouponCode(coupon.couponCode);
+                                // Trigger apply automatically or let user click Apply
+                              }}
+                              className="flex-shrink-0 cursor-pointer p-3 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors min-w-[120px]"
+                            >
+                              <p className="text-xs font-black text-primary">{coupon.couponCode}</p>
+                              <p className="text-[8px] font-bold text-primary/60">
+                                {coupon.isPercentage ? `${coupon.couponValue}% OFF` : `₹${coupon.couponValue} OFF`}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

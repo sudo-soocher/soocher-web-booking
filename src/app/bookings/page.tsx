@@ -18,6 +18,9 @@ import {
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
 import { Footer } from "@/components/layout/Footer";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { getChatAvailability } from "@/utils/chat/availability";
+import { formatDisplayDateTime, formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,6 +49,7 @@ export default function Bookings() {
   const [selectedConsultation, setSelectedConsultation] =
     useState<Consultation | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isChatOpen, onOpen: onChatOpen, onClose: onChatClose } = useDisclosure();
 
   useEffect(() => {
     const fetchConsultations = async () => {
@@ -104,16 +108,8 @@ export default function Bookings() {
     }
   };
 
-  const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    });
+  const formatDateTime = (timestamp: number, timezone?: string) => {
+    return formatDisplayDateTime(timestamp, timezone);
   };
 
   const getStatusChip = (consultation: Consultation) => {
@@ -163,203 +159,226 @@ export default function Bookings() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <FaStethoscope className="text-white text-xl" />
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col transition-all duration-300">
+      {/* Main Content Area */}
+      <div className={`flex-1 transition-all duration-300 ${isChatOpen ? 'md:mr-[450px]' : ''}`}>
+        {/* Navbar */}
+        <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
+          <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                <FaStethoscope className="text-white text-xl" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
-          </div>
-          <Button
-            variant="flat"
-            size="sm"
-            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-            startContent={<FaArrowLeft className="text-xs" />}
-            onPress={() => router.push("/")}
-          >
-            Back
-          </Button>
-        </nav>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
-        <div className="space-y-8 md:space-y-12">
-          {/* Page Heading */}
-          <div className="space-y-2">
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
-              My <span className="text-primary italic">Consultations</span>
-            </h1>
-            <p className="text-sm md:text-base text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
-          </div>
-
-          <div className="space-y-6 md:space-y-8">
-            {/* Tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+            <Button
+              variant="flat"
+              size="sm"
+              className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+              startContent={<FaArrowLeft className="text-xs" />}
+              onPress={() => router.push("/")}
             >
-              <Tabs
-                selectedKey={selectedTab}
-                onSelectionChange={(key: React.Key) => setSelectedTab(key as string)}
-                variant="underlined"
-                classNames={{
-                  base: "w-full",
-                  tabList: "gap-8 w-full relative rounded-none p-0 border-b border-slate-200",
-                  cursor: "w-full bg-primary",
-                  tab: "max-w-fit px-0 h-12",
-                  tabContent: "group-data-[selected=true]:text-primary group-data-[selected=true]:font-bold text-slate-400 font-medium transition-all"
-                }}
+              Back
+            </Button>
+          </nav>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
+          <div className="space-y-8 md:space-y-12">
+            {/* Page Heading */}
+            <div className="space-y-2">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
+                My <span className="text-primary italic">Consultations</span>
+              </h1>
+              <p className="text-sm md:text-base text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
+            </div>
+
+            <div className="space-y-6 md:space-y-8">
+              {/* Tabs */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <Tab
-                  key="upcoming"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span>Upcoming</span>
-                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center">
-                        {filterConsultations("upcoming").length}
-                      </span>
-                    </div>
-                  }
-                />
-                <Tab
-                  key="active"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span>In-Progress</span>
-                      <span className="w-5 h-5 rounded-full bg-success/10 text-success text-[10px] flex items-center justify-center">
-                        {filterConsultations("active").length}
-                      </span>
-                    </div>
-                  }
-                />
-                <Tab
-                  key="past"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span>Completed</span>
-                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] flex items-center justify-center">
-                        {filterConsultations("past").length}
-                      </span>
-                    </div>
-                  }
-                />
-              </Tabs>
-            </motion.div>
-
-            {/* List */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-1 gap-6"
-            >
-              {filterConsultations(
-                selectedTab as "upcoming" | "active" | "past"
-              ).map((consultation) => (
-                <motion.div
-                  key={consultation.consultationId}
-                  variants={itemVariants}
+                <Tabs
+                  selectedKey={selectedTab}
+                  onSelectionChange={(key: React.Key) => setSelectedTab(key as string)}
+                  variant="underlined"
+                  classNames={{
+                    base: "w-full",
+                    tabList: "gap-8 w-full relative rounded-none p-0 border-b border-slate-200",
+                    cursor: "w-full bg-primary",
+                    tab: "max-w-fit px-0 h-12",
+                    tabContent: "group-data-[selected=true]:text-primary group-data-[selected=true]:font-bold text-slate-400 font-medium transition-all"
+                  }}
                 >
-                  <div
-                    onClick={() => {
-                      setSelectedConsultation(consultation);
-                      onOpen();
-                    }}
-                    className="premium-card p-4 md:p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
-                  >
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
-                      <div className="flex flex-col md:flex-row gap-4 md:gap-8 flex-1 w-full">
-                        {/* Doctor Info */}
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/5 rounded-[16px] md:rounded-[20px] flex items-center justify-center text-primary text-xl md:text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                            <FaUserMd />
-                          </div>
-                          <div>
-                            <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
-                              {consultation.doctorName}
-                            </h3>
-                            <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider">
-                              Patient: {consultation.extras.patientDetails.patientName}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Divider for desktop */}
-                        <div className="hidden md:block w-px h-12 bg-slate-100" />
-
-                        {/* Date Info */}
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                            <FaCalendar className="text-sm md:text-base" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-900">
-                              {new Date(consultation.consultationTime).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </p>
-                            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
-                              {new Date(consultation.consultationTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                            </p>
-                          </div>
-                        </div>
+                  <Tab
+                    key="upcoming"
+                    title={
+                      <div className="flex items-center gap-2">
+                        <span>Upcoming</span>
+                        <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center">
+                          {filterConsultations("upcoming").length}
+                        </span>
                       </div>
-
-                      <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-none border-slate-100">
-                        {consultation.extras.meetLink && (Date.now() <= consultation.consultationExpiration) && (
-                          <Button
-                            color="success"
-                            variant="flat"
-                            size="sm"
-                            className="rounded-full font-bold px-4 md:px-6 h-9 md:h-11"
-                            startContent={<FaVideo className="text-sm" />}
-                            onClick={(e: React.MouseEvent) => {
-                              e.stopPropagation();
-                              window.open(consultation.extras.meetLink, "_blank");
-                            }}
-                          >
-                            Join<span className="hidden sm:inline">&nbsp;Meeting</span>
-                          </Button>
-                        )}
-
-                        <div className="flex items-center gap-2 md:gap-6 ml-auto sm:ml-0">
-                          <div className="flex items-center gap-2">
-                            <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest text-slate-300">Status</span>
-                            {getStatusChip(consultation)}
-                          </div>
-
-                          <div className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm ml-2 md:ml-0">
-                            <span className="text-slate-300 group-hover:text-white transition-colors text-sm md:text-lg">→</span>
-                          </div>
-                        </div>
+                    }
+                  />
+                  <Tab
+                    key="active"
+                    title={
+                      <div className="flex items-center gap-2">
+                        <span>In-Progress</span>
+                        <span className="w-5 h-5 rounded-full bg-success/10 text-success text-[10px] flex items-center justify-center">
+                          {filterConsultations("active").length}
+                        </span>
                       </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                    }
+                  />
+                  <Tab
+                    key="past"
+                    title={
+                      <div className="flex items-center gap-2">
+                        <span>Completed</span>
+                        <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] flex items-center justify-center">
+                          {filterConsultations("past").length}
+                        </span>
+                      </div>
+                    }
+                  />
+                </Tabs>
+              </motion.div>
 
-              {filterConsultations(selectedTab as "upcoming" | "active" | "past")
-                .length === 0 && (
+              {/* List */}
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 gap-6"
+              >
+                {filterConsultations(
+                  selectedTab as "upcoming" | "active" | "past"
+                ).map((consultation) => (
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="py-32 flex flex-col items-center justify-center space-y-4"
+                    key={consultation.consultationId}
+                    variants={itemVariants}
                   >
-                    <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-4xl text-slate-200">
-                      <FaClock />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-black text-slate-900">No appointments found</p>
-                      <p className="text-slate-400 font-medium">Your {selectedTab} consultations will appear here.</p>
+                    <div
+                      onClick={() => {
+                        setSelectedConsultation(consultation);
+                        onOpen();
+                      }}
+                      className="premium-card p-4 md:p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
+                    >
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+                        <div className="flex flex-col md:flex-row gap-4 md:gap-8 flex-1 w-full">
+                          {/* Doctor Info */}
+                          <div className="flex items-center gap-3 md:gap-4">
+                            <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/5 rounded-[16px] md:rounded-[20px] flex items-center justify-center text-primary text-xl md:text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                              <FaUserMd />
+                            </div>
+                            <div>
+                              <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
+                                {consultation.doctorName}
+                              </h3>
+                              <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider">
+                                Patient: {consultation.extras.patientDetails.patientName}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Divider for desktop */}
+                          <div className="hidden md:block w-px h-12 bg-slate-100" />
+
+                          {/* Date Info */}
+                          <div className="flex items-center gap-3 md:gap-4">
+                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                              <FaCalendar className="text-sm md:text-base" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-900">
+                                {formatDisplayDate(consultation.consultationTime, consultation.timezone)}
+                              </p>
+                              <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                {formatDisplayTime(consultation.consultationTime, consultation.timezone)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-none border-slate-100">
+                          {consultation.extras.meetLink && (Date.now() <= consultation.consultationExpiration) && (
+                            <Button
+                              color="success"
+                              variant="flat"
+                              size="sm"
+                              className="rounded-full font-bold px-4 md:px-6 h-9 md:h-11"
+                              startContent={<FaVideo className="text-sm" />}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                window.open(consultation.extras.meetLink, "_blank");
+                              }}
+                            >
+                              Join<span className="hidden sm:inline">&nbsp;Meeting</span>
+                            </Button>
+                          )}
+
+                          {consultation && getChatAvailability(consultation).isAvailable && (
+                            <Button
+                              color="primary"
+                              variant="flat"
+                              size="sm"
+                              className="rounded-full font-bold px-4 md:px-6 h-9 md:h-11"
+                              startContent={<FaComments className="text-sm" />}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                setSelectedConsultation(consultation);
+                                onChatOpen();
+                              }}
+                            >
+                              Chat
+                            </Button>
+                          )}
+
+                          <div className="flex items-center gap-2 md:gap-6 ml-auto sm:ml-0">
+                            <div className="flex items-center gap-2">
+                              <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest text-slate-300">Status</span>
+                              {getStatusChip(consultation)}
+                            </div>
+
+                            <div className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm ml-2 md:ml-0">
+                              <span className="text-slate-300 group-hover:text-white transition-colors text-sm md:text-lg">→</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
-                )}
-            </motion.div>
-          </div>
-        </div>
-      </main>
+                ))}
 
+                {filterConsultations(selectedTab as "upcoming" | "active" | "past")
+                  .length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="py-32 flex flex-col items-center justify-center space-y-4"
+                    >
+                      <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-4xl text-slate-200">
+                        <FaClock />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xl font-black text-slate-900">No appointments found</p>
+                        <p className="text-slate-400 font-medium">Your {selectedTab} consultations will appear here.</p>
+                      </div>
+                    </motion.div>
+                  )}
+              </motion.div>
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+
+      {/* Appointment Details Modal */}
       <Modal
         isOpen={isOpen}
         onClose={onClose}
@@ -384,7 +403,6 @@ export default function Bookings() {
               <ModalBody>
                 {selectedConsultation && (
                   <div className="space-y-6 md:space-y-8">
-                    {/* Doctor/Patient Summary */}
                     <div className="grid grid-cols-2 gap-4 md:gap-8 p-4 md:p-6 bg-slate-50 rounded-[20px] md:rounded-[24px]">
                       <div className="space-y-1 md:space-y-2">
                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Doctor</p>
@@ -404,7 +422,7 @@ export default function Bookings() {
                         <div className="space-y-1">
                           <p className="font-black text-slate-900">Time & Date</p>
                           <p className="text-slate-500 font-medium">
-                            {formatDateTime(selectedConsultation.consultationTime)}
+                            {formatDateTime(selectedConsultation.consultationTime, selectedConsultation.timezone)}
                           </p>
                         </div>
                       </div>
@@ -416,7 +434,7 @@ export default function Bookings() {
                         <div className="space-y-1">
                           <p className="font-black text-slate-900">Video Link Duration</p>
                           <p className="text-slate-500 font-medium text-sm">
-                            Available until {new Date(selectedConsultation.consultationExpiration).toLocaleTimeString()}
+                            Available until {formatDisplayTime(selectedConsultation.consultationExpiration, selectedConsultation.timezone)}
                           </p>
                         </div>
                       </div>
@@ -440,17 +458,27 @@ export default function Bookings() {
                         </div>
                       )}
 
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center">
-                          <FaComments />
+                      {selectedConsultation && getChatAvailability(selectedConsultation).isAvailable && (
+                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                              <FaComments className="text-xs" />
+                            </div>
+                            <p className="text-sm font-bold text-primary">Chat is active</p>
+                          </div>
+                          <Button
+                            color="primary"
+                            size="sm"
+                            className="rounded-xl font-bold"
+                            onPress={() => {
+                              onClose();
+                              onChatOpen();
+                            }}
+                          >
+                            Open Chat
+                          </Button>
                         </div>
-                        <div className="space-y-1">
-                          <p className="font-black text-slate-900">Patient Chat</p>
-                          <p className="text-slate-500 font-medium text-sm">
-                            Chat closes on {new Date(selectedConsultation.chatExpiration).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     <div className="pt-4">
@@ -470,7 +498,15 @@ export default function Bookings() {
           )}
         </ModalContent>
       </Modal>
-      <Footer />
+
+      {/* Chat Sidebar */}
+      {selectedConsultation && (
+        <ChatSidebar
+          isOpen={isChatOpen}
+          onClose={onChatClose}
+          consultation={selectedConsultation}
+        />
+      )}
     </div>
   );
 }
