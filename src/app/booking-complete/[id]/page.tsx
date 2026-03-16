@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button, useDisclosure } from "@nextui-org/react";
@@ -14,18 +15,30 @@ import {
   FaUserMd,
   FaStethoscope,
   FaComments,
+  FaCopy,
 } from "react-icons/fa";
+// FaStethoscope kept for navbar logo
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { getChatAvailability } from "@/utils/chat/availability";
+import { formatDisplayDate, formatDisplayTime, getTimezoneName } from "@/utils/timezone";
+import { Logo } from "@/components/ui/Logo";
 
 export default function BookingComplete() {
   const params = useParams();
   const router = useRouter();
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const { isOpen: isChatOpen, onOpen: onChatOpen, onClose: onChatClose } = useDisclosure();
+
+  const handleCopyMeetLink = (link: string) => {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   useEffect(() => {
     const fetchConsultation = async () => {
@@ -84,9 +97,7 @@ export default function BookingComplete() {
         <header className="px-4 md:px-6 py-4">
           <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                <FaStethoscope className="text-white text-xl" />
-              </div>
+              <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
             </div>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic hidden sm:block">Confidential Ticket</p>
@@ -166,10 +177,13 @@ export default function BookingComplete() {
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Appointment</p>
                           <p className="font-black text-slate-900 italic">
-                            {new Date(consultation.consultationTime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                            {formatDisplayDate(consultation.consultationTime, consultation.timezone)}
                           </p>
                           <p className="text-sm font-bold text-slate-400 leading-tight">
-                            {new Date(consultation.consultationTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {formatDisplayTime(consultation.consultationTime, consultation.timezone)}
+                          </p>
+                          <p className="text-xs font-medium text-slate-300 leading-tight mt-0.5">
+                            {getTimezoneName(consultation.timezone)}
                           </p>
                         </div>
                       </div>
@@ -191,15 +205,47 @@ export default function BookingComplete() {
                     </div>
                   </div>
 
-                  <div className="pt-8 flex flex-col items-center space-y-4">
-                    <div className="p-4 bg-slate-50 rounded-[32px] ring-1 ring-slate-100">
-                      {/* Placeholder for QR Code */}
-                      <div className="w-32 h-32 bg-white rounded-2xl flex items-center justify-center border-4 border-slate-50 shadow-inner overflow-hidden grayscale opacity-20">
-                        <FaStethoscope className="text-6xl text-slate-200" />
+                  {/* Google Meet Link */}
+                  {consultation.extras?.meetLink && (
+                    <>
+                      <div className="h-px border-t border-dashed border-slate-200" />
+                      <div className="flex items-center gap-3">
+                        {/* Google Meet branded copy button */}
+                        <button
+                          onClick={() => handleCopyMeetLink(consultation.extras.meetLink!)}
+                          className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group border ${
+                            copied 
+                              ? "bg-success/10 border-success/30" 
+                              : "bg-gradient-to-r from-[#1a73e8]/10 to-[#34a853]/10 border-[#1a73e8]/20 hover:from-[#1a73e8]/20 hover:to-[#34a853]/20 hover:border-[#1a73e8]/40"
+                          }`}
+                        >
+                          {/* Official Google Meet logo from public directory */}
+                          <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden shadow-sm border border-slate-100 bg-white flex items-center justify-center relative">
+                            <Image 
+                              src="/google_meet_logo.png" 
+                              alt="Google Meet" 
+                              fill
+                              className="object-contain p-1.5"
+                            />
+                          </div>
+                          <div className="flex-1 text-left min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Google Meet</p>
+                            <p className={`text-sm font-black transition-colors duration-200 italic ${
+                              copied ? "text-success" : "text-slate-800 group-hover:text-[#1a73e8]"
+                            }`}>
+                              {copied ? "Meeting Link Copied! ✓" : "Copy Meeting Link"}
+                            </p>
+                          </div>
+                          {copied && (
+                            <div className="mr-2 text-success">
+                              <FaCheckCircle className="text-xl" />
+                            </div>
+                          )}
+                        </button>
                       </div>
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">Scan to Sync</p>
-                  </div>
+                    </>
+                  )}
+
                 </div>
               </div>
             </motion.div>

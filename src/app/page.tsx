@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { generateGeminiResponse } from "@/services/gemini";
 import { Footer } from "@/components/layout/Footer";
+import { Logo } from "@/components/ui/Logo";
 
 interface Speciality {
   name: string;
@@ -188,9 +189,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
         <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <FaStethoscope className="text-white text-xl" />
-            </div>
+            <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
 
@@ -319,8 +318,8 @@ export default function Home() {
             <div className="w-full aspect-square rounded-[48px] border-2 border-primary/10 relative z-10 p-8 glass-effect overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent" />
               <div className="relative h-full flex flex-col justify-center items-center text-center space-y-6">
-                <div className="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center">
-                  <FaStethoscope className="text-5xl text-primary" />
+                <div className="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-4">
+                  <Logo size="xl" className="w-full h-full rounded-2xl" />
                 </div>
                 <h2 className="text-3xl font-bold text-slate-800">Verified Doctors</h2>
                 <p className="text-slate-500 max-w-sm">Every specialist on Soocher is manually verified to ensure you receive the highest quality care.</p>

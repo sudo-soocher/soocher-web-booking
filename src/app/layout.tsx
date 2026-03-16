@@ -8,6 +8,10 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 export const metadata: Metadata = {
   title: "Soocher",
   description: "Book your doctor's appointment with Soocher",
+  icons: {
+    icon: "/soocherlogo.jpg",
+    apple: "/soocherlogo.jpg",
+  },
 };
 
 export default function RootLayout({

@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { FaStethoscope, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { Logo } from "@/components/ui/Logo";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
@@ -152,9 +153,9 @@ export default function Login() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-white rounded-[28px] flex items-center justify-center shadow-2xl"
+            className="w-20 h-20 bg-white rounded-[28px] flex items-center justify-center shadow-2xl p-4"
           >
-            <FaStethoscope className="text-primary text-4xl" />
+            <Logo size="lg" className="w-full h-full rounded-2xl" />
           </motion.div>
 
           <div className="space-y-6">
