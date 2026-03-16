@@ -9,15 +9,19 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical } from "react-icons/fa";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical, FaCamera } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { Patient } from "@/types/patient";
 import { Footer } from "@/components/layout/Footer";
+import { storage } from "@/lib/firebase";
+import { Logo } from "@/components/ui/Logo";
 
 export default function Profile() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<Patient | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -64,6 +68,44 @@ export default function Profile() {
 
     fetchProfile();
   }, [router]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      alert('File is too large. Please choose an image under 2MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `profiles/${auth.currentUser.uid}/avatar`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update local profile state
+      const updatedProfile = { ...profile!, profileImage: downloadURL };
+      setProfile(updatedProfile as Patient);
+
+      // Update Firestore immediately for the image
+      await updateDoc(doc(db, "Users", auth.currentUser.uid), {
+        profileImage: downloadURL
+      });
+
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!auth.currentUser) return;
@@ -124,9 +166,7 @@ export default function Profile() {
       <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
         <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <FaStethoscope className="text-white text-xl" />
-            </div>
+            <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
           <Button
@@ -159,22 +199,46 @@ export default function Profile() {
             {/* Profile Header */}
             <div className="flex flex-col items-center mb-8 md:mb-12 space-y-4">
               <div className="relative group">
-                <Avatar
-                  className="w-32 h-32 md:w-40 md:h-40 text-large rounded-[48px] shadow-2xl shadow-primary/10"
-                  src={profile?.profileImage}
-                  name={profile?.name}
-                  showFallback
-                  fallback={<FaUser className="text-4xl text-slate-300" />}
+                <input
+                  type="file"
+                  id="profile-image-input"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
                 />
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white cursor-pointer hover:scale-110 transition-transform">
-                  <span className="text-xs">Edit</span>
-                </div>
+                <label
+                  htmlFor="profile-image-input"
+                  className={`relative block transition-all duration-300 ${uploading ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:scale-105 active:scale-95'}`}
+                >
+                  <Avatar
+                    className="w-32 h-32 md:w-40 md:h-40 text-large rounded-[48px] shadow-2xl shadow-primary/10 border-4 border-white"
+                    src={profile?.profileImage}
+                    name={profile?.name}
+                    showFallback
+                    fallback={<FaUser className="text-4xl text-slate-300" />}
+                  />
+                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white">
+                    {uploading ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <FaCamera className="text-sm" />
+                    )}
+                  </div>
+                </label>
               </div>
               <div className="text-center">
                 <h2 className="text-2xl font-black text-slate-900">{profile?.name || "Patient Name"}</h2>
-                <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest mt-1">
-                  ID: {auth.currentUser?.uid.slice(0, 8)}
-                </p>
+                {uploading && (
+                  <p className="text-primary font-bold text-[10px] uppercase tracking-widest mt-2 animate-pulse">
+                    Uploading your new look...
+                  </p>
+                )}
+                {!uploading && (
+                  <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest mt-1">
+                    ID: {auth.currentUser?.uid.slice(0, 8)}
+                  </p>
+                )}
               </div>
             </div>
 

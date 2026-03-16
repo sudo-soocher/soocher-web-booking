@@ -1,5 +1,5 @@
 // Types for the extras field
-interface PatientDetails {
+export interface PatientDetails {
   patientName: string;
   gender: "Male" | "Female" | "Other";
   patientAge: string;
@@ -53,6 +53,13 @@ export interface Consultation {
 
   // Booking source
   booking_type: string;
+
+  // User Timezone
+  timezone: string;
+
+  // Coupon Information
+  appliedCoupon?: string | null;
+  couponDiscount?: number;
 }
 
 // Helper function to check if consultation is active
@@ -116,7 +123,10 @@ export const createNewConsultation = (
   participants: string[],
   meetingId: string,
   patientDetails: PatientDetails,
-  consultationExpiration: number
+  consultationExpiration: number,
+  timezone: string = "Asia/Kolkata",
+  appliedCoupon: string | null = null,
+  couponDiscount: number = 0
 ): Consultation => {
   return {
     consultationId,
@@ -146,6 +156,9 @@ export const createNewConsultation = (
     reasonForCancellation: null,
     jobName: "", // This will be set by the backend
     booking_type: "web",
+    timezone,
+    appliedCoupon,
+    couponDiscount,
   };
 };
 

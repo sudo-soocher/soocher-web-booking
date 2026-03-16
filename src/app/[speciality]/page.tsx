@@ -18,6 +18,7 @@ import {
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Footer } from "@/components/layout/Footer";
+import { Logo } from "@/components/ui/Logo";
 
 import { Doctor } from "@/types/doctor";
 import { DoctorCard } from "@/components/doctor/DoctorCard";
@@ -125,9 +126,7 @@ export default function SpecialityPage() {
       <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
         <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <FaStethoscope className="text-white text-xl" />
-            </div>
+            <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
           <Button

@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { FaStethoscope, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { Logo } from "@/components/ui/Logo";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
@@ -27,8 +28,21 @@ export default function Login() {
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Initialize reCAPTCHA verifier
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        router.replace("/");
+      } else {
+        setCheckingAuth(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  // Initializing reCAPTCHA verifier
   const setupRecaptcha = () => {
     if (recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current.clear();
@@ -116,6 +130,19 @@ export default function Login() {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-slate-400 font-medium animate-pulse uppercase tracking-widest text-[10px]">
+            Verifying your sanctuary access...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="flex min-h-screen bg-white">
       {/* Visual Side */}
@@ -126,9 +153,9 @@ export default function Login() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-white rounded-[28px] flex items-center justify-center shadow-2xl"
+            className="w-20 h-20 bg-white rounded-[28px] flex items-center justify-center shadow-2xl p-4"
           >
-            <FaStethoscope className="text-primary text-4xl" />
+            <Logo size="lg" className="w-full h-full rounded-2xl" />
           </motion.div>
 
           <div className="space-y-6">
