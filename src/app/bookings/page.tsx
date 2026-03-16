@@ -137,6 +137,12 @@ export default function Bookings() {
     }
   };
 
+  const getBookingSource = (consultation: Consultation): "web" | "app" => {
+    if (consultation.booking_type === "web") return "web";
+    if (consultation.extras?.meetLink) return "web";
+    return "app";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC]">
@@ -255,9 +261,9 @@ export default function Bookings() {
               >
                 {filterConsultations(
                   selectedTab as "upcoming" | "active" | "past"
-                ).map((consultation) => (
+                ).map((consultation, index) => (
                   <motion.div
-                    key={consultation.consultationId}
+                    key={consultation.consultationId ?? `consultation-${index}`}
                     variants={itemVariants}
                   >
                     <div
@@ -267,28 +273,29 @@ export default function Bookings() {
                       }}
                       className="premium-card p-4 md:p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
                     >
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
-                        <div className="flex flex-col md:flex-row gap-4 md:gap-8 flex-1 w-full">
+                      <div className="flex flex-row items-center justify-between gap-3">
+                        {/* Left: Doctor + Date */}
+                        <div className="flex flex-row items-center gap-4 md:gap-8 min-w-0 flex-1">
                           {/* Doctor Info */}
-                          <div className="flex items-center gap-3 md:gap-4">
-                            <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/5 rounded-[16px] md:rounded-[20px] flex items-center justify-center text-primary text-xl md:text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                          <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                            <div className="w-12 h-12 md:w-14 md:h-14 shrink-0 bg-primary/5 rounded-[16px] md:rounded-[20px] flex items-center justify-center text-primary text-xl md:text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                               <FaUserMd />
                             </div>
-                            <div>
-                              <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors">
+                            <div className="min-w-0">
+                              <h3 className="text-base md:text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors truncate">
                                 {consultation.doctorName}
                               </h3>
-                              <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider">
-                                Patient: {consultation.extras.patientDetails.patientName}
+                              <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider truncate">
+                                Patient: {consultation.extras?.patientDetails?.patientName ?? "—"}
                               </p>
                             </div>
                           </div>
 
-                          {/* Divider for desktop */}
-                          <div className="hidden md:block w-px h-12 bg-slate-100" />
+                          {/* Divider */}
+                          <div className="hidden md:block w-px h-12 bg-slate-100 shrink-0" />
 
                           {/* Date Info */}
-                          <div className="flex items-center gap-3 md:gap-4">
+                          <div className="hidden sm:flex items-center gap-3 md:gap-4 shrink-0">
                             <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
                               <FaCalendar className="text-sm md:text-base" />
                             </div>
@@ -303,8 +310,9 @@ export default function Bookings() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-none border-slate-100">
-                          {consultation.extras.meetLink && (Date.now() <= consultation.consultationExpiration) && (
+                        {/* Right: Actions + Source + Status + Arrow — always visible */}
+                        <div className="flex items-center gap-3 md:gap-5 shrink-0 w-fit">
+                          {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
                             <Button
                               color="success"
                               variant="flat"
@@ -313,10 +321,10 @@ export default function Bookings() {
                               startContent={<FaVideo className="text-sm" />}
                               onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
-                                window.open(consultation.extras.meetLink, "_blank");
+                                window.open(consultation.extras?.meetLink, "_blank");
                               }}
                             >
-                              Join<span className="hidden sm:inline">&nbsp;Meeting</span>
+                              Join<span className="hidden md:inline">&nbsp;Meeting</span>
                             </Button>
                           )}
 
@@ -337,15 +345,27 @@ export default function Bookings() {
                             </Button>
                           )}
 
-                          <div className="flex items-center gap-2 md:gap-6 ml-auto sm:ml-0">
-                            <div className="flex items-center gap-2">
-                              <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest text-slate-300">Status</span>
-                              {getStatusChip(consultation)}
-                            </div>
+                          {/* Source (App / Web) */}
+                          <div className="flex flex-col items-center gap-1 w-[60px]">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Source</span>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap ${
+                              getBookingSource(consultation) === "web"
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-purple-100 text-purple-600"
+                            }`}>
+                              {getBookingSource(consultation)}
+                            </span>
+                          </div>
 
-                            <div className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm ml-2 md:ml-0">
-                              <span className="text-slate-300 group-hover:text-white transition-colors text-sm md:text-lg">→</span>
-                            </div>
+                          {/* Status */}
+                          <div className="flex flex-col items-center gap-1 w-[100px]">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Status</span>
+                            {getStatusChip(consultation)}
+                          </div>
+
+                          {/* Arrow */}
+                          <div className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm">
+                            <span className="text-slate-300 group-hover:text-white transition-colors text-sm md:text-lg">→</span>
                           </div>
                         </div>
                       </div>
@@ -409,7 +429,17 @@ export default function Bookings() {
                       </div>
                       <div className="space-y-1 md:space-y-2">
                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Patient</p>
-                        <p className="text-sm md:text-base font-black text-slate-900 font-bold">{selectedConsultation.extras.patientDetails.patientName}</p>
+                        <p className="text-sm md:text-base font-black text-slate-900 font-bold">{selectedConsultation.extras?.patientDetails?.patientName ?? "—"}</p>
+                      </div>
+                      <div className="space-y-1 md:space-y-2">
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Booked Via</p>
+                        <span className={`inline-block text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full ${
+                          getBookingSource(selectedConsultation) === "web"
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-purple-100 text-purple-600"
+                        }`}>
+                          {getBookingSource(selectedConsultation)}
+                        </span>
                       </div>
                     </div>
 
@@ -438,7 +468,7 @@ export default function Bookings() {
                         </div>
                       </div>
 
-                      {selectedConsultation.extras.meetLink && (Date.now() <= selectedConsultation.consultationExpiration) && (
+                      {selectedConsultation.extras?.meetLink && (Date.now() <= selectedConsultation.consultationExpiration) && (
                         <div className="p-4 bg-success/5 border border-success/10 rounded-2xl flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success">
@@ -450,7 +480,7 @@ export default function Bookings() {
                             color="success"
                             size="sm"
                             className="rounded-xl font-bold"
-                            onPress={() => window.open(selectedConsultation.extras.meetLink, "_blank")}
+                            onPress={() => window.open(selectedConsultation.extras?.meetLink, "_blank")}
                           >
                             Join Now
                           </Button>
