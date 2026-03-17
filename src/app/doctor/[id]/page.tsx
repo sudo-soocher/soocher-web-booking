@@ -964,9 +964,12 @@ export default function DoctorDetails() {
                             </div>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-400 font-bold italic text-center">
-                          * All time slots are listed in {getTimezoneName(getActiveTimezone())}
-                        </p>
+                        <div className="flex justify-center pt-2">
+                          <p className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-full border border-amber-200/50 text-xs text-amber-900 font-bold tracking-wide shadow-sm">
+                            <FaClock className="text-amber-500" />
+                            All times shown in {getTimezoneName(getActiveTimezone())}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1043,7 +1046,15 @@ export default function DoctorDetails() {
                   </div>
 
                   {/* Book Button */}
-                  <div className="pt-4">
+                  <div className="pt-4 space-y-4">
+                    {/* Final Price Summary */}
+                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                      <span className="text-sm font-bold text-slate-700">Total Payable Amount</span>
+                      <span className="text-2xl font-black text-primary">
+                        ₹{doctor?.consultationFees ? (Number(doctor.consultationFees) + 50 - couponDiscount) : 0}
+                      </span>
+                    </div>
+                    
                     <Button
                       color="primary"
                       className="w-full rounded-[24px] h-16 text-lg font-black shadow-[0_20px_40px_rgba(46,109,212,0.3)] disabled:opacity-50 disabled:shadow-none"

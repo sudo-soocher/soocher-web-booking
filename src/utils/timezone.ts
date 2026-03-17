@@ -168,13 +168,48 @@ export const formatDisplayTime = (
  */
 export const getTimezoneName = (timezone?: string): string => {
     const tz = timezone || getActiveTimezone();
+    
+    // Explicit country mappings we want to override default behavior for
+    const countryMappings: Record<string, string> = {
+        "Asia/Kolkata": "Indian Standard Time",
+        "Asia/Dubai": "UAE Standard Time",
+        "Asia/Kuwait": "Kuwait Standard Time",
+        "Asia/Qatar": "Qatar Standard Time",
+        "Asia/Bahrain": "Bahrain Standard Time",
+        "Asia/Riyadh": "Saudi Arabia Standard Time",
+        "Asia/Muscat": "Oman Standard Time"
+    };
+
+    if (countryMappings[tz]) {
+        return countryMappings[tz];
+    }
+    
     try {
+        // Try getting official timezone string from Intl
         const parts = new Intl.DateTimeFormat("en-US", {
             timeZoneName: "long",
             timeZone: tz,
         }).formatToParts(new Date());
-        return parts.find((p) => p.type === "timeZoneName")?.value || tz;
+        
+        const officialName = parts.find((p) => p.type === "timeZoneName")?.value || tz;
+
+        // If it's a generic IANA string fallback to city extraction
+        if (tz && tz.includes("/")) {
+            const cityNameRaw = tz.split("/").pop() || "";
+            if (cityNameRaw) {
+                const cityName = cityNameRaw.replace(/_/g, " ");
+                return `${cityName} Standard Time`;
+            }
+        }
+
+        return officialName;
+
     } catch (e) {
+        // Fallback for weird string errors
+        if (tz && tz.includes("/")) {
+            const cityName = tz.split("/").pop()?.replace(/_/g, " ");
+            return `${cityName} Standard Time`;
+        }
         return tz;
     }
 };
