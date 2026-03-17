@@ -169,6 +169,21 @@ export const formatDisplayTime = (
 export const getTimezoneName = (timezone?: string): string => {
     const tz = timezone || getActiveTimezone();
     
+    // Explicit country mappings we want to override default behavior for
+    const countryMappings: Record<string, string> = {
+        "Asia/Kolkata": "Indian Standard Time",
+        "Asia/Dubai": "UAE Standard Time",
+        "Asia/Kuwait": "Kuwait Standard Time",
+        "Asia/Qatar": "Qatar Standard Time",
+        "Asia/Bahrain": "Bahrain Standard Time",
+        "Asia/Riyadh": "Saudi Arabia Standard Time",
+        "Asia/Muscat": "Oman Standard Time"
+    };
+
+    if (countryMappings[tz]) {
+        return countryMappings[tz];
+    }
+    
     try {
         // Try getting official timezone string from Intl
         const parts = new Intl.DateTimeFormat("en-US", {
@@ -178,11 +193,8 @@ export const getTimezoneName = (timezone?: string): string => {
         
         const officialName = parts.find((p) => p.type === "timeZoneName")?.value || tz;
 
-        // If the timezone name contains "Gulf", "Arab", etc., generic terms,
-        // or if we just want a uniform "[City] Standard Time" mapping for EVERYTHING:
+        // If it's a generic IANA string fallback to city extraction
         if (tz && tz.includes("/")) {
-            // Extract the city part from e.g., "Asia/Dubai" -> "Dubai"
-            // "America/New_York" -> "New York"
             const cityNameRaw = tz.split("/").pop() || "";
             if (cityNameRaw) {
                 const cityName = cityNameRaw.replace(/_/g, " ");
