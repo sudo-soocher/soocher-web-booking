@@ -228,12 +228,13 @@ export default function DoctorDetails() {
 
       const couponData = { id: couponSnap.id, ...couponSnap.data() } as Coupon;
       const consultationFees = Number(doctor!.consultationFees);
+      const totalPayableAmount = consultationFees + 50;
 
       const validation = validateCoupon(
         couponData,
         auth.currentUser.uid,
         params.id as string,
-        consultationFees
+        totalPayableAmount
       );
 
       if (validation.isValid) {
@@ -260,15 +261,26 @@ export default function DoctorDetails() {
 
       const coupons: Coupon[] = [];
       const doctorId = params.id as string;
+      const currentUserUid = auth.currentUser?.uid;
 
       querySnapshot.forEach((doc) => {
         const data = { id: doc.id, ...doc.data() } as Coupon;
         const isVisible = data.tray_visibility === true || String(data.tray_visibility) === "true";
         const expiryDate = new Date(data.couponExpiry).getTime();
         const isExpired = isNaN(expiryDate) || expiryDate < Date.now();
-        const matchesDoctor = data.targetedDoctorIds.length === 0 || data.targetedDoctorIds.includes(doctorId);
+        const matchesDoctor = !data.targetedDoctorIds || data.targetedDoctorIds.length === 0 || data.targetedDoctorIds.includes(doctorId);
 
-        if (isVisible && !isExpired && matchesDoctor) {
+        let matchesUser = true;
+        if (data.couponType === "Targeted" && data.targetedUserIds && data.targetedUserIds.length > 0) {
+          matchesUser = !!currentUserUid && data.targetedUserIds.includes(currentUserUid);
+        }
+
+        const isWithinGlobalLimit = data.couponType !== "Targeted" || (data.currentUsageCount < (data.maxUsageLimit || Infinity));
+        const userUsage = currentUserUid ? (data.usedByUserIds || []).filter(id => id === currentUserUid).length : 0;
+        const limit = data.per_user_limit || 1;
+        const isWithinUserLimit = userUsage < limit;
+
+        if (isVisible && !isExpired && matchesDoctor && matchesUser && isWithinGlobalLimit && isWithinUserLimit) {
           coupons.push(data);
         }
       });
@@ -435,6 +447,15 @@ export default function DoctorDetails() {
       );
     }
   }, [selectedDay, slots, getFilteredSlots]);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchAvailableCoupons();
+      }
+    });
+    return () => unsubscribe();
+  }, [fetchAvailableCoupons]);
 
   /* Commented out unused sortSlots
   const sortSlots = (slots: { bookingDate: number; time: string }[]) => {
@@ -1054,7 +1075,7 @@ export default function DoctorDetails() {
                         ₹{doctor?.consultationFees ? (Number(doctor.consultationFees) + 50 - couponDiscount) : 0}
                       </span>
                     </div>
-                    
+
                     <Button
                       color="primary"
                       className="w-full rounded-[24px] h-16 text-lg font-black shadow-[0_20px_40px_rgba(46,109,212,0.3)] disabled:opacity-50 disabled:shadow-none"
