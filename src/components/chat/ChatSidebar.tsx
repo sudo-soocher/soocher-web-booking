@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
     Chat,
     Channel,
-    Window,
     ChannelHeader,
     MessageList,
     MessageInput,
@@ -133,15 +132,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                             </Button>
                         </div>
 
-                        {/* Content Area — fills remaining height, flex column so Stream Chat can fill it */}
-                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                        {/* Content Area — use relative so child can use absolute inset-0 */}
+                        <div className="flex-1 min-h-0 relative overflow-hidden">
                             {loading ? (
-                                <div className="flex flex-1 flex-col items-center justify-center gap-4">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                                     <LoadingIndicator size={30} />
                                     <p className="text-slate-400 text-sm font-medium animate-pulse">Establishing secure connection...</p>
                                 </div>
                             ) : error ? (
-                                <div className="flex flex-1 flex-col items-center justify-center p-8 text-center gap-4">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center gap-4">
                                     <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl">
                                         ⚠️
                                     </div>
@@ -159,32 +158,45 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                                     </Button>
                                 </div>
                             ) : client && channel ? (
-                                <div className="flex flex-col flex-1 min-h-0 stream-chat-container">
+                                /* absolute inset-0 gives Stream Chat a concrete pixel height to work with */
+                                <div className="absolute inset-0 flex flex-col stream-chat-container">
                                     {isExpired && (
                                         <div className="bg-amber-50 border-b border-amber-100 p-3 flex items-center justify-center gap-2 shrink-0">
                                             <span className="text-amber-600 text-sm font-bold">⚠️ Chat has expired and is now read-only</span>
                                         </div>
                                     )}
-                                    {/* str-chat wrapper must fill and not overflow */}
-                                    <div className="flex-1 min-h-0 overflow-hidden">
-                                        <Chat client={client} theme="messaging light">
-                                            <Channel channel={channel}>
-                                                <Window>
-                                                    <ChannelHeader />
-                                                    <MessageList />
-                                                    {!isExpired && <MessageInput focus />}
-                                                </Window>
-                                                <Thread />
-                                            </Channel>
-                                        </Chat>
-                                    </div>
+
+                                    {/* Custom layout — bypasses Stream Window height issues */}
+                                    <Chat client={client} theme="messaging light">
+                                        <Channel channel={channel}>
+                                            {/* ChannelHeader — fixed height */}
+                                            <div className="shrink-0">
+                                                <ChannelHeader />
+                                            </div>
+
+                                            {/* MessageList — scrollable middle section */}
+                                            <div className="flex-1 min-h-0 overflow-y-auto">
+                                                <MessageList />
+                                            </div>
+
+                                            {/* MessageInput — always pinned at bottom */}
+                                            {!isExpired && (
+                                                <div className="shrink-0 border-t border-slate-100">
+                                                    <MessageInput focus />
+                                                </div>
+                                            )}
+
+                                            <Thread />
+                                        </Channel>
+                                    </Chat>
                                 </div>
                             ) : (
-                                <div className="flex flex-1 items-center justify-center p-8 text-center">
+                                <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
                                     <p className="text-slate-500 font-medium">Unable to connect to chat. Please try again later.</p>
                                 </div>
                             )}
                         </div>
+
                     </motion.div>
                 </>
             )}
