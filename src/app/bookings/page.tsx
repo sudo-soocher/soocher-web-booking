@@ -273,58 +273,119 @@ export default function Bookings() {
                       }}
                       className="premium-card p-4 md:p-8 group cursor-pointer border-none ring-1 ring-slate-100 ring-inset hover:ring-primary/20 transition-all duration-300"
                     >
-                      <div className="flex flex-row items-center justify-between gap-3">
+                      {/* ── Mobile layout ── */}
+                      <div className="flex md:hidden items-center gap-3">
+                        {/* Doctor avatar */}
+                        <div className="w-11 h-11 shrink-0 bg-primary/5 rounded-[14px] flex items-center justify-center text-primary text-lg group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                          <FaUserMd />
+                        </div>
+
+                        {/* Doctor name + date/time */}
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-sm font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors truncate">
+                            {consultation.doctorName}
+                          </h3>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <FaCalendar className="text-[9px] text-slate-400 shrink-0" />
+                            <p className="text-[11px] font-bold text-slate-500 truncate">
+                              {formatDisplayDate(consultation.consultationTime, consultation.timezone)}
+                            </p>
+                            <span className="text-slate-300 text-[9px]">·</span>
+                            <p className="text-[11px] font-bold text-slate-400 truncate">
+                              {formatDisplayTime(consultation.consultationTime, consultation.timezone)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right actions: meet + chat + arrow */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
+                            <button
+                              className="w-9 h-9 rounded-full bg-success/10 text-success flex items-center justify-center hover:bg-success hover:text-white transition-colors duration-200"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                window.open(consultation.extras?.meetLink, "_blank");
+                              }}
+                              title="Join Meeting"
+                            >
+                              <FaVideo className="text-sm" />
+                            </button>
+                          )}
+
+                          {consultation && getChatAvailability(consultation).isAvailable && (
+                            <button
+                              className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors duration-200"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                setSelectedConsultation(consultation);
+                                onChatOpen();
+                              }}
+                              title="Open Chat"
+                            >
+                              <FaComments className="text-sm" />
+                            </button>
+                          )}
+
+                          {/* Arrow */}
+                          <div className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300">
+                            <span className="text-slate-300 group-hover:text-white transition-colors text-sm">→</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── Desktop layout ── */}
+                      <div className="hidden md:flex flex-row items-center justify-between gap-3">
                         {/* Left: Doctor + Date */}
-                        <div className="flex flex-row items-center gap-4 md:gap-8 min-w-0 flex-1">
+                        <div className="flex flex-row items-center gap-8 min-w-0 flex-1">
                           {/* Doctor Info */}
-                          <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                            <div className="w-12 h-12 md:w-14 md:h-14 shrink-0 bg-primary/5 rounded-[16px] md:rounded-[20px] flex items-center justify-center text-primary text-xl md:text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="w-14 h-14 shrink-0 bg-primary/5 rounded-[20px] flex items-center justify-center text-primary text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                               <FaUserMd />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="text-base md:text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors truncate">
+                              <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-colors truncate">
                                 {consultation.doctorName}
                               </h3>
-                              <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider truncate">
+                              <p className="text-sm font-bold text-slate-400 uppercase tracking-wider truncate">
                                 Patient: {consultation.extras?.patientDetails?.patientName ?? "—"}
                               </p>
                             </div>
                           </div>
 
                           {/* Divider */}
-                          <div className="hidden md:block w-px h-12 bg-slate-100 shrink-0" />
+                          <div className="w-px h-12 bg-slate-100 shrink-0" />
 
                           {/* Date Info */}
-                          <div className="hidden sm:flex items-center gap-3 md:gap-4 shrink-0">
+                          <div className="flex items-center gap-4 shrink-0">
                             <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                              <FaCalendar className="text-sm md:text-base" />
+                              <FaCalendar className="text-base" />
                             </div>
                             <div>
                               <p className="text-sm font-black text-slate-900">
                                 {formatDisplayDate(consultation.consultationTime, consultation.timezone)}
                               </p>
-                              <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                                 {formatDisplayTime(consultation.consultationTime, consultation.timezone)}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Right: Actions + Source + Status + Arrow — always visible */}
-                        <div className="flex items-center gap-3 md:gap-5 shrink-0 w-fit">
+                        {/* Right: Actions + Source + Status + Arrow */}
+                        <div className="flex items-center gap-5 shrink-0">
                           {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
                             <Button
                               color="success"
                               variant="flat"
                               size="sm"
-                              className="rounded-full font-bold px-4 md:px-6 h-9 md:h-11"
+                              className="rounded-full font-bold px-6 h-11"
                               startContent={<FaVideo className="text-sm" />}
                               onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
                                 window.open(consultation.extras?.meetLink, "_blank");
                               }}
                             >
-                              Join<span className="hidden md:inline">&nbsp;Meeting</span>
+                              Join&nbsp;Meeting
                             </Button>
                           )}
 
@@ -333,7 +394,7 @@ export default function Bookings() {
                               color="primary"
                               variant="flat"
                               size="sm"
-                              className="rounded-full font-bold px-4 md:px-6 h-9 md:h-11"
+                              className="rounded-full font-bold px-6 h-11"
                               startContent={<FaComments className="text-sm" />}
                               onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
@@ -345,7 +406,7 @@ export default function Bookings() {
                             </Button>
                           )}
 
-                          {/* Source (App / Web) */}
+                          {/* Source */}
                           <div className="flex flex-col items-center gap-1 w-[60px]">
                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Source</span>
                             <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap ${
@@ -364,8 +425,8 @@ export default function Bookings() {
                           </div>
 
                           {/* Arrow */}
-                          <div className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm">
-                            <span className="text-slate-300 group-hover:text-white transition-colors text-sm md:text-lg">→</span>
+                          <div className="w-11 h-11 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm">
+                            <span className="text-slate-300 group-hover:text-white transition-colors text-lg">→</span>
                           </div>
                         </div>
                       </div>
