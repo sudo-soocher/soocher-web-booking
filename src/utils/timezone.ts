@@ -168,22 +168,6 @@ export const formatDisplayTime = (
  */
 export const getTimezoneName = (timezone?: string): string => {
     const tz = timezone || getActiveTimezone();
-    
-    // Explicit country mappings we want to override default behavior for
-    const countryMappings: Record<string, string> = {
-        "Asia/Kolkata": "Indian Standard Time",
-        "Asia/Dubai": "UAE Standard Time",
-        "Asia/Kuwait": "Kuwait Standard Time",
-        "Asia/Qatar": "Qatar Standard Time",
-        "Asia/Bahrain": "Bahrain Standard Time",
-        "Asia/Riyadh": "Saudi Arabia Standard Time",
-        "Asia/Muscat": "Oman Standard Time"
-    };
-
-    if (countryMappings[tz]) {
-        return countryMappings[tz];
-    }
-    
     try {
         // Try getting official timezone string from Intl
         const parts = new Intl.DateTimeFormat("en-US", {
@@ -191,7 +175,12 @@ export const getTimezoneName = (timezone?: string): string => {
             timeZone: tz,
         }).formatToParts(new Date());
         
-        const officialName = parts.find((p) => p.type === "timeZoneName")?.value || tz;
+        let officialName = parts.find((p) => p.type === "timeZoneName")?.value;
+
+        // If a valid official name was found and it's not a generic GMT offset, use it.
+        if (officialName && !officialName.startsWith("GMT") && !officialName.startsWith("UTC")) {
+            return officialName;
+        }
 
         // If it's a generic IANA string fallback to city extraction
         if (tz && tz.includes("/")) {
@@ -202,7 +191,7 @@ export const getTimezoneName = (timezone?: string): string => {
             }
         }
 
-        return officialName;
+        return officialName || tz;
 
     } catch (e) {
         // Fallback for weird string errors
