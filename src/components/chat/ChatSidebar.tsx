@@ -115,7 +115,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed top-0 right-0 h-screen w-full md:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-[101] flex flex-col"
+                        className="fixed top-0 right-0 h-[100dvh] w-full md:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-[101] flex flex-col"
                     >
                         {/* Header */}
                         <div className="bg-primary text-white p-4 flex justify-between items-center shadow-md">
@@ -133,15 +133,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                             </Button>
                         </div>
 
-                        {/* Content Area */}
-                        <div className="flex-1 overflow-hidden relative">
+                        {/* Content Area — fills remaining height, flex column so Stream Chat can fill it */}
+                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                             {loading ? (
-                                <div className="flex h-full flex-col items-center justify-center gap-4">
+                                <div className="flex flex-1 flex-col items-center justify-center gap-4">
                                     <LoadingIndicator size={30} />
                                     <p className="text-slate-400 text-sm font-medium animate-pulse">Establishing secure connection...</p>
                                 </div>
                             ) : error ? (
-                                <div className="flex h-full flex-col items-center justify-center p-8 text-center gap-4">
+                                <div className="flex flex-1 flex-col items-center justify-center p-8 text-center gap-4">
                                     <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl">
                                         ⚠️
                                     </div>
@@ -159,19 +159,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                                     </Button>
                                 </div>
                             ) : client && channel ? (
-                                <div className="h-full stream-chat-container overflow-hidden flex flex-col">
+                                <div className="flex flex-col flex-1 min-h-0 stream-chat-container">
                                     {isExpired && (
-                                        <div className="bg-amber-50 border-b border-amber-100 p-3 flex items-center justify-center gap-2">
+                                        <div className="bg-amber-50 border-b border-amber-100 p-3 flex items-center justify-center gap-2 shrink-0">
                                             <span className="text-amber-600 text-sm font-bold">⚠️ Chat has expired and is now read-only</span>
                                         </div>
                                     )}
-                                    <div className="flex-1 overflow-hidden">
+                                    {/* str-chat wrapper must fill and not overflow */}
+                                    <div className="flex-1 min-h-0 overflow-hidden">
                                         <Chat client={client} theme="messaging light">
                                             <Channel channel={channel}>
                                                 <Window>
                                                     <ChannelHeader />
                                                     <MessageList />
-                                                    {!isExpired && <MessageInput />}
+                                                    {!isExpired && <MessageInput focus />}
                                                 </Window>
                                                 <Thread />
                                             </Channel>
@@ -179,7 +180,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex h-full items-center justify-center p-8 text-center">
+                                <div className="flex flex-1 items-center justify-center p-8 text-center">
                                     <p className="text-slate-500 font-medium">Unable to connect to chat. Please try again later.</p>
                                 </div>
                             )}
