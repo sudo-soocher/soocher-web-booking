@@ -168,13 +168,36 @@ export const formatDisplayTime = (
  */
 export const getTimezoneName = (timezone?: string): string => {
     const tz = timezone || getActiveTimezone();
+    
     try {
+        // Try getting official timezone string from Intl
         const parts = new Intl.DateTimeFormat("en-US", {
             timeZoneName: "long",
             timeZone: tz,
         }).formatToParts(new Date());
-        return parts.find((p) => p.type === "timeZoneName")?.value || tz;
+        
+        const officialName = parts.find((p) => p.type === "timeZoneName")?.value || tz;
+
+        // If the timezone name contains "Gulf", "Arab", etc., generic terms,
+        // or if we just want a uniform "[City] Standard Time" mapping for EVERYTHING:
+        if (tz && tz.includes("/")) {
+            // Extract the city part from e.g., "Asia/Dubai" -> "Dubai"
+            // "America/New_York" -> "New York"
+            const cityNameRaw = tz.split("/").pop() || "";
+            if (cityNameRaw) {
+                const cityName = cityNameRaw.replace(/_/g, " ");
+                return `${cityName} Standard Time`;
+            }
+        }
+
+        return officialName;
+
     } catch (e) {
+        // Fallback for weird string errors
+        if (tz && tz.includes("/")) {
+            const cityName = tz.split("/").pop()?.replace(/_/g, " ");
+            return `${cityName} Standard Time`;
+        }
         return tz;
     }
 };
