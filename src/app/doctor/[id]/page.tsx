@@ -565,77 +565,94 @@ export default function DoctorDetails() {
       const consultationFees = Number(doctor!.consultationFees);
       const totalAmount = Math.max(0, consultationFees + 50 - couponDiscount);
 
-      await initializeRazorpay({
-        amount: totalAmount * 100, // Amount is in paisa
-        currency: "INR",
-        doctorName: doctor!.name,
-        patientName: userData.name,
-        consultationId,
-        onSuccess: async (response) => {
-          setIsBookingProcessing(true);
-          setBookingStatus("Verifying payment and securing your slot...");
+      const processSuccessfulBooking = async (paymentResponse?: unknown) => {
+        setIsBookingProcessing(true);
+        setBookingStatus(
+          totalAmount === 0 
+            ? "Securing your complimentary slot..." 
+            : "Verifying payment and securing your slot..."
+        );
 
-          // 1. Save the consultation to Firestore (existing logic unchanged)
-          try {
-            await saveConsultation(consultation, response);
-          } catch (error) {
-            console.error("Save consultation failed:", error);
-            setError("Payment received but failed to save booking. Please contact support.");
-            setIsBookingProcessing(false);
-            return;
-          }
+        // 1. Save the consultation to Firestore (existing logic unchanged)
+        try {
+          await saveConsultation(consultation, paymentResponse || { status: "free" });
+        } catch (error) {
+          console.error("Save consultation failed:", error);
+          setError(
+            totalAmount === 0 
+              ? "Failed to save booking. Please contact support." 
+              : "Payment received but failed to save booking. Please contact support."
+          );
+          setIsBookingProcessing(false);
+          return;
+        }
 
-          // 2. Create a Google Meet link for the consultation
-          setBookingStatus("Scheduling your Google Meet session...");
-          let meetLink: string | null = null;
-          try {
-            console.log(">>> [FRONTEND] Triggering meet schedule API...");
-            const meetResponse = await fetch("/api/schedule-meet", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                consultationId,
-                consultationTime,
-                doctorName: doctor!.name,
-                patientName: userData.name,
-                patientEmail: userData.email || auth.currentUser?.email || "",
-                specialization: doctor!.specialization || "",
-                timezone: userTimezone,
-              }),
-            });
-            if (meetResponse.ok) {
-              const meetData = await meetResponse.json();
-              meetLink = meetData.meetLink || null;
+        // 2. Create a Google Meet link for the consultation
+        setBookingStatus("Scheduling your Google Meet session...");
+        let meetLink: string | null = null;
+        try {
+          console.log(">>> [FRONTEND] Triggering meet schedule API...");
+          const meetResponse = await fetch("/api/schedule-meet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              consultationId,
+              consultationTime,
+              doctorName: doctor!.name,
+              patientName: userData.name,
+              patientEmail: userData.email || auth.currentUser?.email || "",
+              specialization: doctor!.specialization || "",
+              timezone: userTimezone,
+            }),
+          });
+          if (meetResponse.ok) {
+            const meetData = await meetResponse.json();
+            meetLink = meetData.meetLink || null;
 
-              // 3. Update the Firestore consultation doc with the Meet link
-              if (meetLink) {
-                const { updateDoc, doc: firestoreDoc } = await import(
-                  "firebase/firestore"
-                );
-                await updateDoc(
-                  firestoreDoc(db, "Consultations", consultationId),
-                  { "extras.meetLink": meetLink }
-                );
-              }
+            // 3. Update the Firestore consultation doc with the Meet link
+            if (meetLink) {
+              const { updateDoc, doc: firestoreDoc } = await import(
+                "firebase/firestore"
+              );
+              await updateDoc(
+                firestoreDoc(db, "Consultations", consultationId),
+                { "extras.meetLink": meetLink }
+              );
             }
-          } catch (meetError) {
-            console.error(
-              "Meet link creation failed (non-fatal):",
-              meetError
-            );
           }
+        } catch (meetError) {
+          console.error(
+            "Meet link creation failed (non-fatal):",
+            meetError
+          );
+        }
 
-          // Complete booking - external service handles notifications
-          setBookingStatus("Booking confirmed! Redirecting...");
-          setTimeout(() => {
-            setIsBookingProcessing(false);
-            router.push(`/booking-complete/${consultationId}`);
-          }, 1500);
-        },
-        onFailure: (error) => {
-          console.error("Payment failed:", error);
-        },
-      });
+        // Complete booking - external service handles notifications
+        setBookingStatus("Booking confirmed! Redirecting...");
+        setTimeout(() => {
+          setIsBookingProcessing(false);
+          router.push(`/booking-complete/${consultationId}`);
+        }, 1500);
+      };
+
+      if (totalAmount === 0) {
+        // Skip Razorpay if total is 0 after coupon
+        await processSuccessfulBooking();
+      } else {
+        await initializeRazorpay({
+          amount: totalAmount * 100, // Amount is in paisa
+          currency: "INR",
+          doctorName: doctor!.name,
+          patientName: userData.name,
+          consultationId,
+          onSuccess: async (response) => {
+            await processSuccessfulBooking(response);
+          },
+          onFailure: (error) => {
+            console.error("Payment failed:", error);
+          },
+        });
+      }
     } catch (error) {
       console.error("Error initiating payment:", error);
     }
