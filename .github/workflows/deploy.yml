@@ -18,8 +18,9 @@ jobs:
           script: |
             cd /var/www/soocher/web
             git pull origin main
+            rm -rf .next node_modules package-lock.json
+            npm cache clean --force
             npm install
-            rm -rf .next
             npm run build
             sudo fuser -k 5000/tcp || true
             supervisorctl restart soocher-web
