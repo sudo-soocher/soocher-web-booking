@@ -205,43 +205,61 @@ export default function BookingComplete() {
                     </div>
                   </div>
 
-                  {/* Google Meet Link */}
-                  {consultation.extras?.meetLink && (
+                  {/* Actions: Meet Link & Chat */}
+                  {(consultation.extras?.meetLink || getChatAvailability(consultation).isAvailable) && (
                     <>
                       <div className="h-px border-t border-dashed border-slate-200" />
-                      <div className="flex items-center gap-3">
-                        {/* Google Meet branded copy button */}
-                        <button
-                          onClick={() => handleCopyMeetLink(consultation.extras.meetLink!)}
-                          className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group border ${
-                            copied 
-                              ? "bg-success/10 border-success/30" 
-                              : "bg-gradient-to-r from-[#1a73e8]/10 to-[#34a853]/10 border-[#1a73e8]/20 hover:from-[#1a73e8]/20 hover:to-[#34a853]/20 hover:border-[#1a73e8]/40"
-                          }`}
-                        >
-                          {/* Official Google Meet logo from public directory */}
-                          <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden shadow-sm border border-slate-100 bg-white flex items-center justify-center relative">
-                            <Image 
-                              src="/google_meet_logo.png" 
-                              alt="Google Meet" 
-                              fill
-                              className="object-contain p-1.5"
-                            />
-                          </div>
-                          <div className="flex-1 text-left min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Google Meet</p>
-                            <p className={`text-sm font-black transition-colors duration-200 italic ${
-                              copied ? "text-success" : "text-slate-800 group-hover:text-[#1a73e8]"
-                            }`}>
-                              {copied ? "Meeting Link Copied! ✓" : "Copy Meeting Link"}
-                            </p>
-                          </div>
-                          {copied && (
-                            <div className="mr-2 text-success">
-                              <FaCheckCircle className="text-xl" />
+                      <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                        {consultation.extras?.meetLink && (
+                          <button
+                            onClick={() => handleCopyMeetLink(consultation.extras.meetLink!)}
+                            className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group border h-auto ${
+                              copied 
+                                ? "bg-success/10 border-success/30" 
+                                : "bg-gradient-to-r from-[#1a73e8]/10 to-[#34a853]/10 border-[#1a73e8]/20 hover:from-[#1a73e8]/20 hover:to-[#34a853]/20 hover:border-[#1a73e8]/40"
+                            }`}
+                          >
+                            {/* Official Google Meet logo from public directory */}
+                            <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden shadow-sm border border-slate-100 bg-white flex items-center justify-center relative">
+                              <Image 
+                                src="/google_meet_logo.png" 
+                                alt="Google Meet" 
+                                fill
+                                className="object-contain p-1.5"
+                              />
                             </div>
-                          )}
-                        </button>
+                            <div className="flex-1 text-left min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Google Meet</p>
+                              <p className={`text-sm font-black transition-colors duration-200 italic ${
+                                copied ? "text-success" : "text-slate-800 group-hover:text-[#1a73e8]"
+                              }`}>
+                                {copied ? "Meeting Link Copied! ✓" : "Copy Meeting Link"}
+                              </p>
+                            </div>
+                            {copied && (
+                              <div className="mr-2 text-success shrink-0">
+                                <FaCheckCircle className="text-xl" />
+                              </div>
+                            )}
+                          </button>
+                        )}
+                        
+                        {getChatAvailability(consultation).isAvailable && (
+                          <Button
+                            color="primary"
+                            variant="flat"
+                            className="flex-1 w-full sm:w-auto h-auto px-4 py-3 rounded-2xl transition-all duration-200 group border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary justify-start"
+                            onPress={onChatOpen}
+                          >
+                            <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden shadow-sm border border-primary/20 bg-white flex items-center justify-center relative text-primary">
+                                <FaComments className="text-xl" />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Live chat</p>
+                              <p className="text-sm font-black italic">Start Chat with Doctor</p>
+                            </div>
+                          </Button>
+                        )}
                       </div>
                     </>
                   )}
@@ -270,24 +288,7 @@ export default function BookingComplete() {
               </Button>
             </div>
 
-            {consultation && getChatAvailability(consultation).isAvailable && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Button
-                  color="primary"
-                  variant="flat"
-                  size="lg"
-                  className="w-full h-16 rounded-2xl font-black"
-                  startContent={<FaComments className="text-xl" />}
-                  onPress={onChatOpen}
-                >
-                  Start Chat with Doctor
-                </Button>
-              </motion.div>
-            )}
+
           </div>
         </main>
 
