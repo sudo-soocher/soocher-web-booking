@@ -119,3 +119,38 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(46, 109, 212, 0.25);
 }
+
+/* Stream Chat Mobile Overrides */
+@media (max-width: 768px) {
+  .str-chat {
+    height: 100% !important;
+  }
+  .str-chat__main-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .str-chat__main-panel-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+  .str-chat-channel {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .str-chat__message-input-root {
+    flex-shrink: 0 !important;
+    background: white !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+  .str-chat__message-list {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+}
