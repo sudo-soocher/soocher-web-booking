@@ -94,7 +94,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         }
     }, [isOpen, initChat]);
 
-    const isExpired = Date.now() > consultation.chatExpiration;
+    const isExpired = Date.now() > (consultation.chatExpiration || 0);
 
     return (
         <AnimatePresence>
@@ -115,13 +115,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed top-0 right-0 h-screen w-full md:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-[101] flex flex-col"
+                        className="fixed top-0 right-0 h-[100dvh] w-full md:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-[101] flex flex-col"
                     >
                         {/* Header */}
                         <div className="bg-primary text-white p-4 flex justify-between items-center shadow-md">
                             <div className="flex flex-col">
                                 <span className="text-lg font-black tracking-tight leading-tight">{consultation.doctorName}</span>
                                 <span className="text-[10px] uppercase tracking-widest opacity-80">Patient Consultation Chat</span>
+                                {/* <span className="text-[8px] bg-white/20 px-1 rounded md:hidden">V5_FIXED_NESTING</span> */}
                             </div>
                             <Button
                                 isIconOnly
@@ -165,13 +166,24 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                                             <span className="text-amber-600 text-sm font-bold">⚠️ Chat has expired and is now read-only</span>
                                         </div>
                                     )}
-                                    <div className="flex-1 overflow-hidden">
+                                    <div className="flex-1 min-h-0 bg-white relative">
                                         <Chat client={client} theme="messaging light">
                                             <Channel channel={channel}>
                                                 <Window>
                                                     <ChannelHeader />
-                                                    <MessageList />
-                                                    {!isExpired && <MessageInput />}
+                                                    <div className="flex-1 min-h-0 bg-slate-50">
+                                                        <MessageList />
+                                                    </div>
+
+                                                    {!isExpired ? (
+                                                        <div className="soocher-chat-input border-t border-slate-100 bg-white">
+                                                            <MessageInput focus />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-4 bg-slate-50 text-slate-400 text-center text-xs font-bold uppercase tracking-widest">
+                                                            Chat has expired
+                                                        </div>
+                                                    )}
                                                 </Window>
                                                 <Thread />
                                             </Channel>
