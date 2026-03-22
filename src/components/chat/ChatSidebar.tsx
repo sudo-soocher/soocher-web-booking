@@ -91,8 +91,48 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
     useEffect(() => {
         if (isOpen) {
             initChat();
+            // Prevent body scroll when chat is open on mobile
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
         }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+        };
     }, [isOpen, initChat]);
+
+    useEffect(() => {
+        if (!loading && client && channel) {
+            const observer = new MutationObserver(() => {
+                const fileInputs = document.querySelectorAll<HTMLInputElement>('.stream-chat-container input[type="file"]');
+                fileInputs.forEach(input => {
+                    // Update the accept attribute to only allow images and PDFs
+                    if (input.getAttribute('accept') !== 'image/*,application/pdf,.pdf') {
+                        input.setAttribute('accept', 'image/*,application/pdf,.pdf');
+                    }
+                });
+            });
+
+            // Start observing the chat container
+            const chatContainer = document.querySelector('.stream-chat-container');
+            if (chatContainer) {
+                observer.observe(chatContainer, { childList: true, subtree: true, attributes: true });
+            } else {
+                // Fallback to body if container is somehow not found immediately
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+
+            return () => {
+                observer.disconnect();
+            };
+        }
+    }, [loading, client, channel]);
 
     const isExpired = Date.now() > (consultation.chatExpiration || 0);
 
@@ -115,7 +155,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed top-0 right-0 h-[100dvh] w-full md:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-[101] flex flex-col"
+                        className="fixed inset-0 md:left-auto md:right-0 w-full md:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-[101] flex flex-col"
                     >
                         {/* Header */}
                         <div className="bg-primary text-white p-4 flex justify-between items-center shadow-md">
