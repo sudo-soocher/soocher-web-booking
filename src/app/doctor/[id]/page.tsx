@@ -11,6 +11,7 @@ import {
   query,
   where,
   getCountFromServer,
+  limit,
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/Button";
@@ -257,7 +258,12 @@ export default function DoctorDetails() {
   const fetchAvailableCoupons = useCallback(async () => {
     try {
       const couponsRef = collection(db, "coupons");
-      const querySnapshot = await getDocs(couponsRef);
+      const couponsQuery = query(
+        couponsRef,
+        where("tray_visibility", "==", true),
+        limit(50)
+      );
+      const querySnapshot = await getDocs(couponsQuery);
 
       const coupons: Coupon[] = [];
       const doctorId = params.id as string;
@@ -265,7 +271,7 @@ export default function DoctorDetails() {
 
       querySnapshot.forEach((doc) => {
         const data = { id: doc.id, ...doc.data() } as Coupon;
-        const isVisible = data.tray_visibility === true || String(data.tray_visibility) === "true";
+        const isVisible = true; // Already filtered by query
         const expiryDate = new Date(data.couponExpiry).getTime();
         const isExpired = isNaN(expiryDate) || expiryDate < Date.now();
         const matchesDoctor = !data.targetedDoctorIds || data.targetedDoctorIds.length === 0 || data.targetedDoctorIds.includes(doctorId);
@@ -399,8 +405,7 @@ export default function DoctorDetails() {
         });
 
         setSlots(slotsData);
-        await fetchAvailableCoupons();
-        await fetchConsultationCount();
+        await Promise.all([fetchAvailableCoupons(), fetchConsultationCount()]);
 
         // Set current day as selected if available, otherwise set first available day
         const currentDay = getCurrentDay();
@@ -592,6 +597,8 @@ export default function DoctorDetails() {
         let meetLink: string | null = null;
         try {
           console.log(">>> [FRONTEND] Triggering meet schedule API...");
+          const meetController = new AbortController();
+          const meetTimeout = setTimeout(() => meetController.abort(), 20000);
           const meetResponse = await fetch("/api/schedule-meet", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -604,7 +611,9 @@ export default function DoctorDetails() {
               specialization: doctor!.specialization || "",
               timezone: userTimezone,
             }),
+            signal: meetController.signal,
           });
+          clearTimeout(meetTimeout);
           if (meetResponse.ok) {
             const meetData = await meetResponse.json();
             meetLink = meetData.meetLink || null;

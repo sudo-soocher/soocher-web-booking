@@ -13,13 +13,31 @@ export async function POST(request: Request) {
 
         console.log(`>>> [STREAM PROXY] Fetching token for ${userId} from ${externalApiUrl}`);
 
-        const response = await fetch(externalApiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ userId }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        let response: Response;
+        try {
+            response = await fetch(externalApiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId }),
+                signal: controller.signal,
+            });
+        } catch (err) {
+            clearTimeout(timeoutId);
+            if (err instanceof Error && err.name === "AbortError") {
+                console.error(">>> [STREAM PROXY] Request timed out after 8s");
+                return NextResponse.json(
+                    { error: "Stream token service timed out" },
+                    { status: 504 }
+                );
+            }
+            throw err;
+        }
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();

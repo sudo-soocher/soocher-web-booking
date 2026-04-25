@@ -20,9 +20,11 @@ export async function POST(request: Request) {
     return NextResponse.json(order);
   } catch (error) {
     console.error("Error creating order:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const isTimeout = message.includes("timeout") || message.includes("ETIMEDOUT");
     return NextResponse.json(
-      { error: "Error creating order" },
-      { status: 500 }
+      { error: "Error creating order", details: message },
+      { status: isTimeout ? 504 : 500 }
     );
   }
 }

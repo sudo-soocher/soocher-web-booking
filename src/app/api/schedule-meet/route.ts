@@ -56,14 +56,32 @@ export async function POST(request: Request) {
         console.log(">>> [TRIGGER] Target URL:", schedulerUrl);
         console.log(">>> [TRIGGER] Payload:", JSON.stringify(payload, null, 2));
 
-        const response = await fetch(schedulerUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-API-KEY": apiKey || "",
-            },
-            body: JSON.stringify(payload),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        let response: Response;
+        try {
+            response = await fetch(schedulerUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-API-KEY": apiKey || "",
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+        } catch (err) {
+            clearTimeout(timeoutId);
+            if (err instanceof Error && err.name === "AbortError") {
+                console.error(">>> [TRIGGER] Meet scheduler timed out after 15s");
+                return NextResponse.json(
+                    { error: "Meet scheduler service timed out" },
+                    { status: 504 }
+                );
+            }
+            throw err;
+        }
+        clearTimeout(timeoutId);
 
         console.log(">>> [TRIGGER] Response Status:", response.status);
 
