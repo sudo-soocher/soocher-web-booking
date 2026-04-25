@@ -78,26 +78,28 @@ function DoctorsListContent() {
                 doctorsList.push({ id: doc.id, ...doc.data() });
             });
 
-            // Calculate scores for each doctor
+            // Calculate scores for each doctor (queries run in parallel)
             const scoredDoctors = await Promise.all(
                 doctorsList.map(async (doctor) => {
                     const doctorUid = doctor.uid || doctor.id;
 
-                    // 1. Post Count from feeds
+                    // Run post count and consultation count queries in parallel
                     const feedsRef = collection(db, "feeds");
                     const postsQuery = query(feedsRef, where("posterId", "==", doctorUid));
-                    const postCountSnapshot = await getCountFromServer(postsQuery);
-                    const postCount = postCountSnapshot.data().count;
 
-                    // 2. Consultation Count
                     const consultationsRef = collection(db, "Consultations");
                     const consultsQuery = query(
                         consultationsRef,
                         where("participants", "array-contains", doctorUid)
                     );
-                    const consultCountSnapshot = await getCountFromServer(consultsQuery);
-                    const consultCount = consultCountSnapshot.data().count;
 
+                    const [postCountSnapshot, consultCountSnapshot] = await Promise.all([
+                        getCountFromServer(postsQuery),
+                        getCountFromServer(consultsQuery),
+                    ]);
+
+                    const postCount = postCountSnapshot.data().count;
+                    const consultCount = consultCountSnapshot.data().count;
                     const averageRating = doctor.averageRating || 0;
 
                     // score = (postCount × 1) + (consultCount × 3) + (averageRating × 2)
