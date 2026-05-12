@@ -10,6 +10,7 @@ export async function POST(request: Request) {
             doctorName,
             patientName,
             patientEmail,
+            patientPhone,
             specialization,
             timezone
         } = body;
@@ -80,8 +81,28 @@ export async function POST(request: Request) {
             throw new Error(result.message || "Failed to get Meet link from scheduler");
         }
 
+        const meetLink = result.data.meet_link;
+
+        // Trigger WhatsApp Notification (Async - don't block response)
+        if (patientPhone) {
+            console.log(">>> [TRIGGER] Triggering WhatsApp notification for:", patientPhone);
+            // We use dynamic import to avoid potential circular dependency or issues in Edge runtime if applicable
+            import("@/services/whatsapp").then(({ sendWhatsAppBookingConfirmation }) => {
+                sendWhatsAppBookingConfirmation({
+                    recipient_mobile_number: patientPhone,
+                    patientName: patientName.trim(),
+                    doctorName: doctorName.trim(),
+                    date: dateStr,
+                    time: timeStr,
+                    meetLink: meetLink
+                }).catch(waError => {
+                    console.error(">>> [TRIGGER ERROR] WhatsApp notification failed:", waError);
+                });
+            });
+        }
+
         return NextResponse.json({
-            meetLink: result.data.meet_link,
+            meetLink: meetLink,
             message: result.message
         });
     } catch (err: unknown) {

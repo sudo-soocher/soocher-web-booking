@@ -1,23 +1,25 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import {
-  signInWithPhoneNumber,
   GoogleAuthProvider,
   signInWithPopup,
-  RecaptchaVerifier,
-  ConfirmationResult,
+  signInWithCustomToken,
+  User,
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { FaStethoscope, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
+import { createNewPatient } from "@/types/patient";
+import OtpInput from "@/components/forms/OtpInput";
 
 export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -25,38 +27,65 @@ export default function Login() {
   const [showOTPInput, setShowOTPInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const router = useRouter();
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
+  const [needsPhoneLink, setNeedsPhoneLink] = useState(false);
+  const [linkPhoneNumber, setLinkPhoneNumber] = useState("");
+  const [linkPhoneCode, setLinkPhoneCode] = useState("");
+  const [linkPhoneStage, setLinkPhoneStage] = useState<"input" | "otp">("input");
+  const [pendingUser, setPendingUser] = useState<User | null>(null);
+  const [registrationData, setRegistrationData] = useState({
+    name: "",
+    email: "",
+    dob: "",
+    currentState: "",
+    currentCity: "",
+  });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated AND profile exists; otherwise prompt for missing info
   React.useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        router.replace("/");
+        try {
+          const snap = await getDoc(doc(db, "Users", user.uid));
+          const data = snap.exists()
+            ? (snap.data() as { name?: string; email?: string; phoneNumber?: string })
+            : null;
+          const hasName = !!data?.name && data.name.trim().length > 0;
+          const hasEmail = !!data?.email && data.email.trim().length > 0;
+          const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
+
+          if (hasName && hasEmail && hasPhone) {
+            router.replace("/");
+            return;
+          }
+
+          setPendingUser(user);
+          setRegistrationData((prev) => ({
+            ...prev,
+            name: data?.name || prev.name,
+            email: data?.email || user.email || prev.email,
+          }));
+
+          // If phone is missing (e.g. Google sign-in), verify phone first; registration after
+          if (!hasPhone) {
+            setNeedsPhoneLink(true);
+            setLinkPhoneStage("input");
+          } else {
+            setNeedsRegistration(true);
+          }
+          setCheckingAuth(false);
+        } catch (err) {
+          console.error("Error checking user profile:", err);
+          setCheckingAuth(false);
+        }
       } else {
         setCheckingAuth(false);
       }
     });
     return () => unsubscribe();
   }, [router]);
-
-  // Initializing reCAPTCHA verifier
-  const setupRecaptcha = () => {
-    if (recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current.clear();
-    }
-    const recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      "recaptcha-container",
-      {
-        size: "invisible",
-      }
-    );
-    recaptchaVerifierRef.current = recaptchaVerifier;
-    return recaptchaVerifier;
-  };
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,22 +98,117 @@ export default function Login() {
     setIsLoading(true);
     setError("");
     try {
-      const recaptchaVerifier = setupRecaptcha();
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phoneNumber,
-        recaptchaVerifier
-      );
-      confirmationResultRef.current = confirmation;
+      const formattedPhone = phoneNumber.replace(/[\s\-\(\)]/g, "");
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formattedPhone }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send code. Please try again.");
+      }
       setShowOTPInput(true);
     } catch (err: unknown) {
       console.error("Error sending code:", err);
-      const errorMessage = (err as { message?: string }).message || "Failed to send code. Please try again.";
-      setError(errorMessage);
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
+      setError((err as { message?: string }).message || "Failed to send code.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const routeAfterAuth = async (user: User) => {
+    const snap = await getDoc(doc(db, "Users", user.uid));
+    const data = snap.exists()
+      ? (snap.data() as { name?: string; email?: string; phoneNumber?: string })
+      : null;
+    const hasName = !!data?.name && data.name.trim().length > 0;
+    const hasEmail = !!data?.email && data.email.trim().length > 0;
+    const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
+
+    if (hasName && hasEmail && hasPhone) {
+      router.push("/");
+      return;
+    }
+    setPendingUser(user);
+    setRegistrationData((prev) => ({
+      ...prev,
+      name: data?.name || prev.name,
+      email: data?.email || user.email || prev.email,
+    }));
+    if (!hasPhone) {
+      setNeedsPhoneLink(true);
+      setLinkPhoneStage("input");
+    } else {
+      setNeedsRegistration(true);
+    }
+  };
+
+  const sendLinkPhoneCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkPhoneNumber || linkPhoneNumber.length <= 4) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
+    setIsLoading(true);
+    setError("");
+    try {
+      const formattedPhone = linkPhoneNumber.replace(/[\s\-\(\)]/g, "");
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formattedPhone }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to send code.");
+      setLinkPhoneStage("otp");
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message || "Failed to send code.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyLinkPhoneCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkPhoneCode || linkPhoneCode.length !== 6) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
+    if (!auth.currentUser) {
+      setError("Not signed in.");
+      return;
+    }
+    setIsLoading(true);
+    setError("");
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const formattedPhone = linkPhoneNumber.replace(/[\s\-\(\)]/g, "");
+      const response = await fetch("/api/auth/link-phone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ phone: formattedPhone, code: linkPhoneCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Invalid code.");
+
+      await auth.currentUser.reload();
+      const snap = await getDoc(doc(db, "Users", auth.currentUser.uid));
+      const docData = snap.exists() ? (snap.data() as { name?: string; email?: string }) : null;
+      const hasName = !!docData?.name && docData.name.trim().length > 0;
+      const hasEmail = !!docData?.email && docData.email.trim().length > 0;
+
+      setNeedsPhoneLink(false);
+      if (hasName && hasEmail) {
+        router.push("/");
+      } else {
+        setNeedsRegistration(true);
       }
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message || "Invalid code.");
     } finally {
       setIsLoading(false);
     }
@@ -92,20 +216,31 @@ export default function Login() {
 
   const verifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirmationResultRef.current) return;
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
 
     setIsLoading(true);
     setError("");
     try {
-      const result = await confirmationResultRef.current.confirm(
-        verificationCode
-      );
+      const formattedPhone = phoneNumber.replace(/[\s\-\(\)]/g, "");
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formattedPhone, code: verificationCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Invalid verification code.");
+      }
+      const result = await signInWithCustomToken(auth, data.token);
       if (result.user) {
-        router.push("/");
+        await routeAfterAuth(result.user);
       }
     } catch (err: unknown) {
       console.error("Error verifying code:", err);
-      setError("Invalid verification code. Please try again.");
+      setError((err as { message?: string }).message || "Invalid verification code.");
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +252,7 @@ export default function Login() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       if (result.user) {
-        router.push("/");
+        await routeAfterAuth(result.user);
       }
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
@@ -127,6 +262,55 @@ export default function Login() {
       } else {
         setError(firebaseErr.message || "Google sign-in failed.");
       }
+    }
+  };
+
+  const submitRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingUser) return;
+
+    if (!registrationData.name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+    const emailValue = (registrationData.email || pendingUser.email || "").trim();
+    if (!emailValue) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!registrationData.dob) {
+      setError("Please enter your date of birth.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    try {
+      const patient = createNewPatient(
+        pendingUser.uid,
+        registrationData.name.trim(),
+        pendingUser.phoneNumber || phoneNumber.replace(/[\s\-\(\)]/g, ""),
+        registrationData.email.trim() || pendingUser.email || ""
+      );
+      const dobDate = new Date(registrationData.dob);
+      patient.dob = isNaN(dobDate.getTime()) ? 0 : dobDate.getTime();
+      patient.currentState = registrationData.currentState.trim();
+      patient.currentCity = registrationData.currentCity.trim();
+
+      await setDoc(doc(db, "Users", pendingUser.uid), patient);
+      router.push("/");
+    } catch (err: unknown) {
+      console.error("Error saving profile:", err);
+      const errorMessage =
+        (err as { message?: string }).message ||
+        "Failed to save profile. Please try again.";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -202,10 +386,189 @@ export default function Login() {
           className="w-full max-w-sm space-y-6 md:space-y-10"
         >
           <div className="space-y-2">
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Access Soocher</h2>
-            <p className="text-slate-500 font-medium tracking-tight italic text-base md:text-lg">Your health sanctuary awaits.</p>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+              {needsPhoneLink
+                ? "Verify Your Phone"
+                : needsRegistration
+                ? "Complete Your Profile"
+                : "Access Soocher"}
+            </h2>
+            <p className="text-slate-500 font-medium tracking-tight italic text-base md:text-lg">
+              {needsPhoneLink
+                ? "We need a verified mobile number to continue."
+                : needsRegistration
+                ? "A few details and you're in."
+                : "Your health sanctuary awaits."}
+            </p>
           </div>
 
+          {needsPhoneLink ? (
+            <form
+              onSubmit={linkPhoneStage === "input" ? sendLinkPhoneCode : verifyLinkPhoneCode}
+              className="space-y-6"
+            >
+              {linkPhoneStage === "input" ? (
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Mobile Number
+                  </label>
+                  <PhoneInput
+                    defaultCountry="in"
+                    value={linkPhoneNumber}
+                    onChange={(p) => setLinkPhoneNumber(p)}
+                  />
+                  <p className="text-[10px] text-slate-400 font-medium italic ml-1">
+                    We&apos;ll send a one-time code via WhatsApp.
+                  </p>
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-600">{linkPhoneNumber}</span>
+                    <Button
+                      size="sm"
+                      variant="light"
+                      color="primary"
+                      className="font-bold"
+                      onClick={() => setLinkPhoneStage("input")}
+                    >
+                      Change
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                      Verification Code
+                    </label>
+                    <OtpInput
+                      value={linkPhoneCode}
+                      onChange={setLinkPhoneCode}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs font-bold text-danger text-center bg-danger/5 py-3 rounded-xl border border-danger/10"
+                >
+                  {error}
+                </motion.p>
+              )}
+
+              <Button
+                color="primary"
+                type="submit"
+                isLoading={isLoading}
+                className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
+              >
+                {linkPhoneStage === "input" ? "Send Code" : "Verify & Continue"}
+              </Button>
+            </form>
+          ) : needsRegistration ? (
+            <form onSubmit={submitRegistration} className="space-y-6">
+              <Input
+                label="Full Name"
+                variant="bordered"
+                radius="lg"
+                isRequired
+                value={registrationData.name}
+                onChange={(e) =>
+                  setRegistrationData({ ...registrationData, name: e.target.value })
+                }
+                classNames={{
+                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  label: "font-bold text-slate-400",
+                }}
+              />
+              <Input
+                label="Email Address"
+                type="email"
+                variant="bordered"
+                radius="lg"
+                isRequired
+                value={registrationData.email}
+                onChange={(e) =>
+                  setRegistrationData({ ...registrationData, email: e.target.value })
+                }
+                classNames={{
+                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  label: "font-bold text-slate-400",
+                }}
+              />
+              <Input
+                label="Date of Birth"
+                type="date"
+                variant="bordered"
+                radius="lg"
+                isRequired
+                value={registrationData.dob}
+                onChange={(e) =>
+                  setRegistrationData({ ...registrationData, dob: e.target.value })
+                }
+                classNames={{
+                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  label: "font-bold text-slate-400",
+                }}
+              />
+              <Input
+                label="State"
+                variant="bordered"
+                radius="lg"
+                value={registrationData.currentState}
+                onChange={(e) =>
+                  setRegistrationData({
+                    ...registrationData,
+                    currentState: e.target.value,
+                  })
+                }
+                classNames={{
+                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  label: "font-bold text-slate-400",
+                }}
+              />
+              <Input
+                label="District"
+                variant="bordered"
+                radius="lg"
+                value={registrationData.currentCity}
+                onChange={(e) =>
+                  setRegistrationData({
+                    ...registrationData,
+                    currentCity: e.target.value,
+                  })
+                }
+                classNames={{
+                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  label: "font-bold text-slate-400",
+                }}
+              />
+
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs font-bold text-danger text-center bg-danger/5 py-3 rounded-xl border border-danger/10"
+                >
+                  {error}
+                </motion.p>
+              )}
+
+              <Button
+                color="primary"
+                type="submit"
+                isLoading={isLoading}
+                className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
+              >
+                Complete Registration
+              </Button>
+            </form>
+          ) : (
           <div className="space-y-8">
             {/* Phone Login */}
             <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="space-y-6">
@@ -225,18 +588,15 @@ export default function Login() {
                     <span className="text-sm font-bold text-slate-600">{phoneNumber}</span>
                     <Button size="sm" variant="light" color="primary" className="font-bold" onClick={() => setShowOTPInput(false)}>Change</Button>
                   </div>
-                  <Input
-                    label="Verification Code"
-                    variant="bordered"
-                    radius="lg"
-                    placeholder="Enter 6-digit code"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
-                    classNames={{
-                      inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
-                      label: "font-bold text-slate-400"
-                    }}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                      Verification Code
+                    </label>
+                    <OtpInput
+                      value={verificationCode}
+                      onChange={setVerificationCode}
+                    />
+                  </div>
                 </motion.div>
               )}
 
@@ -245,8 +605,6 @@ export default function Login() {
                   {error}
                 </motion.p>
               )}
-
-              <div id="recaptcha-container"></div>
 
               <Button
                 color="primary"
@@ -277,6 +635,7 @@ export default function Login() {
               </Button>
             </div>
           </div>
+          )}
 
           <div className="pt-8 flex items-center justify-center gap-2 text-slate-400">
             <FaShieldAlt className="text-success" />
