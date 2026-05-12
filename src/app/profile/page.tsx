@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical, FaCamera } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,15 +16,20 @@ import { Patient } from "@/types/patient";
 import { Footer } from "@/components/layout/Footer";
 import { storage } from "@/lib/firebase";
 import { Logo } from "@/components/ui/Logo";
+import { PhoneInput } from "react-international-phone";
+import "react-international-phone/style.css";
 
 export default function Profile() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState<Patient | null>(null);
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
+    phoneNumber: "",
     dob: "",
     gender: "",
     currentState: "",
@@ -50,6 +55,8 @@ export default function Profile() {
           setProfile(data);
           setFormData({
             name: data.name || "",
+            email: data.email || auth.currentUser?.email || "",
+            phoneNumber: data.phoneNumber || "",
             dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
             gender: data.gender || "",
             currentState: data.currentState || "",
@@ -95,9 +102,9 @@ export default function Profile() {
       setProfile(updatedProfile as Patient);
 
       // Update Firestore immediately for the image
-      await updateDoc(doc(db, "Users", auth.currentUser.uid), {
+      await setDoc(doc(db, "Users", auth.currentUser.uid), {
         profileImage: downloadURL
-      });
+      }, { merge: true });
 
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -111,24 +118,39 @@ export default function Profile() {
     if (!auth.currentUser) return;
 
     setSaving(true);
+    setShowSuccess(false);
     try {
-      const dobDate = new Date(formData.dob);
-      const updatedData = {
+      const dobDate = formData.dob ? new Date(formData.dob) : null;
+      
+      const updatedData: any = {
         ...profile,
-        name: formData.name,
-        dob: dobDate.getTime(),
-        gender: formData.gender,
-        currentState: formData.currentState,
-        currentCity: formData.currentCity,
-        allergies: formData.allergies,
-        regularMedications: formData.regularMedications,
-        medicalConditions: formData.medicalConditions,
+        name: formData.name || "",
+        email: formData.email || "",
+        phoneNumber: formData.phoneNumber || "",
+        dob: dobDate && !isNaN(dobDate.getTime()) ? dobDate.getTime() : (profile?.dob || 0),
+        gender: formData.gender || "Other",
+        currentState: formData.currentState || "",
+        currentCity: formData.currentCity || "",
+        allergies: formData.allergies || "",
+        regularMedications: formData.regularMedications || "",
+        medicalConditions: formData.medicalConditions || "",
       };
 
-      await updateDoc(doc(db, "Users", auth.currentUser.uid), updatedData);
-      // Optional: Add a success toast here
+      if (!profile) {
+        updatedData.uid = auth.currentUser.uid;
+        updatedData.email = auth.currentUser.email || "";
+        updatedData.type = "PATIENT";
+        updatedData.dateOfAccountCreation = Date.now();
+      }
+
+      await setDoc(doc(db, "Users", auth.currentUser.uid), updatedData, { merge: true });
+      setProfile(updatedData as Patient);
+      
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 4000);
     } catch (error) {
       console.error("Error updating profile:", error);
+      alert("Failed to save profile. Please check your connection.");
     } finally {
       setSaving(false);
     }
@@ -261,6 +283,51 @@ export default function Profile() {
                     classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
                   />
                   <Input
+                    label="Email Address"
+                    type="email"
+                    variant="bordered"
+                    radius="lg"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                  />
+                  <div className="flex flex-col gap-1.5 justify-center">
+                    <label className="text-[0.75rem] font-bold text-slate-400">Mobile Number</label>
+                    <div className="border-2 border-slate-200 rounded-lg bg-slate-50 opacity-70 cursor-not-allowed">
+                      <PhoneInput
+                        defaultCountry="in"
+                        value={formData.phoneNumber}
+                        onChange={() => {}}
+                        disabled
+                        inputProps={{ readOnly: true, disabled: true }}
+                        inputStyle={{
+                          width: '100%',
+                          height: '3rem',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          backgroundColor: 'transparent',
+                          outline: 'none',
+                          boxShadow: 'none',
+                          cursor: 'not-allowed',
+                        }}
+                        countrySelectorStyleProps={{
+                          buttonStyle: {
+                            height: '3rem',
+                            border: 'none',
+                            borderRight: '2px solid #e2e8f0',
+                            backgroundColor: 'transparent',
+                            padding: '0 0.5rem',
+                          },
+                          dropdownStyleProps: {
+                            style: {
+                              zIndex: 50
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <Input
                     label="Date of Birth"
                     type="date"
                     variant="bordered"
@@ -342,6 +409,19 @@ export default function Profile() {
               </div>
 
               <div className="pt-8">
+                <AnimatePresence>
+                  {showSuccess && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success text-center font-bold flex justify-center items-center gap-2"
+                    >
+                      <FaSave className="text-lg" />
+                      Profile Enshrined Successfully!
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <Button
                   color="primary"
                   size="lg"
