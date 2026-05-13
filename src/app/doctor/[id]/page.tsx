@@ -57,6 +57,7 @@ interface Doctor {
   isAccountVerified: boolean;
   specialization: string;
   email?: string;
+  phoneNumber: string;
   slotDuration?: number;
   timeSlots?: {
     [key: string]: {
@@ -558,7 +559,9 @@ export default function DoctorDetails() {
         consultationExpiration,
         userTimezone,
         appliedCoupon?.couponCode || null,
-        couponDiscount
+        couponDiscount,
+        userData.phoneNumber,
+        doctor!.phoneNumber
       );
 
       // Initialize payment
@@ -697,6 +700,9 @@ export default function DoctorDetails() {
         source: "web-booking-v2",
         skipLegacyNotifications: true,
       };
+
+      // DEBUG: Log the consultation data before saving
+      console.log(">>> [BOOKING DEBUG] Saving NEW consultation to Firestore:", JSON.stringify(consultationWithDiscount, null, 2));
 
       await setDoc(
         doc(db, "Consultations", consultation.consultationId),

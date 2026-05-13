@@ -60,6 +60,10 @@ export interface Consultation {
   // Coupon Information
   appliedCoupon?: string | null;
   couponDiscount?: number;
+
+  // WhatsApp Numbers
+  patientWhatsApp?: string;
+  doctorWhatsApp?: string;
 }
 
 // Helper function to check if consultation is active
@@ -126,7 +130,9 @@ export const createNewConsultation = (
   consultationExpiration: number,
   timezone: string = "Asia/Kolkata",
   appliedCoupon: string | null = null,
-  couponDiscount: number = 0
+  couponDiscount: number = 0,
+  patientWhatsApp?: string,
+  doctorWhatsApp?: string
 ): Consultation => {
   return {
     consultationId,
@@ -159,6 +165,8 @@ export const createNewConsultation = (
     timezone,
     appliedCoupon,
     couponDiscount,
+    patientWhatsApp,
+    doctorWhatsApp,
   };
 };
 
