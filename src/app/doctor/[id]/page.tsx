@@ -699,6 +699,7 @@ export default function DoctorDetails() {
         couponDiscount: couponDiscount,
         source: "web-booking-v2",
         skipLegacyNotifications: true,
+        wa_noti_15min: false
       };
 
       // DEBUG: Log the consultation data before saving

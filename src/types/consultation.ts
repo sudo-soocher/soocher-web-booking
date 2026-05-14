@@ -64,6 +64,7 @@ export interface Consultation {
   // WhatsApp Numbers
   patientWhatsApp?: string;
   doctorWhatsApp?: string;
+  wa_noti_15min: boolean;
 }
 
 // Helper function to check if consultation is active
@@ -167,6 +168,7 @@ export const createNewConsultation = (
     couponDiscount,
     patientWhatsApp,
     doctorWhatsApp,
+    wa_noti_15min: false,
   };
 };
 
