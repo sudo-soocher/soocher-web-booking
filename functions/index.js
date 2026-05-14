@@ -1619,24 +1619,36 @@ exports.consultationReminderCron = onSchedule(
         const patientFcmToken = patientSnap?.get("fcmToken");
         const doctorFcmToken = doctorSnap?.get("fcmToken");
 
-        const payload = (token) => ({
-          token,
-          notification: { title, body },
-          data: { notification_type: "consultation_reminder", consultationId },
-          android: {
-            collapseKey: `reminder_${consultationId}`,
-          },
-          apns: {
-            payload: { aps: { sound: "default" } },
-            headers: {
-              "apns-collapse-id": `reminder_${consultationId}`,
+        const patientName = data.patientName || "Patient";
+        const doctorName = data.doctorName || "Doctor";
+
+        const getPayload = (token, recipientType) => {
+          let personalizedBody = body;
+          if (recipientType === "patient") {
+            personalizedBody = `Your appointment with Dr. ${doctorName} starts in ${minutesRemaining} minutes!`;
+          } else if (recipientType === "doctor") {
+            personalizedBody = `Your appointment with ${patientName} starts in ${minutesRemaining} minutes!`;
+          }
+
+          return {
+            token,
+            notification: { title, body: personalizedBody },
+            data: { notification_type: "consultation_reminder", consultationId },
+            android: {
+              collapseKey: `reminder_${consultationId}`,
             },
-          },
-        });
+            apns: {
+              payload: { aps: { sound: "default" } },
+              headers: {
+                "apns-collapse-id": `reminder_${consultationId}`,
+              },
+            },
+          };
+        };
 
         const sends = [];
-        if (patientFcmToken) sends.push(admin.messaging().send(payload(patientFcmToken)));
-        if (doctorFcmToken) sends.push(admin.messaging().send(payload(doctorFcmToken)));
+        if (patientFcmToken) sends.push(admin.messaging().send(getPayload(patientFcmToken, "patient")));
+        if (doctorFcmToken) sends.push(admin.messaging().send(getPayload(doctorFcmToken, "doctor")));
         sends.push(col.doc(doc.id).update({ [flagField]: true }));
 
         try {
