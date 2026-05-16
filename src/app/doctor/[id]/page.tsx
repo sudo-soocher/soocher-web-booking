@@ -58,6 +58,7 @@ interface Doctor {
   specialization: string;
   email?: string;
   phoneNumber: string;
+  whatsappNumber?: string;
   slotDuration?: number;
   timeSlots?: {
     [key: string]: {
@@ -561,7 +562,7 @@ export default function DoctorDetails() {
         appliedCoupon?.couponCode || null,
         couponDiscount,
         userData.phoneNumber,
-        doctor!.phoneNumber
+        doctor!.whatsappNumber
       );
 
       // Initialize payment
@@ -615,6 +616,7 @@ export default function DoctorDetails() {
               patientName: userData.name,
               patientEmail: userData.email || auth.currentUser?.email || "",
               patientPhone: userData.phoneNumber || "",
+              doctorPhone: doctor!.whatsappNumber || "",
               specialization: doctor!.specialization || "",
               timezone: userTimezone,
             }),

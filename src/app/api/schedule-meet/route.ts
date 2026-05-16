@@ -11,6 +11,7 @@ export async function POST(request: Request) {
             patientName,
             patientEmail,
             patientPhone,
+            doctorPhone,
             specialization,
             timezone
         } = body;
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
 
         // Trigger WhatsApp Notification (Async - don't block response)
         if (patientPhone) {
-            console.log(">>> [TRIGGER] Triggering WhatsApp notification for:", patientPhone);
+            console.log(">>> [TRIGGER] Triggering WhatsApp notification for patient:", patientPhone);
             // We use dynamic import to avoid potential circular dependency or issues in Edge runtime if applicable
             import("@/services/whatsapp").then(({ sendWhatsAppBookingConfirmation }) => {
                 sendWhatsAppBookingConfirmation({
@@ -96,9 +97,27 @@ export async function POST(request: Request) {
                     time: timeStr,
                     meetLink: meetLink
                 }).catch(waError => {
-                    console.error(">>> [TRIGGER ERROR] WhatsApp notification failed:", waError);
+                    console.error(">>> [TRIGGER ERROR] WhatsApp patient notification failed:", waError);
                 });
             });
+        }
+
+        if (doctorPhone) {
+            console.log(">>> [TRIGGER] Triggering WhatsApp notification for doctor:", doctorPhone);
+            import("@/services/whatsapp").then(({ sendWhatsAppDoctorBookingConfirmation }) => {
+                sendWhatsAppDoctorBookingConfirmation({
+                    recipient_mobile_number: doctorPhone,
+                    patientName: patientName.trim(),
+                    doctorName: doctorName.trim(),
+                    date: dateStr,
+                    time: timeStr,
+                    meetLink: meetLink
+                }).catch(waError => {
+                    console.error(">>> [TRIGGER ERROR] WhatsApp doctor notification failed:", waError);
+                });
+            });
+        } else {
+            console.warn(">>> [TRIGGER] Skipping doctor WhatsApp — doctorPhone is empty/missing in payload");
         }
 
         return NextResponse.json({

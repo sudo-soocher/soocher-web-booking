@@ -108,7 +108,7 @@ export const sendWhatsAppBookingConfirmation = async (params: WhatsAppParams) =>
     }
 
     const apiKey = process.env.WHATSAPP_API_KEY;
-    const templateName = process.env.WHATSAPP_TEMPLATE_NAME;
+    const templateName = process.env.WA_USER_BOOKING_CONF_TEMP;
     const apiUrl = process.env.WHATSAPP_API_URL || "https://backend.chatmitra.com/developer/api/send_message";
 
     if (!apiKey || !templateName) {
@@ -170,6 +170,64 @@ export const sendWhatsAppBookingConfirmation = async (params: WhatsAppParams) =>
         return { success: true, data: result };
     } catch (error) {
         console.error(">>> [WHATSAPP ERROR]", error);
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+    }
+};
+
+export const sendWhatsAppDoctorBookingConfirmation = async (params: WhatsAppParams) => {
+    const {
+        recipient_mobile_number,
+        patientName,
+        doctorName,
+        date,
+        time,
+        meetLink
+    } = params;
+
+    const cleanPhone = normalizePhone(recipient_mobile_number);
+    if (!cleanPhone) {
+        console.error(">>> [WHATSAPP DR ERROR] Recipient mobile number is empty");
+        return { success: false, error: "Recipient mobile number is empty" };
+    }
+
+    const templateName = process.env.WA_DR_BOOKING_CONF_TEMP;
+    if (!templateName) {
+        console.error(">>> [WHATSAPP DR ERROR] WA_DR_BOOKING_CONF_TEMP missing");
+        return { success: false, error: "Configuration missing" };
+    }
+
+    const body = {
+        recipient_mobile_number: cleanPhone,
+        messages: [
+            {
+                kind: "template",
+                template: {
+                    name: templateName,
+                    language: "en_US",
+                    components: [
+                        {
+                            type: "body",
+                            parameters: [
+                                { type: "text", text: doctorName },
+                                { type: "text", text: patientName },
+                                { type: "text", text: date },
+                                { type: "text", text: time },
+                                { type: "text", text: meetLink }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        customer_name: doctorName
+    };
+
+    try {
+        console.log(">>> [WHATSAPP DR] Sending notification to:", cleanPhone);
+        const result = await postToChatMitra(body);
+        return { success: true, data: result };
+    } catch (error) {
+        console.error(">>> [WHATSAPP DR ERROR]", error);
         return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
     }
 };
