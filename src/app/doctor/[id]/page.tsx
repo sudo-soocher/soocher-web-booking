@@ -57,6 +57,8 @@ interface Doctor {
   isAccountVerified: boolean;
   specialization: string;
   email?: string;
+  phoneNumber: string;
+  whatsappNumber?: string;
   slotDuration?: number;
   timeSlots?: {
     [key: string]: {
@@ -507,7 +509,7 @@ export default function DoctorDetails() {
       onOpen();
     } else {
       // Existing user - proceed to payment
-      const userData = userDoc.data() as unknown as { name: string; email?: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string };
+      const userData = userDoc.data() as unknown as { name: string; email?: string; phoneNumber: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string };
       // If email is missing in Firestore but present in Auth, update it
       if (!userData.email && auth.currentUser?.email) {
         const { updateDoc } = await import("firebase/firestore");
@@ -520,7 +522,7 @@ export default function DoctorDetails() {
     }
   };
 
-  const handlePayment = async (userData: { name: string; email?: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string }) => {
+  const handlePayment = async (userData: { name: string; email?: string; phoneNumber: string; gender: "Male" | "Female" | "Other"; dob: number; uid: string }) => {
     try {
       const selectedSlotObj = filteredSlots.find(s => s.time === selectedSlot);
       const consultationTime = selectedSlotObj?.calculatedTimestamp || calculateSlotTimestamp(selectedDay, selectedSlot);
@@ -558,7 +560,9 @@ export default function DoctorDetails() {
         consultationExpiration,
         userTimezone,
         appliedCoupon?.couponCode || null,
-        couponDiscount
+        couponDiscount,
+        userData.phoneNumber,
+        doctor!.whatsappNumber
       );
 
       // Initialize payment
@@ -566,21 +570,31 @@ export default function DoctorDetails() {
       const totalAmount = Math.max(0, consultationFees + 50 - couponDiscount);
 
       const processSuccessfulBooking = async (paymentResponse?: unknown) => {
+        const t0 = Date.now();
+        const ts = () => `[+${((Date.now() - t0) / 1000).toFixed(2)}s]`;
+        console.log(`>>> [BOOKING DEBUG] ${ts()} START`, {
+          consultationId,
+          patientPhone: userData.phoneNumber,
+          patientEmail: userData.email,
+        });
+
         setIsBookingProcessing(true);
         setBookingStatus(
-          totalAmount === 0 
-            ? "Securing your complimentary slot..." 
+          totalAmount === 0
+            ? "Securing your complimentary slot..."
             : "Verifying payment and securing your slot..."
         );
 
         // 1. Save the consultation to Firestore (existing logic unchanged)
+        console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 1: writing Consultations/${consultationId} to Firestore`);
         try {
           await saveConsultation(consultation, paymentResponse || { status: "free" });
+          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 1: Firestore write COMPLETE (a Cloud Function trigger on Consultations.onCreate may fire WhatsApp from here)`);
         } catch (error) {
           console.error("Save consultation failed:", error);
           setError(
-            totalAmount === 0 
-              ? "Failed to save booking. Please contact support." 
+            totalAmount === 0
+              ? "Failed to save booking. Please contact support."
               : "Payment received but failed to save booking. Please contact support."
           );
           setIsBookingProcessing(false);
@@ -591,7 +605,7 @@ export default function DoctorDetails() {
         setBookingStatus("Scheduling your Google Meet session...");
         let meetLink: string | null = null;
         try {
-          console.log(">>> [FRONTEND] Triggering meet schedule API...");
+          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 2: calling /api/schedule-meet (external meet-scheduler.soocher.in)`);
           const meetResponse = await fetch("/api/schedule-meet", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -601,6 +615,8 @@ export default function DoctorDetails() {
               doctorName: doctor!.name,
               patientName: userData.name,
               patientEmail: userData.email || auth.currentUser?.email || "",
+              patientPhone: userData.phoneNumber || "",
+              doctorPhone: doctor!.whatsappNumber || "",
               specialization: doctor!.specialization || "",
               timezone: userTimezone,
             }),
@@ -611,6 +627,7 @@ export default function DoctorDetails() {
 
             // 3. Update the Firestore consultation doc with the Meet link
             if (meetLink) {
+              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: meet link received, updating Consultations.${consultationId}.extras.meetLink (this triggers a Consultations.onUpdate Cloud Function if one exists)`);
               const { updateDoc, doc: firestoreDoc } = await import(
                 "firebase/firestore"
               );
@@ -618,6 +635,9 @@ export default function DoctorDetails() {
                 firestoreDoc(db, "Consultations", consultationId),
                 { "extras.meetLink": meetLink }
               );
+              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: meetLink update COMPLETE`);
+            } else {
+              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: skipped — no meetLink returned`);
             }
           }
         } catch (meetError) {
@@ -626,6 +646,8 @@ export default function DoctorDetails() {
             meetError
           );
         }
+
+        console.log(`>>> [BOOKING DEBUG] ${ts()} END — no further outbound calls from this app. Any WhatsApp arriving NOW is from a backend listener.`);
 
         // Complete booking - external service handles notifications
         setBookingStatus("Booking confirmed! Redirecting...");
@@ -669,12 +691,21 @@ export default function DoctorDetails() {
       //   ...consultation,
       // };
 
-      // Save consultation to Firestore
+      // Save consultation to Firestore.
+      // `source` marks bookings created by this web app so the legacy
+      // sendBookedAppointmentNotification Cloud Function can skip them
+      // (web app already sends its own WhatsApp confirmation).
       const consultationWithDiscount = {
         ...consultation,
         appliedCoupon: appliedCoupon?.couponCode || null,
-        couponDiscount: couponDiscount
+        couponDiscount: couponDiscount,
+        source: "web-booking-v2",
+        skipLegacyNotifications: true,
+        wa_noti_15min: false
       };
+
+      // DEBUG: Log the consultation data before saving
+      console.log(">>> [BOOKING DEBUG] Saving NEW consultation to Firestore:", JSON.stringify(consultationWithDiscount, null, 2));
 
       await setDoc(
         doc(db, "Consultations", consultation.consultationId),

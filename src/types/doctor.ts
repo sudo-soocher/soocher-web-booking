@@ -13,4 +13,5 @@ export interface Doctor {
     knownLanguages: string[];
     specialization: string;
     isAccountVerified?: boolean;
+    whatsappNumber?: string;
 }

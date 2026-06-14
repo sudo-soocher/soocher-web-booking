@@ -10,6 +10,8 @@ export async function POST(request: Request) {
             doctorName,
             patientName,
             patientEmail,
+            patientPhone,
+            doctorPhone,
             specialization,
             timezone
         } = body;
@@ -80,8 +82,46 @@ export async function POST(request: Request) {
             throw new Error(result.message || "Failed to get Meet link from scheduler");
         }
 
+        const meetLink = result.data.meet_link;
+
+        // Trigger WhatsApp Notification (Async - don't block response)
+        if (patientPhone) {
+            console.log(">>> [TRIGGER] Triggering WhatsApp notification for patient:", patientPhone);
+            // We use dynamic import to avoid potential circular dependency or issues in Edge runtime if applicable
+            import("@/services/whatsapp").then(({ sendWhatsAppBookingConfirmation }) => {
+                sendWhatsAppBookingConfirmation({
+                    recipient_mobile_number: patientPhone,
+                    patientName: patientName.trim(),
+                    doctorName: doctorName.trim(),
+                    date: dateStr,
+                    time: timeStr,
+                    meetLink: meetLink
+                }).catch(waError => {
+                    console.error(">>> [TRIGGER ERROR] WhatsApp patient notification failed:", waError);
+                });
+            });
+        }
+
+        if (doctorPhone) {
+            console.log(">>> [TRIGGER] Triggering WhatsApp notification for doctor:", doctorPhone);
+            import("@/services/whatsapp").then(({ sendWhatsAppDoctorBookingConfirmation }) => {
+                sendWhatsAppDoctorBookingConfirmation({
+                    recipient_mobile_number: doctorPhone,
+                    patientName: patientName.trim(),
+                    doctorName: doctorName.trim(),
+                    date: dateStr,
+                    time: timeStr,
+                    meetLink: meetLink
+                }).catch(waError => {
+                    console.error(">>> [TRIGGER ERROR] WhatsApp doctor notification failed:", waError);
+                });
+            });
+        } else {
+            console.warn(">>> [TRIGGER] Skipping doctor WhatsApp — doctorPhone is empty/missing in payload");
+        }
+
         return NextResponse.json({
-            meetLink: result.data.meet_link,
+            meetLink: meetLink,
             message: result.message
         });
     } catch (err: unknown) {

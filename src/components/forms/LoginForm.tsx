@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Divider } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
 import { auth } from "@/lib/firebase";
 import {
-  signInWithPhoneNumber,
   GoogleAuthProvider,
   signInWithPopup,
-  RecaptchaVerifier,
-  ConfirmationResult,
+  signInWithCustomToken,
 } from "firebase/auth";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
+import OtpInput from "@/components/forms/OtpInput";
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -25,24 +24,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [showOTPInput, setShowOTPInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-
-  // Initialize reCAPTCHA verifier
-  const setupRecaptcha = () => {
-    if (recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current.clear();
-    }
-    const recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      "recaptcha-container",
-      {
-        size: "invisible",
-      }
-    );
-    recaptchaVerifierRef.current = recaptchaVerifier;
-    return recaptchaVerifier;
-  };
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,22 +36,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setIsLoading(true);
     setError("");
     try {
-      const recaptchaVerifier = setupRecaptcha();
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phoneNumber,
-        recaptchaVerifier
-      );
-      confirmationResultRef.current = confirmation;
+      const formattedPhone = phoneNumber.replace(/[\s\-\(\)]/g, "");
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formattedPhone }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to send code.");
       setShowOTPInput(true);
     } catch (error: unknown) {
       const err = error as { message?: string };
-      console.error("Error sending code:", error);
+      console.error("Send OTP error:", error);
       setError(err.message || "Failed to send code.");
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
     } finally {
       setIsLoading(false);
     }
@@ -78,17 +56,27 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   const verifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirmationResultRef.current) return;
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
     setIsLoading(true);
     setError("");
     try {
-      const result = await confirmationResultRef.current.confirm(verificationCode);
-      if (result.user) {
-        onSuccess();
-      }
-    } catch (error) {
-      console.error("Error verifying code:", error);
-      setError("Invalid code. Please try again.");
+      const formattedPhone = phoneNumber.replace(/[\s\-\(\)]/g, "");
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formattedPhone, code: verificationCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Invalid code.");
+      const result = await signInWithCustomToken(auth, data.token);
+      if (result.user) onSuccess();
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error("Verify OTP error:", error);
+      setError(err.message || "Invalid code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -131,14 +119,12 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               <span className="font-bold text-slate-600">{phoneNumber}</span>
               <Button size="sm" variant="light" color="primary" onClick={() => setShowOTPInput(false)}>Change</Button>
             </div>
-            <Input
-              label="Verification Code"
-              variant="bordered"
-              placeholder="Enter 6-digit code"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              required
-            />
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                Verification Code
+              </label>
+              <OtpInput value={verificationCode} onChange={setVerificationCode} />
+            </div>
           </div>
         )}
 
@@ -148,7 +134,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </p>
         )}
 
-        <div id="recaptcha-container"></div>
         <Button color="primary" type="submit" className="w-full h-12 rounded-xl font-bold" isLoading={isLoading}>
           {showOTPInput ? "Verify Code" : "Continue with Phone"}
         </Button>
