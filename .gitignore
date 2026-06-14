@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-functions/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -24,6 +23,8 @@ functions/node_modules
 # misc
 .DS_Store
 *.pem
+service_account*.json
+service-account*.json
 
 # debug
 npm-debug.log*
@@ -39,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase
+.firebase/
+functions/
+firebase-debug.log*
+.firebaserc
+firebase.json
+cloud-functions*.md
