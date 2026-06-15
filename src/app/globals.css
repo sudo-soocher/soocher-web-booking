@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Stream.io video call — Soocher brand overrides ─────────────── */
+.soocher-call {
+  --str-video__brand-color1: #2e6dd4;
+  --str-video__button-primary-active: #2e6dd4;
+  --str-video__button-primary-hover: #5a94ff;
+  --str-video__avatar--background-color: rgba(46, 109, 212, 0.3);
+  --str-video__avatar--color: #bcd4ff;
+  height: 100%;
+  width: 100%;
+}
+
+.soocher-call .str-video__speaker-layout__spotlight {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+.soocher-call .str-video__participant-view {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
 .mesh-gradient {
   background-color: #2e6dd4;
   background-image:

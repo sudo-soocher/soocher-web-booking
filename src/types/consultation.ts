@@ -9,6 +9,7 @@ export interface PatientDetails {
 interface ConsultationExtras {
   meetingId: string;
   meetLink?: string; // Google Meet link (generated after booking)
+  streamCallId?: string; // Stream.io video call ID (generated after booking)
   patientDetails: PatientDetails;
 }
 
