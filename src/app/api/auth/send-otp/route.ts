@@ -26,6 +26,19 @@ export async function POST(request: Request) {
         }
 
         const db = getAdminFirestore();
+
+        // Block if this number belongs to a doctor account
+        const doctorSnap = await db.collection("Doctors")
+            .where("whatsappNumber", "==", e164)
+            .limit(1)
+            .get();
+        if (!doctorSnap.empty) {
+            return NextResponse.json(
+                { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
+                { status: 409 }
+            );
+        }
+
         const docId = e164.replace(/\+/g, "");
         const ref = db.collection("phoneOtps").doc(docId);
         const now = Date.now();

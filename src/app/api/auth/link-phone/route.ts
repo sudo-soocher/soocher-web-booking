@@ -63,17 +63,41 @@ export async function POST(request: Request) {
             );
         }
 
-        // Phone uniqueness: if another Firebase Auth user already has this phone, block.
+        // Block if this number belongs to a doctor account
+        const doctorSnap = await db.collection("Doctors")
+            .where("whatsappNumber", "==", e164)
+            .limit(1)
+            .get();
+        if (!doctorSnap.empty) {
+            return NextResponse.json(
+                { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
+                { status: 409 }
+            );
+        }
+
+        // Block if the phone is already saved under a different patient UID
+        const existingUserSnap = await db.collection("Users")
+            .where("phoneNumber", "==", e164)
+            .limit(1)
+            .get();
+        if (!existingUserSnap.empty && existingUserSnap.docs[0].id !== decoded.uid) {
+            return NextResponse.json(
+                { error: "This number is already registered to another account." },
+                { status: 409 }
+            );
+        }
+
+        // Block if another Firebase Auth user already has this phone
         try {
             const existing = await adminAuth.getUserByPhoneNumber(e164);
             if (existing.uid !== decoded.uid) {
                 return NextResponse.json(
-                    { error: "This phone number is already linked to another account." },
+                    { error: "This number is already linked to another account." },
                     { status: 409 }
                 );
             }
         } catch {
-            // Not found = available, proceed
+            // Not found in Firebase Auth = available, proceed
         }
 
         await adminAuth.updateUser(decoded.uid, { phoneNumber: e164 });

@@ -57,12 +57,36 @@ export async function POST(request: Request) {
             );
         }
 
+        // Block if this number belongs to a doctor account
+        const doctorSnap = await db.collection("Doctors")
+            .where("whatsappNumber", "==", e164)
+            .limit(1)
+            .get();
+        if (!doctorSnap.empty) {
+            return NextResponse.json(
+                { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
+                { status: 409 }
+            );
+        }
+
         const adminAuth = getAdminAuth();
         let userRecord;
         try {
             userRecord = await adminAuth.getUserByPhoneNumber(e164);
         } catch {
             userRecord = await adminAuth.createUser({ phoneNumber: e164 });
+        }
+
+        // Block if the phone is already saved under a different patient UID
+        const existingUserSnap = await db.collection("Users")
+            .where("phoneNumber", "==", e164)
+            .limit(1)
+            .get();
+        if (!existingUserSnap.empty && existingUserSnap.docs[0].id !== userRecord.uid) {
+            return NextResponse.json(
+                { error: "This number is already registered to another account." },
+                { status: 409 }
+            );
         }
 
         try {
