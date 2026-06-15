@@ -16,6 +16,7 @@ import {
   FaStethoscope,
   FaComments,
   FaCopy,
+  FaPhoneAlt,
 } from "react-icons/fa";
 // FaStethoscope kept for navbar logo
 import { Consultation } from "@/types/consultation";
@@ -205,25 +206,44 @@ export default function BookingComplete() {
                     </div>
                   </div>
 
-                  {/* Actions: Meet Link & Chat */}
-                  {(consultation.extras?.meetLink || getChatAvailability(consultation).isAvailable) && (
+                  {/* Actions: Video Call, Meet Link & Chat */}
+                  {(consultation.extras?.meetLink || consultation.extras?.streamCallId || getChatAvailability(consultation).isAvailable) && (
                     <>
                       <div className="h-px border-t border-dashed border-slate-200" />
                       <div className="flex flex-col sm:flex-row items-stretch gap-3">
+
+                        {/* Stream.io Video Call button */}
+                        {consultation.extras?.streamCallId && (
+                          <button
+                            onClick={() => router.push(`/video-call/${consultation.consultationId}`)}
+                            className="flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group border bg-primary/10 border-primary/20 hover:bg-primary/20 hover:border-primary/40"
+                          >
+                            <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+                              <FaPhoneAlt className="text-base" />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Soocher Video</p>
+                              <p className="text-sm font-black italic text-primary group-hover:text-primary/80 transition-colors">
+                                Join Video Call
+                              </p>
+                            </div>
+                          </button>
+                        )}
+
                         {consultation.extras?.meetLink && (
                           <button
                             onClick={() => handleCopyMeetLink(consultation.extras.meetLink!)}
                             className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group border h-auto ${
-                              copied 
-                                ? "bg-success/10 border-success/30" 
+                              copied
+                                ? "bg-success/10 border-success/30"
                                 : "bg-gradient-to-r from-[#1a73e8]/10 to-[#34a853]/10 border-[#1a73e8]/20 hover:from-[#1a73e8]/20 hover:to-[#34a853]/20 hover:border-[#1a73e8]/40"
                             }`}
                           >
                             {/* Official Google Meet logo from public directory */}
                             <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden shadow-sm border border-slate-100 bg-white flex items-center justify-center relative">
-                              <Image 
-                                src="/google_meet_logo.png" 
-                                alt="Google Meet" 
+                              <Image
+                                src="/google_meet_logo.png"
+                                alt="Google Meet"
                                 fill
                                 className="object-contain p-1.5"
                               />
@@ -243,7 +263,7 @@ export default function BookingComplete() {
                             )}
                           </button>
                         )}
-                        
+
                         {getChatAvailability(consultation).isAvailable && (
                           <Button
                             color="primary"

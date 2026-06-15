@@ -647,6 +647,19 @@ export default function DoctorDetails() {
           );
         }
 
+        // 4. Save Stream.io video call ID to Firestore
+        try {
+          const streamCallId = `consultation_${consultationId}`;
+          const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
+          await updateDoc(
+            firestoreDoc(db, "Consultations", consultationId),
+            { "extras.streamCallId": streamCallId }
+          );
+          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 4: streamCallId saved — ${streamCallId}`);
+        } catch (streamError) {
+          console.error("Stream call ID save failed (non-fatal):", streamError);
+        }
+
         console.log(`>>> [BOOKING DEBUG] ${ts()} END — no further outbound calls from this app. Any WhatsApp arriving NOW is from a backend listener.`);
 
         // Complete booking - external service handles notifications

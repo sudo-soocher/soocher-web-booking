@@ -14,6 +14,7 @@ import {
   FaCalendar,
   FaClock,
   FaComments,
+  FaPhoneAlt,
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
@@ -297,8 +298,21 @@ export default function Bookings() {
                           </div>
                         </div>
 
-                        {/* Right actions: meet + chat + arrow */}
+                        {/* Right actions: stream video + meet + chat + arrow */}
                         <div className="flex items-center gap-2 shrink-0">
+                          {consultation.extras?.streamCallId && (Date.now() <= consultation.consultationExpiration) && (
+                            <button
+                              className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors duration-200"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                router.push(`/video-call/${consultation.consultationId}`);
+                              }}
+                              title="Join Video Call"
+                            >
+                              <FaPhoneAlt className="text-sm" />
+                            </button>
+                          )}
+
                           {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
                             <button
                               className="w-9 h-9 rounded-full bg-success/10 text-success flex items-center justify-center hover:bg-success hover:text-white transition-colors duration-200"
@@ -306,7 +320,7 @@ export default function Bookings() {
                                 e.stopPropagation();
                                 window.open(consultation.extras?.meetLink, "_blank");
                               }}
-                              title="Join Meeting"
+                              title="Join Google Meet"
                             >
                               <FaVideo className="text-sm" />
                             </button>
@@ -373,6 +387,22 @@ export default function Bookings() {
 
                         {/* Right: Actions + Source + Status + Arrow */}
                         <div className="flex items-center gap-5 shrink-0">
+                          {consultation.extras?.streamCallId && (Date.now() <= consultation.consultationExpiration) && (
+                            <Button
+                              color="primary"
+                              variant="flat"
+                              size="sm"
+                              className="rounded-full font-bold px-6 h-11"
+                              startContent={<FaPhoneAlt className="text-sm" />}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                router.push(`/video-call/${consultation.consultationId}`);
+                              }}
+                            >
+                              Video&nbsp;Call
+                            </Button>
+                          )}
+
                           {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
                             <Button
                               color="success"
@@ -385,7 +415,7 @@ export default function Bookings() {
                                 window.open(consultation.extras?.meetLink, "_blank");
                               }}
                             >
-                              Join&nbsp;Meeting
+                              Google&nbsp;Meet
                             </Button>
                           )}
 
@@ -528,6 +558,25 @@ export default function Bookings() {
                           </p>
                         </div>
                       </div>
+
+                      {selectedConsultation.extras?.streamCallId && (Date.now() <= selectedConsultation.consultationExpiration) && (
+                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                              <FaPhoneAlt className="text-xs" />
+                            </div>
+                            <p className="text-sm font-bold text-primary">Soocher Video is ready</p>
+                          </div>
+                          <Button
+                            color="primary"
+                            size="sm"
+                            className="rounded-xl font-bold"
+                            onPress={() => router.push(`/video-call/${selectedConsultation.consultationId}`)}
+                          >
+                            Join Video
+                          </Button>
+                        </div>
+                      )}
 
                       {selectedConsultation.extras?.meetLink && (Date.now() <= selectedConsultation.consultationExpiration) && (
                         <div className="p-4 bg-success/5 border border-success/10 rounded-2xl flex items-center justify-between">
