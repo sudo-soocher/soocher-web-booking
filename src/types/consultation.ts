@@ -167,8 +167,8 @@ export const createNewConsultation = (
     timezone,
     appliedCoupon,
     couponDiscount,
-    patientWhatsApp,
-    doctorWhatsApp,
+    ...(patientWhatsApp ? { patientWhatsApp } : {}),
+    ...(doctorWhatsApp ? { doctorWhatsApp } : {}),
     wa_noti_15min: false,
   };
 };
