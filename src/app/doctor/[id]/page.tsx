@@ -872,7 +872,7 @@ export default function DoctorDetails() {
                         </div>
                         <div className="flex items-center gap-2">
                           <FaStar className="text-amber-400" />
-                          <span className="text-slate-900 font-bold">{doctor.averageRating.toFixed(1)}</span>
+                          <span className="text-slate-900 font-bold">{(doctor.averageRating ?? 0).toFixed(1)}</span>
                           <span className="text-slate-400">Rating</span>
                         </div>
                         <div className="flex items-center gap-2">
