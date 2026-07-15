@@ -14,4 +14,5 @@ export interface Doctor {
     specialization: string;
     isAccountVerified?: boolean;
     whatsappNumber?: string;
+    timezone?: string;
 }

@@ -28,13 +28,29 @@ export const getActiveTimezone = (): string => {
 };
 
 /**
- * Parses a time string (e.g., "09:00AM") and a day key (e.g., "Mon")
- * assuming it is in Asia/Kolkata (IST) and returns a UTC epoch.
+ * Returns the offset (ms) of a given IANA timezone at a given instant.
+ * Positive when the zone is ahead of UTC (e.g. Asia/Dubai → +4h).
  */
-export const parseISTTimeToEpoch = (dayKey: string, timeStr: string): number => {
+const getTimezoneOffsetMs = (timezone: string, at: Date): number => {
+    const tzString = at.toLocaleString("en-US", { timeZone: timezone });
+    const utcString = at.toLocaleString("en-US", { timeZone: "UTC" });
+    return new Date(tzString).getTime() - new Date(utcString).getTime();
+};
+
+/**
+ * Parses a time string (e.g., "09:00AM") and a day key (e.g., "Mon")
+ * as a wall-clock time in the given IANA timezone and returns the corresponding
+ * UTC epoch. Defaults to Asia/Kolkata when no timezone is supplied.
+ */
+export const parseTimeToEpoch = (
+    dayKey: string,
+    timeStr: string,
+    timezone: string = "Asia/Kolkata"
+): number => {
     try {
         const [time, period] = timeStr.split(/(?=[AP]M)/);
-        let [hours, minutes] = time.split(":").map(Number);
+        const [rawHours, minutes] = time.split(":").map(Number);
+        let hours = rawHours;
 
         if (period === "PM" && hours !== 12) hours += 12;
         if (period === "AM" && hours === 12) hours = 0;
@@ -48,27 +64,40 @@ export const parseISTTimeToEpoch = (dayKey: string, timeStr: string): number => 
         const targetDate = new Date(now);
         targetDate.setDate(now.getDate() + daysToAdd);
 
-        const year = targetDate.getFullYear();
-        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-        const day = String(targetDate.getDate()).padStart(2, '0');
-        const h = String(hours).padStart(2, '0');
-        const m = String(minutes).padStart(2, '0');
-
-        // IST is fixed at +05:30
-        const isoString = `${year}-${month}-${day}T${h}:${m}:00+05:30`;
-        return new Date(isoString).getTime();
+        // Treat (year, month, day, hours, minutes) as a wall-clock time in the
+        // doctor's timezone, then subtract that zone's offset to get UTC epoch.
+        const naive = Date.UTC(
+            targetDate.getFullYear(),
+            targetDate.getMonth(),
+            targetDate.getDate(),
+            hours,
+            minutes
+        );
+        const offset = getTimezoneOffsetMs(timezone, new Date(naive));
+        return naive - offset;
     } catch (e) {
-        console.error("Error parsing IST time:", e);
+        console.error("Error parsing time:", e);
         return 0;
     }
 };
 
 /**
- * Formats a timestamp into a time range string in the active timezone.
+ * Back-compat alias — same as parseTimeToEpoch defaulting to Asia/Kolkata.
  */
-export const formatTimeRange = (startEpoch: number, durationMinutes: number): string => {
+export const parseISTTimeToEpoch = (dayKey: string, timeStr: string): number =>
+    parseTimeToEpoch(dayKey, timeStr, "Asia/Kolkata");
+
+/**
+ * Formats a timestamp into a time range string, in the supplied timezone
+ * (defaults to the active timezone if none is given).
+ */
+export const formatTimeRange = (
+    startEpoch: number,
+    durationMinutes: number,
+    timezone?: string
+): string => {
     const endEpoch = startEpoch + durationMinutes * 60000;
-    return `${formatDisplayTime(startEpoch)} - ${formatDisplayTime(endEpoch)}`;
+    return `${formatDisplayTime(startEpoch, timezone)} - ${formatDisplayTime(endEpoch, timezone)}`;
 };
 
 /**

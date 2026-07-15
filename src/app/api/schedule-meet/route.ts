@@ -13,7 +13,8 @@ export async function POST(request: Request) {
             patientPhone,
             doctorPhone,
             specialization,
-            timezone
+            timezone,
+            doctorTimezone
         } = body;
 
         // Check for strictly required fields for the scheduler
@@ -32,13 +33,24 @@ export async function POST(request: Request) {
             );
         }
 
-        // Use provided timezone or fallback to Asia/Kolkata
-        const activeTimezone = timezone || "Asia/Kolkata";
+        // Patient's timezone (falls back to Asia/Kolkata)
+        const patientTimezone = timezone || "Asia/Kolkata";
+        // Doctor's timezone (falls back to Asia/Kolkata when the doctor doc has none)
+        const doctorTz = doctorTimezone || "Asia/Kolkata";
 
-        // Format date and time for the scheduler API manually to avoid locale variations
+        // Format date and time for the scheduler API using the patient's timezone
+        // (unchanged behavior for calendar/meet).
         const d = new Date(consultationTime);
-        const dateStr = formatDateStr(consultationTime, activeTimezone);
-        const timeStr = formatTimeStr(consultationTime, activeTimezone);
+        const dateStr = formatDateStr(consultationTime, patientTimezone);
+        const timeStr = formatTimeStr(consultationTime, patientTimezone);
+
+        // Separate strings for WhatsApp — each recipient sees the time in their
+        // own timezone. If patient and doctor share a timezone these collapse
+        // back to the same values.
+        const patientDateStr = dateStr;
+        const patientTimeStr = timeStr;
+        const doctorDateStr = formatDateStr(consultationTime, doctorTz);
+        const doctorTimeStr = formatTimeStr(consultationTime, doctorTz);
 
         // Get URL from MEET_SCHEDULER_API as requested
         const schedulerUrl = process.env.MEET_SCHEDULER_API || "http://localhost:8001/schedule-meet";
@@ -51,7 +63,7 @@ export async function POST(request: Request) {
             user_name: patientName.trim(),
             doctors_name: doctorName.trim(),
             department_name: specialization?.trim() || "General Health",
-            timezone: activeTimezone
+            timezone: patientTimezone
         };
 
         console.log(">>> [TRIGGER] Scheduled Meet API Call triggered");
@@ -86,15 +98,19 @@ export async function POST(request: Request) {
 
         // Trigger WhatsApp Notification (Async - don't block response)
         if (patientPhone) {
-            console.log(">>> [TRIGGER] Triggering WhatsApp notification for patient:", patientPhone);
+            console.log(
+                ">>> [TRIGGER] Triggering WhatsApp notification for patient:",
+                patientPhone,
+                `(tz=${patientTimezone})`
+            );
             // We use dynamic import to avoid potential circular dependency or issues in Edge runtime if applicable
             import("@/services/whatsapp").then(({ sendWhatsAppBookingConfirmation }) => {
                 sendWhatsAppBookingConfirmation({
                     recipient_mobile_number: patientPhone,
                     patientName: patientName.trim(),
                     doctorName: doctorName.trim(),
-                    date: dateStr,
-                    time: timeStr,
+                    date: patientDateStr,
+                    time: patientTimeStr,
                     meetLink: meetLink
                 }).catch(waError => {
                     console.error(">>> [TRIGGER ERROR] WhatsApp patient notification failed:", waError);
@@ -103,14 +119,18 @@ export async function POST(request: Request) {
         }
 
         if (doctorPhone) {
-            console.log(">>> [TRIGGER] Triggering WhatsApp notification for doctor:", doctorPhone);
+            console.log(
+                ">>> [TRIGGER] Triggering WhatsApp notification for doctor:",
+                doctorPhone,
+                `(tz=${doctorTz})`
+            );
             import("@/services/whatsapp").then(({ sendWhatsAppDoctorBookingConfirmation }) => {
                 sendWhatsAppDoctorBookingConfirmation({
                     recipient_mobile_number: doctorPhone,
                     patientName: patientName.trim(),
                     doctorName: doctorName.trim(),
-                    date: dateStr,
-                    time: timeStr,
+                    date: doctorDateStr,
+                    time: doctorTimeStr,
                     meetLink: meetLink
                 }).catch(waError => {
                     console.error(">>> [TRIGGER ERROR] WhatsApp doctor notification failed:", waError);

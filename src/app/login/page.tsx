@@ -465,9 +465,16 @@ export default function Login() {
                 color="primary"
                 type="submit"
                 isLoading={isLoading}
+                spinnerPlacement="start"
                 className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
               >
-                {linkPhoneStage === "input" ? "Send Code" : "Verify & Continue"}
+                {linkPhoneStage === "input"
+                  ? isLoading
+                    ? "Sending..."
+                    : "Send Code"
+                  : isLoading
+                  ? "Verifying..."
+                  : "Verify & Continue"}
               </Button>
             </form>
           ) : needsRegistration ? (
@@ -563,9 +570,10 @@ export default function Login() {
                 color="primary"
                 type="submit"
                 isLoading={isLoading}
+                spinnerPlacement="start"
                 className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
               >
-                Complete Registration
+                {isLoading ? "Saving..." : "Complete Registration"}
               </Button>
             </form>
           ) : (
@@ -610,9 +618,16 @@ export default function Login() {
                 color="primary"
                 type="submit"
                 isLoading={isLoading}
+                spinnerPlacement="start"
                 className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
               >
-                {showOTPInput ? "Unlock Account" : "Access Sanctuary"}
+                {showOTPInput
+                  ? isLoading
+                    ? "Verifying..."
+                    : "Unlock Account"
+                  : isLoading
+                  ? "Sending..."
+                  : "Access Sanctuary"}
               </Button>
             </form>
 

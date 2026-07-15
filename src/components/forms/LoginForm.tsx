@@ -134,8 +134,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </p>
         )}
 
-        <Button color="primary" type="submit" className="w-full h-12 rounded-xl font-bold" isLoading={isLoading}>
-          {showOTPInput ? "Verify Code" : "Continue with Phone"}
+        <Button
+          color="primary"
+          type="submit"
+          className="w-full h-12 rounded-xl font-bold"
+          isLoading={isLoading}
+          spinnerPlacement="start"
+        >
+          {showOTPInput
+            ? isLoading
+              ? "Verifying..."
+              : "Verify Code"
+            : isLoading
+            ? "Sending..."
+            : "Continue with Phone"}
         </Button>
       </form>
 

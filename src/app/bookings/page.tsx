@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Chip, Tabs, Tab, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import {
   FaVideo,
   FaStethoscope,
@@ -54,37 +54,35 @@ export default function Bookings() {
   const { isOpen: isChatOpen, onOpen: onChatOpen, onClose: onChatClose } = useDisclosure();
 
   useEffect(() => {
-    const fetchConsultations = async () => {
-      if (!auth.currentUser) {
-        router.push("/login");
-        return;
-      }
+    if (!auth.currentUser) {
+      router.push("/login");
+      return;
+    }
 
-      try {
-        const consultationsRef = collection(db, "Consultations");
-        const q = query(
-          consultationsRef,
-          where("participants", "array-contains", auth.currentUser.uid),
-          orderBy("consultationTime", "desc")
-        );
+    const consultationsRef = collection(db, "Consultations");
+    const q = query(
+      consultationsRef,
+      where("participants", "array-contains", auth.currentUser.uid),
+      orderBy("consultationTime", "desc")
+    );
 
-        const querySnapshot = await getDocs(q);
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
         const consultationsList: Consultation[] = [];
-        querySnapshot.forEach((doc) => {
-          consultationsList.push({
-            ...doc.data(),
-          } as Consultation);
+        snapshot.forEach((doc) => {
+          consultationsList.push({ ...doc.data() } as Consultation);
         });
-
         setConsultations(consultationsList);
-      } catch (error) {
+        setLoading(false);
+      },
+      (error) => {
         console.error("Error fetching consultations:", error);
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchConsultations();
+    return () => unsubscribe();
   }, [router]);
 
   const filterConsultations = (type: "upcoming" | "active" | "past") => {
@@ -93,17 +91,18 @@ export default function Bookings() {
     switch (type) {
       case "upcoming":
         return consultations.filter(
-          (consultation) => consultation.consultationTime > now
+          (c) => !c.videoConsultDone && c.consultationTime > now
         );
       case "active":
         return consultations.filter(
-          (consultation) =>
-            consultation.consultationTime <= now &&
-            consultation.consultationExpiration >= now
+          (c) =>
+            !c.videoConsultDone &&
+            c.consultationTime <= now &&
+            c.consultationExpiration >= now
         );
       case "past":
         return consultations.filter(
-          (consultation) => consultation.consultationExpiration < now
+          (c) => c.videoConsultDone || c.consultationExpiration < now
         );
       default:
         return [];
@@ -117,7 +116,13 @@ export default function Bookings() {
   const getStatusChip = (consultation: Consultation) => {
     const now = Date.now();
 
-    if (consultation.consultationTime > now) {
+    if (consultation.videoConsultDone) {
+      return (
+        <Chip color="default" variant="flat">
+          Completed
+        </Chip>
+      );
+    } else if (consultation.consultationTime > now) {
       return (
         <Chip color="primary" variant="flat">
           Upcoming
@@ -300,7 +305,7 @@ export default function Bookings() {
 
                         {/* Right actions: stream video + meet + chat + arrow */}
                         <div className="flex items-center gap-2 shrink-0">
-                          {consultation.extras?.streamCallId && (Date.now() <= consultation.consultationExpiration) && (
+                          {consultation.extras?.streamCallId && !consultation.videoConsultDone && (Date.now() <= consultation.consultationExpiration) && (
                             <button
                               className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors duration-200"
                               onClick={(e: React.MouseEvent) => {
@@ -313,7 +318,7 @@ export default function Bookings() {
                             </button>
                           )}
 
-                          {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
+                          {consultation.extras?.meetLink && !consultation.videoConsultDone && (Date.now() <= consultation.consultationExpiration) && (
                             <button
                               className="w-9 h-9 rounded-full bg-success/10 text-success flex items-center justify-center hover:bg-success hover:text-white transition-colors duration-200"
                               onClick={(e: React.MouseEvent) => {
@@ -387,7 +392,7 @@ export default function Bookings() {
 
                         {/* Right: Actions + Source + Status + Arrow */}
                         <div className="flex items-center gap-5 shrink-0">
-                          {consultation.extras?.streamCallId && (Date.now() <= consultation.consultationExpiration) && (
+                          {consultation.extras?.streamCallId && !consultation.videoConsultDone && (Date.now() <= consultation.consultationExpiration) && (
                             <Button
                               color="primary"
                               variant="flat"
@@ -403,7 +408,7 @@ export default function Bookings() {
                             </Button>
                           )}
 
-                          {consultation.extras?.meetLink && (Date.now() <= consultation.consultationExpiration) && (
+                          {consultation.extras?.meetLink && !consultation.videoConsultDone && (Date.now() <= consultation.consultationExpiration) && (
                             <Button
                               color="success"
                               variant="flat"
@@ -559,7 +564,7 @@ export default function Bookings() {
                         </div>
                       </div>
 
-                      {selectedConsultation.extras?.streamCallId && (Date.now() <= selectedConsultation.consultationExpiration) && (
+                      {selectedConsultation.extras?.streamCallId && !selectedConsultation.videoConsultDone && (Date.now() <= selectedConsultation.consultationExpiration) && (
                         <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
@@ -578,7 +583,7 @@ export default function Bookings() {
                         </div>
                       )}
 
-                      {selectedConsultation.extras?.meetLink && (Date.now() <= selectedConsultation.consultationExpiration) && (
+                      {selectedConsultation.extras?.meetLink && !selectedConsultation.videoConsultDone && (Date.now() <= selectedConsultation.consultationExpiration) && (
                         <div className="p-4 bg-success/5 border border-success/10 rounded-2xl flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success">

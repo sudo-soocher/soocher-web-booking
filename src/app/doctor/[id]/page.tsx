@@ -36,7 +36,8 @@ import { calculateAge } from "@/types/patient";
 import LoginForm from "@/components/forms/LoginForm";
 import PatientForm from "@/components/forms/PatientForm";
 import { Footer } from "@/components/layout/Footer";
-import { getActiveTimezone, getTimezoneName, parseISTTimeToEpoch, formatTimeRange } from "@/utils/timezone";
+import { parseTimeToEpoch, formatTimeRange } from "@/utils/timezone";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Coupon } from "@/types/coupon";
 import { validateCoupon } from "@/utils/coupon";
 import { Input } from "@nextui-org/react";
@@ -59,6 +60,7 @@ interface Doctor {
   email?: string;
   phoneNumber: string;
   whatsappNumber?: string;
+  timezone?: string;
   slotDuration?: number;
   timeSlots?: {
     [key: string]: {
@@ -114,6 +116,9 @@ export default function DoctorDetails() {
   const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
   const [couponError, setCouponError] = useState("");
   const [consultationCount, setConsultationCount] = useState<number | string>(0);
+
+  // Resolve the visitor's timezone from geolocation (falls back to browser Intl).
+  const { timezone: userTimezone } = useUserTimezone();
 
   // Function to get current day name
   const getCurrentDay = () => {
@@ -188,22 +193,23 @@ export default function DoctorDetails() {
     if (!daySchedule || !daySchedule.enabled) return [];
 
     const slots: Slot[] = [];
-    const startEpoch = parseISTTimeToEpoch(dayKey, daySchedule.startTime);
-    const endEpoch = parseISTTimeToEpoch(dayKey, daySchedule.endTime);
+    const doctorTz = doctor.timezone || "Asia/Kolkata";
+    const startEpoch = parseTimeToEpoch(dayKey, daySchedule.startTime, doctorTz);
+    const endEpoch = parseTimeToEpoch(dayKey, daySchedule.endTime, doctorTz);
 
     if (!startEpoch || !endEpoch) return [];
 
     let currentEpoch = startEpoch;
     while (currentEpoch < endEpoch) {
       slots.push({
-        time: formatTimeRange(currentEpoch, doctor.slotDuration),
+        time: formatTimeRange(currentEpoch, doctor.slotDuration, userTimezone),
         bookingDate: currentEpoch,
       });
       currentEpoch += doctor.slotDuration * 60000;
     }
 
     return slots;
-  }, [doctor]);
+  }, [doctor, userTimezone]);
 
   // Coupon functions
   const handleApplyCoupon = async () => {
@@ -526,7 +532,6 @@ export default function DoctorDetails() {
     try {
       const selectedSlotObj = filteredSlots.find(s => s.time === selectedSlot);
       const consultationTime = selectedSlotObj?.calculatedTimestamp || calculateSlotTimestamp(selectedDay, selectedSlot);
-      const userTimezone = getActiveTimezone();
 
 
       // Calculate consultation duration based on specialization
@@ -619,6 +624,7 @@ export default function DoctorDetails() {
               doctorPhone: doctor!.whatsappNumber || "",
               specialization: doctor!.specialization || "",
               timezone: userTimezone,
+              doctorTimezone: doctor!.timezone || "Asia/Kolkata",
             }),
           });
           if (meetResponse.ok) {
@@ -1045,12 +1051,6 @@ export default function DoctorDetails() {
                               <p className="text-slate-400 text-sm font-medium">No available slots</p>
                             </div>
                           )}
-                        </div>
-                        <div className="flex justify-center pt-2">
-                          <p className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-full border border-amber-200/50 text-xs text-amber-900 font-bold tracking-wide shadow-sm">
-                            <FaClock className="text-amber-500" />
-                            All times shown in {getTimezoneName(getActiveTimezone())}
-                          </p>
                         </div>
                       </div>
                     )}
