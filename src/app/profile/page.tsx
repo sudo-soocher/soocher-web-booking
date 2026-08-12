@@ -74,7 +74,8 @@ export default function Profile() {
     };
 
     fetchProfile();
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -158,8 +159,9 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        <header className="px-6 py-4">
+      <div className="min-h-[100dvh] bg-[#F8FAFC]">
+        <div className="md:hidden h-14 bg-white/85 border-b border-slate-100/60 animate-pulse" />
+        <header className="hidden md:block px-6 py-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
@@ -168,7 +170,7 @@ export default function Profile() {
           </div>
         </header>
 
-        <main className="max-w-3xl mx-auto px-6 py-12">
+        <main className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-12">
           <div className="premium-card p-12 space-y-8 animate-pulse bg-slate-50 border-none">
             <div className="w-32 h-32 rounded-[40px] bg-slate-200 mx-auto" />
             <div className="space-y-6">
@@ -183,34 +185,47 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+    <div className="min-h-[100dvh] bg-[#F8FAFC]">
+
+      {/* ── Mobile Top Bar ───────────────────────────────────────────── */}
+      <header
+        className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform mr-1"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+            >
+              <FaArrowLeft className="text-slate-600 text-sm" />
+            </button>
+            <span className="text-lg font-bold text-slate-900 tracking-tight">Profile</span>
+          </div>
+          <Logo size="sm" className="rounded-xl" />
+        </div>
+      </header>
+
+      {/* ── Desktop Navbar ───────────────────────────────────────────── */}
+      <header className="hidden md:block sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
-          <Button
-            variant="flat"
-            size="sm"
-            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-            startContent={<FaArrowLeft className="text-xs" />}
-            onPress={() => router.back()}
-          >
-            Back
-          </Button>
+          <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>Back</Button>
         </nav>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
-        <div className="space-y-8 md:space-y-12">
-          {/* Page Heading */}
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-12 pb-safe-nav md:pb-24">
+        <div className="space-y-6 md:space-y-12">
+          {/* Page Heading - desktop only */}
+          <div className="hidden md:block text-center space-y-2">
+            <h1 className="text-5xl font-black text-slate-900 tracking-tight">
               Personal <span className="text-primary italic">Profile</span>
             </h1>
-            <p className="text-sm md:text-base text-slate-500 font-medium tracking-tight">Manage your medical identity and preferences.</p>
+            <p className="text-base text-slate-500 font-medium tracking-tight">Manage your medical identity and preferences.</p>
           </div>
 
           <motion.div

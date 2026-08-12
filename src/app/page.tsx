@@ -184,136 +184,134 @@ export default function Home() {
   */
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
-      {/* Navbar - Glass Effect */}
-      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
+    <div className="min-h-[100dvh] flex flex-col bg-[#F8FAFC]">
+
+      {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
+      <header
+        className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-2">
+            <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
+            <span className="text-lg font-bold tracking-tight text-slate-900">Soocher</span>
+          </div>
+          {isLoggedIn && (
+            <Dropdown placement="bottom-end">
+              <DropdownTrigger>
+                <Avatar
+                  isBordered
+                  as="button"
+                  className="transition-transform ring-offset-2 ring-primary"
+                  color="primary"
+                  name={auth.currentUser?.displayName || "User"}
+                  size="sm"
+                  src={auth.currentUser?.photoURL || undefined}
+                />
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Profile Actions" variant="flat" className="p-2">
+                <DropdownItem key="profile" className="h-14 gap-2 opacity-100 cursor-default">
+                  <p className="text-xs text-slate-500">Signed in as</p>
+                  <p className="font-semibold text-slate-900">
+                    {auth.currentUser?.phoneNumber || auth.currentUser?.email}
+                  </p>
+                </DropdownItem>
+                <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">My Profile</DropdownItem>
+                <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">My Bookings</DropdownItem>
+                <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>Sign Out</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          )}
+        </div>
+      </header>
+
+      {/* ── Desktop Navbar ─────────────────────────────────────────── */}
+      <header className="hidden md:block sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
-
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-6">
             {isLoggedIn ? (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
-                  <Avatar
-                    isBordered
-                    as="button"
-                    className="transition-transform ring-offset-2 ring-primary hover:scale-105"
-                    color="primary"
-                    name={auth.currentUser?.displayName || "User"}
-                    size="sm"
-                    src={auth.currentUser?.photoURL || undefined}
-                  />
+                  <Avatar isBordered as="button" className="transition-transform ring-offset-2 ring-primary hover:scale-105" color="primary" name={auth.currentUser?.displayName || "User"} size="sm" src={auth.currentUser?.photoURL || undefined} />
                 </DropdownTrigger>
                 <DropdownMenu aria-label="Profile Actions" variant="flat" className="p-2">
                   <DropdownItem key="profile" className="h-14 gap-2 opacity-100 cursor-default">
                     <p className="text-xs text-slate-500">Signed in as</p>
-                    <p className="font-semibold text-slate-900">
-                      {auth.currentUser?.phoneNumber || auth.currentUser?.email}
-                    </p>
+                    <p className="font-semibold text-slate-900">{auth.currentUser?.phoneNumber || auth.currentUser?.email}</p>
                   </DropdownItem>
-                  <DropdownItem
-                    key="my_profile"
-                    startContent={<FaUser className="text-primary opacity-70" />}
-                    onPress={() => router.push("/profile")}
-                    className="rounded-lg"
-                  >
-                    My Profile
-                  </DropdownItem>
-                  <DropdownItem
-                    key="bookings"
-                    startContent={<FaCalendarCheck className="text-primary opacity-70" />}
-                    onPress={() => router.push("/bookings")}
-                    className="rounded-lg"
-                  >
-                    My Bookings
-                  </DropdownItem>
-                  <DropdownItem
-                    key="logout"
-                    className="text-danger rounded-lg"
-                    color="danger"
-                    startContent={<FaSignOutAlt />}
-                    onPress={handleLogout}
-                  >
-                    Sign Out
-                  </DropdownItem>
+                  <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">My Profile</DropdownItem>
+                  <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">My Bookings</DropdownItem>
+                  <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>Sign Out</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             ) : (
-              <Button
-                color="primary"
-                onClick={() => router.push("/login")}
-                size="md"
-                className="rounded-full font-semibold shadow-xl shadow-primary/20 px-8"
-              >
-                Sign In
-              </Button>
+              <Button color="primary" onClick={() => router.push("/login")} size="md" className="rounded-full font-semibold shadow-xl shadow-primary/20 px-8">Sign In</Button>
             )}
           </div>
         </nav>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-8 md:pt-12 pb-16 md:pb-24 px-4 md:px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center text-center lg:text-left">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="z-10 will-change-transform flex flex-col items-center lg:items-start"
+      {/* ── Mobile Hero ─────────────────────────────────────────────── */}
+      <section className="md:hidden px-4 pt-5 pb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="space-y-4"
+        >
+          <Chip variant="flat" color="primary" className="px-3 py-1 text-xs font-medium bg-primary/10 text-primary border-none">
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Next Generation Healthcare
+            </span>
+          </Chip>
+          <h1 className="text-3xl font-extrabold text-slate-900 leading-[1.15] tracking-tight">
+            Expert Care,<br />
+            <span className="text-primary">Just a Tap Away.</span>
+          </h1>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Connect with top-tier specialists and manage your health journey with elegance.
+          </p>
+          <Button
+            size="md"
+            color="primary"
+            className="rounded-full px-6 font-bold shadow-xl shadow-primary/25 h-11 w-full"
+            onClick={() => {
+              const element = document.getElementById("specialities");
+              element?.scrollIntoView({ behavior: "smooth" });
+            }}
           >
-            <Chip
-              variant="flat"
-              color="primary"
-              className="mb-4 md:mb-6 px-4 py-1 text-xs md:text-sm font-medium bg-primary/10 text-primary border-none"
-            >
+            Find Specialists
+          </Button>
+        </motion.div>
+      </section>
+
+      {/* ── Desktop Hero Section ─────────────────────────────────────── */}
+      <section className="hidden md:block relative pt-12 pb-24 px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
+          <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="z-10 will-change-transform flex flex-col items-center lg:items-start">
+            <Chip variant="flat" color="primary" className="mb-6 px-4 py-1 text-sm font-medium bg-primary/10 text-primary border-none">
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 Next Generation Healthcare
               </span>
             </Chip>
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-6 md:mb-8">
-              Expert Care is <br className="hidden md:block" />
+            <h1 className="text-5xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
+              Expert Care is <br />
               <span className="text-primary">Just a Click Away.</span>
             </h1>
-            <p className="text-base md:text-lg text-slate-600 mb-8 md:mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
+            <p className="text-lg text-slate-600 mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
               Experience healthcare redefined. Connect with top-tier specialists instantly and manage your health journey with absolute elegance.
             </p>
-            <div className="flex gap-4 w-full md:w-auto justify-center lg:justify-start">
-              <Button
-                size="lg"
-                color="primary"
-                className="rounded-full px-6 md:px-8 font-bold shadow-2xl shadow-primary/25 h-12 md:h-14 text-base md:text-lg w-full md:w-auto"
-                onClick={() => {
-                  const element = document.getElementById('specialities');
-                  element?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Find Specialists
-              </Button>
-              {/* Commented out AI Assistant button
-              <Button
-                size="lg"
-                variant="bordered"
-                className="rounded-full px-8 border-2 font-bold h-14 text-lg"
-                onClick={() => setIsChatOpen(true)}
-              >
-                AI Assistant
-              </Button>
-              */}
-            </div>
+            <Button size="lg" color="primary" className="rounded-full px-8 font-bold shadow-2xl shadow-primary/25 h-14 text-lg" onClick={() => { const element = document.getElementById("specialities"); element?.scrollIntoView({ behavior: "smooth" }); }}>
+              Find Specialists
+            </Button>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative hidden lg:block will-change-transform"
-          >
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="relative will-change-transform">
             <div className="w-full aspect-square rounded-[48px] mesh-gradient opacity-20 absolute -rotate-6 top-0" />
             <div className="w-full aspect-square rounded-[48px] border-2 border-primary/10 relative z-10 p-8 glass-effect overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent" />
@@ -334,23 +332,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Specialities Section */}
-      <main id="specialities" className="flex-1 py-16 md:py-24 px-4 md:px-6 bg-white rounded-t-[48px] md:rounded-t-[64px] shadow-[0_-40px_100px_-20px_rgba(0,0,0,0.05)] border-t border-slate-100">
+      {/* ── Specialities Section ─────────────────────────────────────── */}
+      <main
+        id="specialities"
+        className="flex-1 px-4 md:px-6 bg-white rounded-t-[32px] md:rounded-t-[64px] shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.04)] border-t border-slate-100 pb-safe-nav md:pb-24 pt-6 md:pt-24"
+      >
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-16 gap-4 md:gap-6 text-center md:text-left">
-            <div className="space-y-3 md:space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Our Specialities</h2>
-              <p className="text-base md:text-lg text-slate-500 max-w-xl mx-auto md:mx-0">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-16 gap-3 md:gap-6">
+            <div className="space-y-1 md:space-y-4">
+              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 tracking-tight">Our Specialities</h2>
+              <p className="text-sm md:text-lg text-slate-500 max-w-xl">
                 Select from our curated network of medical excellence.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
             {loading ? (
               [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <div key={i} className="premium-card p-4 md:p-6 h-40 md:h-48 border-none ring-1 ring-slate-100 flex flex-col items-center gap-3 md:gap-4 justify-center">
-                  <Skeleton className="w-12 h-12 md:w-16 md:h-16 rounded-2xl" />
+                <div key={i} className="premium-card p-4 md:p-6 h-36 md:h-48 border-none ring-1 ring-slate-100 flex flex-col items-center gap-3 justify-center">
+                  <Skeleton className="w-11 h-11 md:w-16 md:h-16 rounded-2xl" />
                   <Skeleton className="w-20 md:w-24 h-4 rounded-lg" />
                   <Skeleton className="w-14 md:w-16 h-3 rounded-lg" />
                 </div>
@@ -359,27 +360,28 @@ export default function Home() {
               specialities.map((speciality, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.1 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                  className="premium-card p-4 md:p-6 flex flex-col items-center text-center gap-3 md:gap-4 cursor-pointer hover:border-primary/30"
+                  transition={{ duration: 0.4, delay: index * 0.04 }}
+                  className="premium-card p-3 md:p-6 flex flex-col items-center text-center gap-2 md:gap-4 cursor-pointer active:scale-95 transition-transform duration-150 hover:border-primary/30"
+                  style={{ borderRadius: "20px", WebkitTapHighlightColor: "transparent" }}
                   onClick={() => {
                     setNavigatingSpeciality(speciality.name);
                     router.push(`/doctors?speciality=${encodeURIComponent(speciality.name)}`);
                   }}
                 >
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <div className="w-11 h-11 md:w-16 md:h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary">
                     {navigatingSpeciality === speciality.name ? (
                       <Spinner size="sm" color="primary" />
                     ) : (
-                      <FaStethoscope className="text-xl md:text-2xl" />
+                      <FaStethoscope className="text-lg md:text-2xl" />
                     )}
                   </div>
-                  <h3 className="font-bold text-slate-800 break-words w-full text-sm md:text-base">
+                  <h3 className="font-bold text-slate-800 break-words w-full text-xs md:text-base leading-tight">
                     {speciality.name}
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium">Available Specialists</p>
+                  <p className="text-[10px] md:text-xs text-slate-500 font-medium">Available</p>
                 </motion.div>
               ))
             )}

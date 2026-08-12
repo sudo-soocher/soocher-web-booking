@@ -8,7 +8,7 @@ import { Link } from "@nextui-org/react";
 
 export const Footer = () => {
     return (
-        <footer className="bg-white border-t border-slate-50 py-8">
+        <footer className="hidden md:block bg-white border-t border-slate-50 py-8">
             <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
                     © 2026 Soocher Healthcare. All rights reserved.

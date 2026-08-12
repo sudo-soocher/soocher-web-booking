@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Chip, Tabs, Tab, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } from "@nextui-org/react";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
 import {
   FaVideo,
   FaStethoscope,
@@ -63,7 +63,8 @@ export default function Bookings() {
     const q = query(
       consultationsRef,
       where("participants", "array-contains", auth.currentUser.uid),
-      orderBy("consultationTime", "desc")
+      orderBy("consultationTime", "desc"),
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(
@@ -151,17 +152,18 @@ export default function Bookings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        <header className="px-4 md:px-6 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+      <div className="min-h-[100dvh] bg-[#F8FAFC]">
+        <header className="hidden md:block px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
               <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
             </div>
           </div>
         </header>
+        <div className="md:hidden h-14 bg-white/85 border-b border-slate-100/60 animate-pulse" />
 
-        <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-12 space-y-6 pb-safe-nav md:pb-0">
           <div className="w-48 h-8 bg-slate-200 rounded-lg animate-pulse mb-8" />
           {[1, 2, 3].map((i) => (
             <div key={i} className="premium-card h-40 animate-pulse bg-slate-100 border-none" />
@@ -172,36 +174,49 @@ export default function Bookings() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col transition-all duration-300">
+    <div className="min-h-[100dvh] bg-[#F8FAFC] flex flex-col transition-all duration-300">
       {/* Main Content Area */}
       <div className={`flex-1 transition-all duration-300 ${isChatOpen ? 'md:mr-[450px]' : ''}`}>
-        {/* Navbar */}
-        <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
-          <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+
+        {/* ── Mobile Top Bar ───────────────────────────────────────── */}
+        <header
+          className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="flex items-center justify-between px-4 h-14">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push("/")}
+                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform mr-1"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                <FaArrowLeft className="text-slate-600 text-sm" />
+              </button>
+              <span className="text-lg font-bold text-slate-900 tracking-tight">My Bookings</span>
+            </div>
+            <Logo size="sm" className="rounded-xl" />
+          </div>
+        </header>
+
+        {/* ── Desktop Navbar ───────────────────────────────────────── */}
+        <header className="hidden md:block sticky top-0 z-40 w-full px-6 py-4">
+          <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
               <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
             </div>
-            <Button
-              variant="flat"
-              size="sm"
-              className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-              startContent={<FaArrowLeft className="text-xs" />}
-              onPress={() => router.push("/")}
-            >
-              Back
-            </Button>
+            <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>Back</Button>
           </nav>
         </header>
 
-        <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-12 pb-safe-nav md:pb-24">
           <div className="space-y-8 md:space-y-12">
-            {/* Page Heading */}
-            <div className="space-y-2">
-              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
+            {/* Page Heading - desktop only (mobile has it in top bar) */}
+            <div className="hidden md:block space-y-2">
+              <h1 className="text-5xl font-black text-slate-900 tracking-tight">
                 My <span className="text-primary italic">Consultations</span>
               </h1>
-              <p className="text-sm md:text-base text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
+              <p className="text-base text-slate-500 font-medium">Keep track of your health journey and upcoming appointments.</p>
             </div>
 
             <div className="space-y-6 md:space-y-8">

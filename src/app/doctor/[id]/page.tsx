@@ -265,7 +265,9 @@ export default function DoctorDetails() {
   const fetchAvailableCoupons = useCallback(async () => {
     try {
       const couponsRef = collection(db, "coupons");
-      const querySnapshot = await getDocs(couponsRef);
+      // Filter visible coupons server-side to reduce reads
+      const couponsQuery = query(couponsRef, where("tray_visibility", "==", true));
+      const querySnapshot = await getDocs(couponsQuery);
 
       const coupons: Coupon[] = [];
       const doctorId = params.id as string;
@@ -313,31 +315,10 @@ export default function DoctorDetails() {
     }
   }, [params.id]);
 
-  // Function to check if a slot is booked
-  const isSlotBooked = useCallback(async (timestamp: number) => {
-    try {
-      // Query consultations collection for this doctor and time slot
-      const consultationsRef = collection(db, "Consultations");
-      const q = query(
-        consultationsRef,
-        where("participants", "array-contains", params.id),
-        where("consultationTime", "==", timestamp),
-        where("cancelledByDoctor", "==", false)
-      );
-
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty; // Return true if there are any bookings
-    } catch (error) {
-      console.error("Error checking slot availability:", error);
-      return true; // Return true (booked) on error to prevent double booking
-    }
-  }, [params.id]);
-
-  // Function to filter and sort available slots
+  // Function to filter and sort available slots — one batch query instead of N per-slot queries
   const getFilteredSlots = useCallback(async (slots: DaySlots["availableSlots"]) => {
     let slotsToProcess = slots || [];
 
-    // Fallback if slots are empty but doctor has schedule
     if (slotsToProcess.length === 0 && doctor?.timeSlots) {
       slotsToProcess = generateDynamicSlots(selectedDay);
     }
@@ -347,7 +328,6 @@ export default function DoctorDetails() {
     const now = new Date();
     const currentTime = now.getTime();
 
-    // Map slots to include calculated timestamps if missing
     const slotsWithTimestamps = slotsToProcess.map((slot) => ({
       ...slot,
       calculatedTimestamp:
@@ -356,50 +336,58 @@ export default function DoctorDetails() {
           : calculateSlotTimestamp(selectedDay, slot.time),
     }));
 
-    // Filter and check bookings for each slot
-    const availableSlots = await Promise.all(
-      slotsWithTimestamps
-        .filter((slot) => {
-          // Skip slots already marked as booked in the DB
-          if (slot.isBooked === true) return false;
+    // Pre-filter: skip already-marked-booked and past slots
+    const candidateSlots = slotsWithTimestamps.filter((slot) => {
+      if (slot.isBooked === true) return false;
+      if (selectedDay === getCurrentDay()) {
+        return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
+      }
+      return true;
+    });
 
-          // For today, only show future slots (with 10 minute buffer)
-          if (selectedDay === getCurrentDay()) {
-            return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
+    if (candidateSlots.length === 0) return [];
+
+    // One batch query for all candidate slot timestamps (chunked at 10 — Firestore "in" limit)
+    const timestamps = candidateSlots.map((s) => s.calculatedTimestamp);
+    const bookedSet = new Set<number>();
+    try {
+      const consultationsRef = collection(db, "Consultations");
+      const chunkSize = 10;
+      for (let i = 0; i < timestamps.length; i += chunkSize) {
+        const chunk = timestamps.slice(i, i + chunkSize);
+        const q = query(
+          consultationsRef,
+          where("participants", "array-contains", params.id),
+          where("consultationTime", "in", chunk)
+        );
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => {
+          if (!d.data().cancelledByDoctor) {
+            bookedSet.add(d.data().consultationTime as number);
           }
-          return true;
-        })
-        .map(async (slot) => {
-          const isBooked = await isSlotBooked(slot.calculatedTimestamp);
-          return { ...slot, isBooked };
-        })
-    );
+        });
+      }
+    } catch (error) {
+      console.error("Error checking slot availability:", error);
+    }
 
-    // Return only available slots sorted by time
-    return availableSlots
-      .filter((slot) => !slot.isBooked)
+    return candidateSlots
+      .filter((slot) => !bookedSet.has(slot.calculatedTimestamp))
       .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
-  }, [selectedDay, doctor, isSlotBooked, generateDynamicSlots]);
+  }, [selectedDay, doctor, params.id, generateDynamicSlots]);
 
   useEffect(() => {
     const fetchDoctorAndSlots = async () => {
       try {
-        // Fetch doctor details
-        const docRef = doc(db, "Users", params.id as string);
-        const docSnap = await getDoc(docRef);
+        // Fetch doctor details and slots in parallel
+        const [docSnap, slotsSnap] = await Promise.all([
+          getDoc(doc(db, "Users", params.id as string)),
+          getDocs(collection(db, "Users", params.id as string, "Available Slots")),
+        ]);
 
         if (docSnap.exists()) {
           setDoctor(docSnap.data() as Doctor);
         }
-
-        // Fetch available slots
-        const slotsRef = collection(
-          db,
-          "Users",
-          params.id as string,
-          "Available Slots"
-        );
-        const slotsSnap = await getDocs(slotsRef);
 
         const slotsData: AvailableSlots = {};
         slotsSnap.forEach((doc) => {
@@ -407,8 +395,8 @@ export default function DoctorDetails() {
         });
 
         setSlots(slotsData);
-        await fetchAvailableCoupons();
-        await fetchConsultationCount();
+        // Fetch coupons and consultation count in parallel
+        await Promise.all([fetchAvailableCoupons(), fetchConsultationCount()]);
 
         // Set current day as selected if available, otherwise set first available day
         const currentDay = getCurrentDay();
@@ -456,14 +444,7 @@ export default function DoctorDetails() {
     }
   }, [selectedDay, slots, getFilteredSlots]);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchAvailableCoupons();
-      }
-    });
-    return () => unsubscribe();
-  }, [fetchAvailableCoupons]);
+  // Removed duplicate auth-state coupon fetch — coupons are already fetched in fetchDoctorAndSlots
 
   /* Commented out unused sortSlots
   const sortSlots = (slots: { bookingDate: number; time: string }[]) => {
@@ -606,65 +587,43 @@ export default function DoctorDetails() {
           return;
         }
 
-        // 2. Create a Google Meet link for the consultation
-        setBookingStatus("Scheduling your Google Meet session...");
-        let meetLink: string | null = null;
-        try {
-          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 2: calling /api/schedule-meet (external meet-scheduler.soocher.in)`);
-          const meetResponse = await fetch("/api/schedule-meet", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              consultationId,
-              consultationTime,
-              doctorName: doctor!.name,
-              patientName: userData.name,
-              patientEmail: userData.email || auth.currentUser?.email || "",
-              patientPhone: userData.phoneNumber || "",
-              doctorPhone: doctor!.whatsappNumber || "",
-              specialization: doctor!.specialization || "",
-              timezone: userTimezone,
-              doctorTimezone: doctor!.timezone || "Asia/Kolkata",
-            }),
-          });
-          if (meetResponse.ok) {
+        // 2 + 4 run in parallel: schedule Meet AND save Stream call ID simultaneously
+        setBookingStatus("Scheduling your session...");
+        const streamCallId = `consultation_${consultationId}`;
+        const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
+
+        const [meetResult] = await Promise.allSettled([
+          // Step 2+3: fetch Meet link then write it
+          (async () => {
+            const meetResponse = await fetch("/api/schedule-meet", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                consultationId,
+                consultationTime,
+                doctorName: doctor!.name,
+                patientName: userData.name,
+                patientEmail: userData.email || auth.currentUser?.email || "",
+                patientPhone: userData.phoneNumber || "",
+                doctorPhone: doctor!.whatsappNumber || "",
+                specialization: doctor!.specialization || "",
+                timezone: userTimezone,
+                doctorTimezone: doctor!.timezone || "Asia/Kolkata",
+              }),
+            });
+            if (!meetResponse.ok) return null;
             const meetData = await meetResponse.json();
-            meetLink = meetData.meetLink || null;
-
-            // 3. Update the Firestore consultation doc with the Meet link
+            const meetLink: string | null = meetData.meetLink || null;
             if (meetLink) {
-              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: meet link received, updating Consultations.${consultationId}.extras.meetLink (this triggers a Consultations.onUpdate Cloud Function if one exists)`);
-              const { updateDoc, doc: firestoreDoc } = await import(
-                "firebase/firestore"
-              );
-              await updateDoc(
-                firestoreDoc(db, "Consultations", consultationId),
-                { "extras.meetLink": meetLink }
-              );
-              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: meetLink update COMPLETE`);
-            } else {
-              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: skipped — no meetLink returned`);
+              await updateDoc(firestoreDoc(db, "Consultations", consultationId), { "extras.meetLink": meetLink });
             }
-          }
-        } catch (meetError) {
-          console.error(
-            "Meet link creation failed (non-fatal):",
-            meetError
-          );
-        }
-
-        // 4. Save Stream.io video call ID to Firestore
-        try {
-          const streamCallId = `consultation_${consultationId}`;
-          const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
-          await updateDoc(
-            firestoreDoc(db, "Consultations", consultationId),
-            { "extras.streamCallId": streamCallId }
-          );
-          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 4: streamCallId saved — ${streamCallId}`);
-        } catch (streamError) {
-          console.error("Stream call ID save failed (non-fatal):", streamError);
-        }
+            return meetLink;
+          })(),
+          // Step 4: save Stream call ID (independent of Meet)
+          updateDoc(firestoreDoc(db, "Consultations", consultationId), { "extras.streamCallId": streamCallId })
+            .catch((e) => console.error("Stream call ID save failed (non-fatal):", e)),
+        ]);
+        console.log(`>>> [BOOKING DEBUG] ${ts()} STEPS 2+4 COMPLETE`, { meetResult: meetResult.status });
 
         console.log(`>>> [BOOKING DEBUG] ${ts()} END — no further outbound calls from this app. Any WhatsApp arriving NOW is from a backend listener.`);
 
@@ -814,27 +773,40 @@ export default function DoctorDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar Container */}
-      <header className="w-full px-4 md:px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+    <div className="min-h-[100dvh] bg-[#F8FAFC]">
+
+      {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
+      <header
+        className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+            >
+              <FaArrowLeft className="text-slate-600 text-sm" />
+            </button>
+            <span className="text-lg font-bold text-slate-900 tracking-tight">Doctor Profile</span>
+          </div>
+          <Logo size="sm" className="rounded-xl" />
+        </div>
+      </header>
+
+      {/* ── Desktop Navbar ─────────────────────────────────────────── */}
+      <header className="hidden md:block w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
-          <Button
-            variant="flat"
-            size="sm"
-            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-            startContent={<FaArrowLeft className="text-xs" />}
-            onPress={() => router.back()}
-          >
-            Back
-          </Button>
+          <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>Back</Button>
         </nav>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-24">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8 pb-safe-nav md:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Main Info Column */}
           <div className="lg:col-span-2 space-y-8">

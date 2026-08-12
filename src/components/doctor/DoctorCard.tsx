@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Image, Spinner } from "@nextui-org/react";
 import { FaStar, FaMapMarkerAlt, FaUserMd } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -12,7 +13,7 @@ interface DoctorCardProps {
 
 import { useState } from "react";
 
-export const DoctorCard = ({ doctor }: DoctorCardProps) => {
+const DoctorCardInner = ({ doctor }: DoctorCardProps) => {
     const router = useRouter();
     const [isNavigating, setIsNavigating] = useState(false);
 
@@ -95,3 +96,5 @@ export const DoctorCard = ({ doctor }: DoctorCardProps) => {
         </motion.div>
     );
 };
+
+export const DoctorCard = React.memo(DoctorCardInner);

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Select, SelectItem, Skeleton, Divider } from "@nextui-org/react";
@@ -15,7 +15,6 @@ import {
     getDocs,
     doc,
     getDoc,
-    getCountFromServer,
 } from "firebase/firestore";
 import {
     FaArrowLeft,
@@ -34,14 +33,16 @@ function DoctorsListContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [doctors, setDoctors] = useState<Doctor[]>([]);
-    const [recommendedDoctors, setRecommendedDoctors] = useState<Doctor[]>([]);
     const [specialities, setSpecialities] = useState<string[]>([]);
+    // Derived — no separate state needed
+    const recommendedDoctors = useMemo(
+        () => [...doctors].sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3),
+        [doctors]
+    );
     const [selectedSpeciality, setSelectedSpeciality] = useState(
         searchParams.get("speciality") || "Physical Medicine and Rehabilitation"
     );
     const [loading, setLoading] = useState(true);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [scoring, setScoring] = useState(false);
 
     // Fetch Specialities
     useEffect(() => {
@@ -63,7 +64,6 @@ function DoctorsListContent() {
 
     const fetchDoctorsWithScores = useCallback(async (speciality: string) => {
         setLoading(true);
-        setScoring(true);
         try {
             const doctorsRef = collection(db, "Users");
             const q = query(
@@ -78,51 +78,20 @@ function DoctorsListContent() {
                 doctorsList.push({ id: doc.id, ...doc.data() });
             });
 
-            // Calculate scores for each doctor
-            const scoredDoctors = await Promise.all(
-                doctorsList.map(async (doctor) => {
-                    const doctorUid = doctor.uid || doctor.id;
+            // Score using fields already on the doctor document — no extra Firestore queries
+            const scoredDoctors = doctorsList.map((doctor) => {
+                const consultCount = (doctor.numOnline || 0) + (doctor.numOffline || 0);
+                const averageRating = doctor.averageRating || 0;
+                const score = consultCount * 3 + averageRating * 2;
+                return { ...doctor, consultCount, score };
+            });
 
-                    // 1. Post Count from feeds
-                    const feedsRef = collection(db, "feeds");
-                    const postsQuery = query(feedsRef, where("posterId", "==", doctorUid));
-                    const postCountSnapshot = await getCountFromServer(postsQuery);
-                    const postCount = postCountSnapshot.data().count;
-
-                    // 2. Consultation Count
-                    const consultationsRef = collection(db, "Consultations");
-                    const consultsQuery = query(
-                        consultationsRef,
-                        where("participants", "array-contains", doctorUid)
-                    );
-                    const consultCountSnapshot = await getCountFromServer(consultsQuery);
-                    const consultCount = consultCountSnapshot.data().count;
-
-                    const averageRating = doctor.averageRating || 0;
-
-                    // score = (postCount × 1) + (consultCount × 3) + (averageRating × 2)
-                    const score = (postCount * 1) + (consultCount * 3) + (averageRating * 2);
-
-                    return {
-                        ...doctor,
-                        postCount,
-                        consultCount,
-                        score
-                    };
-                })
-            );
-
-            // Sort by score descending for recommended
-            const sortedByScore = [...scoredDoctors].sort((a, b) => b.score - a.score);
-            setRecommendedDoctors(sortedByScore.slice(0, 3));
-
-            // All doctors list
+            // recommendedDoctors is derived via useMemo — just set doctors
             setDoctors(scoredDoctors);
         } catch (error) {
             console.error("Error fetching doctors with scores:", error);
         } finally {
             setLoading(false);
-            setScoring(false);
         }
     }, []);
 
@@ -138,61 +107,85 @@ function DoctorsListContent() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
-            {/* Navbar */}
-            <header className="sticky top-0 z-50 w-full px-4 md:px-6 py-4">
-                <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+        <div className="min-h-[100dvh] bg-[#F8FAFC] flex flex-col">
+
+            {/* ── Mobile Top Bar ─────────────────────────────────────── */}
+            <header
+                className="md:hidden sticky top-0 z-50 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+                style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            >
+                <div className="flex items-center justify-between px-4 h-14">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => router.push("/")}
+                            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform mr-1"
+                            style={{ WebkitTapHighlightColor: "transparent" }}
+                        >
+                            <FaArrowLeft className="text-slate-600 text-sm" />
+                        </button>
+                        <span className="text-lg font-bold text-slate-900 tracking-tight">Find Specialists</span>
+                    </div>
+                    <Logo size="sm" className="rounded-xl" />
+                </div>
+                {/* Mobile filter strip */}
+                <div className="px-4 pb-3">
+                    <Select
+                        aria-label="Filter by Speciality"
+                        placeholder="Filter by speciality"
+                        selectedKeys={specialities.includes(selectedSpeciality) ? [selectedSpeciality] : []}
+                        size="sm"
+                        variant="bordered"
+                        radius="lg"
+                        classNames={{
+                            trigger: "bg-white border-slate-200 h-10",
+                            value: "font-semibold text-slate-700 text-sm",
+                        }}
+                        onSelectionChange={(keys: any) => {
+                            const selected = Array.from(keys)[0] as string;
+                            if (selected) handleSpecialityChange(selected);
+                        }}
+                    >
+                        {specialities.map((name) => (
+                            <SelectItem key={name} value={name} className="font-bold text-slate-600">{name}</SelectItem>
+                        ))}
+                    </Select>
+                </div>
+            </header>
+
+            {/* ── Desktop Navbar ─────────────────────────────────────── */}
+            <header className="hidden md:block sticky top-0 z-50 w-full px-6 py-4">
+                <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
                         <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
                         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
                     </div>
-                    <Button
-                        variant="flat"
-                        size="sm"
-                        className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-                        startContent={<FaArrowLeft className="text-xs" />}
-                        onPress={() => router.push("/")}
-                    >
-                        Back
-                    </Button>
+                    <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>Back</Button>
                 </nav>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-12 flex-grow">
-                {/* Header Section and Filter */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <main className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-12 space-y-6 md:space-y-12 flex-grow pb-safe-nav md:pb-0">
+                {/* Header Section and Filter - Desktop only */}
+                <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <section className="space-y-4">
-                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                        <h1 className="text-5xl font-black text-slate-900 tracking-tight">
                             Find Your <span className="text-primary italic">Perfect Specialist.</span>
                         </h1>
                         <p className="text-slate-500 font-medium text-lg max-w-2xl">
                             Ranked by clinical expertise, patient feedback, and active health contributions.
                         </p>
                     </section>
-
-                    {/* Filter Dropdown */}
-                    <div className="w-full md:w-80">
+                    <div className="w-80">
                         <Select
                             label="Filter by Speciality"
                             placeholder="Select a speciality"
-                            selectedKeys={[selectedSpeciality]}
-                            className="max-w-xs"
+                            selectedKeys={specialities.includes(selectedSpeciality) ? [selectedSpeciality] : []}
                             variant="bordered"
-                            radius="lg" // Retained as per original, assuming "fix" means it's correct or no change needed here.
-                            classNames={{
-                                trigger: "bg-white border-slate-100 hover:border-primary/50 h-14",
-                                label: "font-black text-slate-400 uppercase tracking-widest text-[10px]",
-                                value: "font-bold text-slate-700"
-                            }}
-                            onSelectionChange={(keys: any) => {
-                                const selected = Array.from(keys)[0] as string;
-                                if (selected) handleSpecialityChange(selected);
-                            }}
+                            radius="lg"
+                            classNames={{ trigger: "bg-white border-slate-100 hover:border-primary/50 h-14", label: "font-black text-slate-400 uppercase tracking-widest text-[10px]", value: "font-bold text-slate-700" }}
+                            onSelectionChange={(keys: any) => { const selected = Array.from(keys)[0] as string; if (selected) handleSpecialityChange(selected); }}
                         >
                             {specialities.map((name) => (
-                                <SelectItem key={name} value={name} className="font-bold text-slate-600">
-                                    {name}
-                                </SelectItem>
+                                <SelectItem key={name} value={name} className="font-bold text-slate-600">{name}</SelectItem>
                             ))}
                         </Select>
                     </div>

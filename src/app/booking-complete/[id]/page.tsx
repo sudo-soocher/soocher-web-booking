@@ -91,21 +91,42 @@ export default function BookingComplete() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col transition-all duration-300">
+    <div className="min-h-[100dvh] bg-[#F8FAFC] flex flex-col transition-all duration-300">
       {/* Main Content Area */}
       <div className={`flex-1 transition-all duration-300 ${isChatOpen ? 'md:mr-[450px]' : ''}`}>
-        {/* Navbar */}
-        <header className="px-4 md:px-6 py-4">
-          <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+
+        {/* ── Mobile Top Bar ─────────────────────────────────────── */}
+        <header
+          className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="flex items-center justify-between px-4 h-14">
+            <div className="flex items-center gap-2">
+              <Logo size="sm" className="rounded-xl" />
+              <span className="text-lg font-bold text-slate-900 tracking-tight">Booking Confirmed</span>
+            </div>
+            <button
+              onClick={() => router.push("/")}
+              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform text-xs font-bold text-slate-500"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+            >
+              ✕
+            </button>
+          </div>
+        </header>
+
+        {/* ── Desktop Navbar ─────────────────────────────────────── */}
+        <header className="hidden md:block px-6 py-4">
+          <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
               <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
             </div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic hidden sm:block">Confidential Ticket</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Confidential Ticket</p>
           </nav>
         </header>
 
-        <main className="max-w-2xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-24">
+        <main className="max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-12 pb-safe-nav md:pb-24">
           <div className="space-y-8 md:space-y-12">
             {/* Success Message */}
             <motion.div

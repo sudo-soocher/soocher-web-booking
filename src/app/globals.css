@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── iOS Native App Feel ─────────────────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Safe area utilities */
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Mobile bottom nav clearance */
+  .pb-safe-nav {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Frosted glass for bottom nav */
+  .bg-primary\/12 {
+    background-color: rgb(46 109 212 / 0.12);
+  }
+}
+
+/* Smooth momentum scrolling on iOS */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ── Stream.io video call — Soocher brand overrides ─────────────── */
 .soocher-call {
   --str-video__brand-color1: #2e6dd4;
