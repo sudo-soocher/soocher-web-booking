@@ -3,10 +3,10 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Spinner } from "@heroui/react";
 import { FaArrowLeft } from "react-icons/fa";
 import { useAuth } from "@/doctor/lib/auth";
 import { EditModeProvider } from "@/doctor/lib/edit-mode";
+import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 
 import AboutStep from "@/doctor/components/onboarding/steps/AboutStep";
 import AchievementsStep from "@/doctor/components/onboarding/steps/AchievementsStep";
@@ -54,11 +54,7 @@ export default function ProfileEditSectionPage() {
   }, [StepComponent, loading, router]);
 
   if (loading || status !== "verified" || !StepComponent) {
-    return (
-      <div className="grid min-h-[40vh] place-items-center">
-        <Spinner color="primary" />
-      </div>
-    );
+    return <DoctorPageShimmer compact />;
   }
 
   return (

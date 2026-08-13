@@ -7,10 +7,10 @@ import {
   FaArrowLeft,
   FaPrint,
   FaWhatsapp,
-  FaSpinner,
 } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/doctor/components/ui/Button";
+import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import { fetchConsultationById, type FirestoreConsultation } from "@/doctor/services/consultations";
 import { useAuth } from "@/doctor/lib/auth";
 import type { Prescription, Medicine } from "@/doctor/types/consultation";
@@ -76,11 +76,7 @@ export default function PrescriptionPreviewPage() {
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto flex max-w-2xl items-center justify-center py-20">
-        <FaSpinner className="animate-spin text-2xl text-primary" />
-      </div>
-    );
+    return <DoctorPageShimmer compact />;
   }
 
   if (!prescription) {

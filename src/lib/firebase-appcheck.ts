@@ -12,28 +12,24 @@ import { firebaseApp } from "./firebase-app";
  * The reCAPTCHA SDK is still behind a dynamic `import()`, so it stays out of the
  * initial bundle — only the *start* is eager, not the download.
  *
+ * Local development deliberately skips App Check. A generated debug token must
+ * be registered in Firebase before it can be exchanged; enabling it implicitly
+ * on every localhost session produced a 403 on every Auth request. Production
+ * still initializes eagerly whenever the public site key is configured.
+ *
  * `appCheckReady` is the gate: any code that triggers phone auth should await it
  * first. It resolves rather than rejects on failure, so a broken App Check
  * config degrades to "no token" instead of hanging the sign-in flow.
  */
 export const appCheckReady: Promise<void> =
   typeof window !== "undefined" &&
-  process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY
+  process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY &&
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1"
     ? (async () => {
         const { initializeAppCheck, ReCaptchaV3Provider } = await import(
           "firebase/app-check"
         );
-
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          (
-            window as typeof window & {
-              FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean;
-            }
-          ).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        }
 
         initializeAppCheck(firebaseApp, {
           provider: new ReCaptchaV3Provider(

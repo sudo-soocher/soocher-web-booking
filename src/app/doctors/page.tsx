@@ -240,7 +240,7 @@ function DoctorsListContent() {
                         </div>
                         <div>
                             <h2 className="text-base md:text-2xl font-black text-slate-900 tracking-tight">{t("doctors.allSpecialists")}</h2>
-                            <p className="max-w-[260px] truncate text-[9px] md:max-w-none md:text-xs font-bold text-slate-400 uppercase tracking-wider md:tracking-widest">{t("doctors.verifiedIn", { speciality: selectedSpeciality })}</p>
+                            <p className="line-clamp-2 max-w-[260px] break-words text-[9px] font-bold leading-4 text-slate-400 md:max-w-none md:text-xs md:uppercase md:tracking-widest">{t("doctors.verifiedIn", { speciality: selectedSpeciality })}</p>
                         </div>
                     </div>
 

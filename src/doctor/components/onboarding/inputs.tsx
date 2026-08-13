@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { FaCamera, FaFilePdf, FaPlus, FaTrashAlt, FaUpload } from "react-icons/fa";
-import { Spinner } from "@heroui/react";
+import { ShimmerBlock } from "@/doctor/components/ui/DoctorShimmer";
 
 interface UploaderProps {
   value?: string;
@@ -31,30 +31,31 @@ export function ImageUploader({ value, onChange, upload, disabled }: UploaderPro
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
       <button
         type="button"
+        aria-label={value ? "Change profile photo" : "Upload profile photo"}
         disabled={disabled || busy}
         onClick={() => inputRef.current?.click()}
-        className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 transition hover:border-primary hover:bg-primary-50 hover:text-primary disabled:cursor-not-allowed"
+        className="relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-dashed border-primary-200 bg-primary-50 text-primary transition hover:border-primary hover:bg-primary-100 disabled:cursor-not-allowed sm:h-24 sm:w-24"
       >
         {value ? (
           <Image src={value} alt="Profile" fill className="object-cover" sizes="96px" />
         ) : busy ? (
-          <Spinner size="sm" />
+          <ShimmerBlock className="h-full w-full rounded-full" />
         ) : (
           <FaCamera className="text-xl" />
         )}
       </button>
-      <div className="flex flex-col gap-1 text-sm">
+      <div className="flex min-w-0 flex-col items-start gap-1 text-sm">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-fit rounded-full bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary"
+          className="w-fit rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-primary/20 transition hover:bg-primary-600"
         >
           {value ? "Change photo" : "Upload photo"}
         </button>
-        <span className="text-xs text-slate-500">PNG or JPG, max ~5 MB.</span>
+        <span className="text-[11px] leading-4 text-slate-500 sm:text-xs">PNG or JPG, up to 5 MB.</span>
         {error && <span className="text-xs font-bold text-rose-600">{error}</span>}
       </div>
       <input
@@ -94,15 +95,27 @@ export function FileUploader({ value, onChange, upload, disabled }: UploaderProp
         onClick={() => inputRef.current?.click()}
         className="flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 text-left text-sm text-slate-600 transition hover:border-primary hover:bg-primary-50 hover:text-primary disabled:cursor-not-allowed"
       >
-        <span className="flex items-center gap-3">
-          {value ? <FaFilePdf className="text-primary" /> : <FaUpload />}
-          <span className="font-semibold">
-            {busy ? "Uploading…" : value ? "Document uploaded" : "Upload PDF or JPG"}
+        {busy ? (
+          <span className="flex w-full items-center gap-3">
+            <ShimmerBlock className="h-8 w-8 shrink-0 rounded-xl" />
+            <span className="flex-1 space-y-2">
+              <ShimmerBlock className="h-3 w-2/3 rounded-full" />
+              <ShimmerBlock className="h-2.5 w-1/3 rounded-full" />
+            </span>
           </span>
-        </span>
-        <span className="text-xs font-bold text-primary">
-          {value ? "Replace" : "Browse"}
-        </span>
+        ) : (
+          <>
+            <span className="flex items-center gap-3">
+              {value ? <FaFilePdf className="text-primary" /> : <FaUpload />}
+              <span className="font-semibold">
+                {value ? "Document uploaded" : "Upload PDF or JPG"}
+              </span>
+            </span>
+            <span className="text-xs font-bold text-primary">
+              {value ? "Replace" : "Browse"}
+            </span>
+          </>
+        )}
       </button>
       {error && <p className="mt-2 text-xs font-bold text-rose-600">{error}</p>}
       <input

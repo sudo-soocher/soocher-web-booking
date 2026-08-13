@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { Avatar, Chip, Divider, Spinner } from "@heroui/react";
+import { Avatar, Chip, Divider } from "@heroui/react";
 import {
   FaArrowLeft,
   FaVideo,
@@ -20,6 +20,7 @@ import {
 } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/doctor/components/ui/Button";
+import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import {
   fetchConsultationById,
   epochToTime,
@@ -67,14 +68,7 @@ export default function AppointmentDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-2xl">
-        <div className="premium-card grid place-items-center gap-3 p-16">
-          <Spinner color="primary" size="lg" />
-          <p className="text-sm text-slate-400">Loading appointment…</p>
-        </div>
-      </div>
-    );
+    return <DoctorPageShimmer compact />;
   }
 
   if (notFound || !consultation) {

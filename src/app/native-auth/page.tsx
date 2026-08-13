@@ -9,8 +9,10 @@ import { db } from "@/lib/firebase-db";
 import {
   markNativeSession,
   readNativeSession,
+  readNativeDestination,
   clearNativeSession,
 } from "@/lib/native-session";
+import { destinationPath, resolveDestination } from "@/lib/post-login-route";
 import { HomeShimmer } from "@/components/loading/HomeShimmer";
 
 /**
@@ -83,13 +85,36 @@ export default function NativeAuthPage() {
       });
     };
 
-    const goHome = (uid: string, path: string) => {
-      markNativeSession(uid);
+    /**
+     * Send the user to the screen their account type belongs to.
+     *
+     * The Flutter app performs the OTP and hands us a session, but it does not
+     * know whether that account is a patient or a doctor — this is the first
+     * point that can. A doctor must never land on the patient home screen:
+     *   - doctor, onboarding finished  → /doc/dashboard
+     *   - doctor, onboarding unfinished → /doc/onboarding
+     *   - patient                       → /
+     */
+    const goToAccountHome = async (uid: string, path: string) => {
       saveFcmToken(uid);
+
+      let target = "/";
+      try {
+        // destinationPath() returns null for a patient with an incomplete
+        // profile; the patient home handles that case already, so "/" stands.
+        target = destinationPath(await resolveDestination(uid)) ?? "/";
+      } catch (err) {
+        console.error("[native-auth] could not resolve account type:", err);
+      }
+
+      markNativeSession(uid, target);
+      if (cancelled) return;
       console.info(
-        `[native-auth] ready via ${path} in ${Math.round(performance.now() - startedAt)}ms`
+        `[native-auth] ready via ${path} → ${target} in ${Math.round(
+          performance.now() - startedAt
+        )}ms`
       );
-      router.replace("/");
+      router.replace(target);
     };
 
     // ── Fast path: already authenticated on a previous launch ──────────────
@@ -99,12 +124,15 @@ export default function NativeAuthPage() {
     const ctUid = ct ? uidFromCustomToken(ct) : null;
 
     if (knownUid && (!ctUid || ctUid === knownUid)) {
+      // Cached from the last launch. Without it a returning doctor would flash
+      // the patient home screen before any role lookup could finish.
+      const cachedTarget = readNativeDestination() ?? "/";
       console.info(
-        `[native-auth] ready via already-authenticated in ${Math.round(
+        `[native-auth] ready via already-authenticated → ${cachedTarget} in ${Math.round(
           performance.now() - startedAt
         )}ms`
       );
-      router.replace("/");
+      router.replace(cachedTarget);
 
       // Everything below happens after the user is already on the home screen,
       // and is deliberately detached from React so it survives this unmount.
@@ -112,6 +140,13 @@ export default function NativeAuthPage() {
         // Normal case: Firebase restored the session we expected.
         if (user) {
           saveFcmToken(user.uid);
+          // Refresh the cached destination so a doctor who has since finished
+          // onboarding lands on the dashboard next launch. The in-app guards
+          // already correct a stale value on arrival, so this only affects the
+          // first frame of the *next* start.
+          void resolveDestination(user.uid)
+            .then((d) => markNativeSession(user.uid, destinationPath(d) ?? "/"))
+            .catch(() => {});
           return;
         }
         // The marker outlived the real session (revoked token, cleared
@@ -121,7 +156,7 @@ export default function NativeAuthPage() {
           return;
         }
         signInWithCustomToken(auth, ct)
-          .then((result) => saveFcmToken(result.user.uid))
+          .then((result) => void goToAccountHome(result.user.uid, "self-heal"))
           .catch(() => {
             // Token is unusable too — drop the marker so the next launch runs
             // the full flow instead of looping straight to a signed-out home.
@@ -139,7 +174,7 @@ export default function NativeAuthPage() {
       // Firebase had a session we simply had no marker for (e.g. first launch
       // after this build shipped). Still no reason to re-authenticate.
       if (existing && (!ctUid || ctUid === existing.uid)) {
-        goHome(existing.uid, "restored");
+        void goToAccountHome(existing.uid, "restored");
         return;
       }
 
@@ -151,7 +186,7 @@ export default function NativeAuthPage() {
       try {
         const result = await signInWithCustomToken(auth, ct);
         if (cancelled) return;
-        goHome(result.user.uid, "custom-token");
+        void goToAccountHome(result.user.uid, "custom-token");
       } catch (err) {
         if (cancelled) return;
         clearNativeSession();

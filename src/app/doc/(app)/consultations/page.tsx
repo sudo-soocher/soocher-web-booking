@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Spinner } from "@heroui/react";
 import {
   FaCalendarCheck,
   FaCommentDots,
@@ -15,6 +14,7 @@ import {
 } from "react-icons/fa";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
+import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import { useAuth } from "@/doctor/lib/auth";
 import {
   fetchDoctorConsultations,
@@ -342,10 +342,8 @@ export default function ConsultationsPage() {
       <div className="mt-4">
         <AnimatePresence mode="wait">
           {loading ? (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="premium-card grid place-items-center gap-3 p-14">
-              <Spinner color="primary" size="lg" />
-              <p className="text-sm text-slate-400">Loading consultations…</p>
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <DoctorListShimmer rows={4} />
             </motion.div>
           ) : error ? (
             <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

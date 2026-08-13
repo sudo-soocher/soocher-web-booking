@@ -16,7 +16,7 @@ export interface ButtonProps extends Omit<NextUIButtonProps, "onPress" | "onClic
  * a loading state automatically. Matches the soocher-web pattern.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-  const { onPress, onClick, isLoading: externalIsLoading, ...rest } = props;
+  const { onPress, onClick, isLoading: externalIsLoading, children, ...rest } = props;
   const [internalIsLoading, setInternalIsLoading] = useState(false);
   const isLoading = externalIsLoading ?? internalIsLoading;
 
@@ -48,12 +48,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
   return (
     <NextUIButton
       ref={ref}
-      isLoading={isLoading}
+      {...rest}
+      isLoading={false}
+      isDisabled={isLoading || rest.isDisabled}
+      aria-busy={isLoading}
       onPress={onPress ? handlePress : undefined}
       onClick={onClick ? handleClick : undefined}
-      {...rest}
       className={isPrimarySolid ? `text-white ${rest.className ?? ""}` : rest.className}
-    />
+    >
+      {isLoading ? (
+        <>
+          <span aria-hidden="true" className="app-shimmer h-4 w-28 rounded-full bg-white/35" />
+          <span className="sr-only">Saving</span>
+        </>
+      ) : children}
+    </NextUIButton>
   );
 });
 

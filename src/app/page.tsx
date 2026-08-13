@@ -64,7 +64,7 @@ const itemVariants = {
 
 export default function Home() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   // The server cannot read sessionStorage, so the hydration render must always
   // start from the same empty/loading state. The effect below applies the cache
@@ -214,16 +214,16 @@ export default function Home() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="flex items-center justify-between px-5 h-16">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
             <Logo size="sm" className="rounded-[10px] shadow-md shadow-primary/10" />
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{t("brand.welcome")}</p>
-              <span className="text-base font-extrabold tracking-tight text-slate-900">
+              <span className="block truncate text-base font-extrabold tracking-tight text-slate-900">
                 {isLoggedIn ? t("home.greeting", { name: auth.currentUser?.displayName?.split(" ")[0] || t("home.greetingFallback") }) : t("home.tagline")}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2" aria-label={t("nav.quickSettings")}>
+          <div className="flex shrink-0 items-center gap-2" aria-label={t("nav.quickSettings")}>
             <LanguageSwitcher />
             <button
               type="button"
@@ -284,13 +284,17 @@ export default function Home() {
           <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-2xl" />
           <div className="absolute -bottom-20 -left-12 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
           <div className="absolute right-5 bottom-5 h-20 w-20 rounded-full border border-primary/10" />
-          <div className="relative z-10 max-w-[78%]">
-            <h1 className="text-[28px] font-black leading-[1.08] tracking-[-0.035em] text-slate-900">{t("home.heroTitleMobile")}<br />{t("home.heroTitleMobile2")}</h1>
+          <div className={`relative z-10 ${lang === "ml" ? "w-full pr-1" : "max-w-[78%]"}`}>
+            <h1 className={`break-words font-black text-slate-900 ${
+              lang === "ml"
+                ? "text-[26px] leading-[1.22] tracking-normal"
+                : "text-[28px] leading-[1.08] tracking-[-0.035em]"
+            }`}>{t("home.heroTitleMobile")}<br />{t("home.heroTitleMobile2")}</h1>
             <p className="mt-3 text-xs leading-relaxed text-slate-600">{t("home.heroSubtitleMobile")}</p>
           </div>
-          <button onClick={() => router.push("/doctors")} className="mobile-pressable relative z-10 mt-5 flex h-11 w-full items-center justify-between rounded-2xl border border-white/70 bg-white/75 px-4 text-sm font-extrabold text-slate-900 shadow-lg shadow-primary/10 backdrop-blur-xl">
-            {t("home.bookConsultation")}
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white"><FaChevronRight className="text-[10px]" /></span>
+          <button onClick={() => router.push("/doctors")} className="mobile-pressable relative z-10 mt-5 flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/75 px-4 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg shadow-primary/10 backdrop-blur-xl">
+            <span className="min-w-0 flex-1 break-words text-left leading-5">{t("home.bookConsultation")}</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white"><FaChevronRight className="text-[10px]" /></span>
           </button>
         </motion.div>
 
@@ -306,9 +310,9 @@ export default function Home() {
             { label: t("home.myBookings"), icon: FaCalendarCheck, href: "/bookings", tone: "bg-emerald-50 text-emerald-600" },
             { label: t("home.myProfile"), icon: FaHeartbeat, href: "/profile", tone: "bg-rose-50 text-rose-500" },
           ].map(({ label, icon: Icon, href, tone }) => (
-            <button key={label} onClick={() => router.push(href)} className="mobile-pressable mobile-app-card flex min-h-24 flex-col items-start justify-between p-3.5 text-left">
+            <button key={label} onClick={() => router.push(href)} className="mobile-pressable mobile-app-card flex min-w-0 min-h-24 flex-col items-start justify-between overflow-hidden p-3 text-left sm:p-3.5">
               <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}><Icon className="text-sm" /></span>
-              <span className="mt-3 text-[11px] font-extrabold leading-tight text-slate-700">{label}</span>
+              <span className="mt-3 max-w-full break-words text-[10px] font-extrabold leading-[1.35] text-slate-700 min-[360px]:text-[11px]">{label}</span>
             </button>
           ))}
         </div>
@@ -470,7 +474,7 @@ export default function Home() {
               }}
               className="mobile-speciality-card mobile-pressable mobile-app-card group flex min-h-[84px] items-center gap-2.5 overflow-hidden p-2.5 text-left"
             >
-              <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-[16px] bg-primary/5 ring-1 ring-white shadow-sm">
+              <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-[16px] bg-primary/5 ring-1 ring-white shadow-sm min-[360px]:h-16 min-[360px]:w-16">
                 {getSpecialityImage(speciality.name) ? (
                   <Image
                     src={getSpecialityImage(speciality.name)!}
@@ -485,8 +489,8 @@ export default function Home() {
                 {navigatingSpeciality === speciality.name && <span className="absolute inset-0 flex items-center justify-center bg-white/65 backdrop-blur-sm"><Spinner size="sm" /></span>}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="line-clamp-3 text-[11px] font-extrabold leading-snug text-slate-800">{speciality.name}</span>
-                <span className="mt-1.5 flex items-center gap-1 text-[9px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {t("home.available.short")}</span>
+                <span className="line-clamp-3 break-words [overflow-wrap:anywhere] text-[10px] font-extrabold leading-snug text-slate-800 min-[360px]:text-[11px]">{speciality.name}</span>
+                <span className="mt-1.5 flex min-w-0 items-center gap-1 text-[8px] font-semibold text-slate-400 min-[360px]:text-[9px]"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" /><span className="min-w-0 truncate">{t("home.available.short")}</span></span>
               </span>
             </button>
           ))}

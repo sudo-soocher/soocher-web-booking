@@ -10,7 +10,6 @@ import {
   FaCalendarPlus,
   FaArrowRight,
   FaCheck,
-  FaSpinner,
   FaEye,
   FaEdit,
 } from "react-icons/fa";
@@ -18,6 +17,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/doctor/lib/firebase";
 import { Button } from "@/doctor/components/ui/Button";
+import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import { fetchConsultationById, type FirestoreConsultation } from "@/doctor/services/consultations";
 
 export default function PostConsultPage() {
@@ -76,11 +76,7 @@ export default function PostConsultPage() {
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto flex max-w-2xl items-center justify-center py-20">
-        <FaSpinner className="animate-spin text-2xl text-primary" />
-      </div>
-    );
+    return <DoctorPageShimmer compact />;
   }
 
   return (

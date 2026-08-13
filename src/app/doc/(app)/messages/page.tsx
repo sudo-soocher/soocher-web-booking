@@ -4,10 +4,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Spinner } from "@heroui/react";
 import { FaCommentDots, FaLock, FaSearch } from "react-icons/fa";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
 import { useAuth } from "@/doctor/lib/auth";
+import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 
 const ChatSidebar = dynamic(
   () => import("@/doctor/components/chat/ChatSidebar").then((m) => m.ChatSidebar),
@@ -164,9 +164,7 @@ export default function MessagesPage() {
             sub="Patient messages unlock once your profile is verified."
           />
         ) : loading ? (
-          <div className="grid min-h-[40vh] place-items-center">
-            <Spinner color="primary" />
-          </div>
+          <DoctorListShimmer rows={5} />
         ) : errored ? (
           <EmptyState
             icon={<FaCommentDots />}

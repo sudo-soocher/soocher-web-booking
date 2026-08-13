@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Chip, Spinner } from "@heroui/react";
+import { Chip } from "@heroui/react";
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -20,6 +20,7 @@ import {
 } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import { useAuth } from "@/doctor/lib/auth";
+import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import type {
   AchievementItem,
   DayKey,
@@ -172,11 +173,7 @@ export default function ProfileEditHubPage() {
   }, [status, loading, router]);
 
   if (loading || status !== "verified") {
-    return (
-      <div className="grid min-h-[40vh] place-items-center">
-        <Spinner color="primary" />
-      </div>
-    );
+    return <DoctorPageShimmer compact />;
   }
 
   const p = (profile || {}) as Record<string, unknown>;

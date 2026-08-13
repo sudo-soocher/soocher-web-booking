@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Channel as ChannelComponent,
   Chat,
-  LoadingIndicator,
   MessageInput,
   MessageList,
   Thread,
@@ -28,6 +27,7 @@ import { useStreamChat } from "@/doctor/components/chat/StreamChatContext";
 import { auth } from "@/doctor/lib/firebase";
 import type { FirestoreConsultation } from "@/doctor/services/consultations";
 import { getChatAvailability } from "@/doctor/utils/chat/availability";
+import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 
 interface ChatSidebarProps {
   isOpen: boolean;
@@ -323,11 +323,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             {/* ── Body ─────────────────────────────────────────────── */}
             <div className="relative min-h-0 flex-1 overflow-hidden">
               {loading ? (
-                <div className="flex h-full flex-col items-center justify-center gap-4">
-                  <LoadingIndicator size={32} />
-                  <p className="animate-pulse text-sm font-semibold text-slate-400">
-                    Connecting to chat…
-                  </p>
+                <div className="h-full overflow-hidden p-4">
+                  <DoctorListShimmer rows={5} />
                 </div>
               ) : error ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">

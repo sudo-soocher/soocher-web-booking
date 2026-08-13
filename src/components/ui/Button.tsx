@@ -7,7 +7,15 @@ import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@herou
 export type ButtonProps = NextUIButtonProps;
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-    const { onPress, onClick, isLoading: externalIsLoading, ...rest } = props;
+    const {
+        onPress,
+        onClick,
+        isLoading: externalIsLoading,
+        children,
+        startContent,
+        endContent,
+        ...rest
+    } = props;
     const [internalIsLoading, setInternalIsLoading] = useState(false);
 
     const handlePress = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement> | any) => {
@@ -58,15 +66,31 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
     };
 
     const isLoading = externalIsLoading !== undefined ? externalIsLoading : internalIsLoading;
+    const isPrimarySolid =
+        rest.color === "primary" && (!rest.variant || rest.variant === "solid");
 
     return (
         <NextUIButton
+            {...rest}
             ref={ref}
             onPress={onPress ? handlePress : undefined}
             onClick={!onPress && onClick ? handleClick : onClick}
-            isLoading={isLoading}
-            {...rest}
-        />
+            isLoading={false}
+            isDisabled={isLoading || rest.isDisabled}
+            aria-busy={isLoading}
+            startContent={isLoading ? undefined : startContent}
+            endContent={isLoading ? undefined : endContent}
+            className={isPrimarySolid ? `!text-white ${rest.className ?? ""}` : rest.className}
+        >
+            {isLoading ? (
+                <span className="flex h-6 w-full items-center justify-center" role="status" aria-label="Loading">
+                    <span
+                        aria-hidden="true"
+                        className={`app-shimmer h-4 w-28 rounded-full ${isPrimarySolid ? "bg-white/35" : "bg-primary/20"}`}
+                    />
+                </span>
+            ) : children}
+        </NextUIButton>
     );
 });
 

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Input, Spinner } from "@heroui/react";
+import { Input } from "@heroui/react";
 import {
   FaArrowLeft,
   FaCalendarPlus,
@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
 import { useAuth } from "@/doctor/lib/auth";
+import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import {
   fetchDoctorPatients,
   type DoctorPatient,
@@ -231,9 +232,7 @@ export default function PatientsPage() {
             sub="Patient bookings are unlocked once your profile is verified."
           />
         ) : loading ? (
-          <div className="grid min-h-[40vh] place-items-center">
-            <Spinner color="primary" />
-          </div>
+          <DoctorListShimmer rows={5} />
         ) : errored ? (
           <EmptyState
             title="Couldn't load your patients"

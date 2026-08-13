@@ -80,7 +80,9 @@ export default function Login() {
       const path = destinationPath(destination);
 
       if (path) {
-        markNativeSession(user.uid);
+        // Cache the destination too, so a later Flutter relaunch can land a
+        // doctor in the doctor app on its very first frame.
+        markNativeSession(user.uid, path);
         router.replace(path);
         return true;
       }
@@ -427,7 +429,7 @@ export default function Login() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 overflow-hidden rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7"
+          className={`login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7 ${needsRegistration ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}
         >
           <div className="login-brand flex items-center gap-3 lg:hidden">
             <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
@@ -526,83 +528,96 @@ export default function Login() {
               </Button>
             </form>
           ) : needsRegistration ? (
-            <form onSubmit={submitRegistration} className="login-registration-form space-y-3 md:space-y-4">
-              <Input
-                label={t("profile.name")}
-                variant="bordered"
-                radius="lg"
-                isRequired
-                value={registrationData.name}
-                onChange={(e) =>
-                  setRegistrationData({ ...registrationData, name: e.target.value })
-                }
-                classNames={{
-                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
-                  label: "font-bold text-slate-400",
-                }}
-              />
-              <Input
-                label={t("profile.email")}
-                type="email"
-                variant="bordered"
-                radius="lg"
-                isRequired
-                value={registrationData.email}
-                onChange={(e) =>
-                  setRegistrationData({ ...registrationData, email: e.target.value })
-                }
-                classNames={{
-                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
-                  label: "font-bold text-slate-400",
-                }}
-              />
-              <Input
-                label={t("profile.dob")}
-                type="date"
-                variant="bordered"
-                radius="lg"
-                isRequired
-                value={registrationData.dob}
-                onChange={(e) =>
-                  setRegistrationData({ ...registrationData, dob: e.target.value })
-                }
-                classNames={{
-                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
-                  label: "font-bold text-slate-400",
-                }}
-              />
-              <Input
-                label={t("profile.state")}
-                variant="bordered"
-                radius="lg"
-                value={registrationData.currentState}
-                onChange={(e) =>
-                  setRegistrationData({
-                    ...registrationData,
-                    currentState: e.target.value,
-                  })
-                }
-                classNames={{
-                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
-                  label: "font-bold text-slate-400",
-                }}
-              />
-              <Input
-                label={t("login.district")}
-                variant="bordered"
-                radius="lg"
-                value={registrationData.currentCity}
-                onChange={(e) =>
-                  setRegistrationData({
-                    ...registrationData,
-                    currentCity: e.target.value,
-                  })
-                }
-                classNames={{
-                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
-                  label: "font-bold text-slate-400",
-                }}
-              />
+            <form onSubmit={submitRegistration} className="login-registration-form min-w-0 space-y-3 pb-1 md:space-y-4">
+              <div className="min-w-0 space-y-1.5">
+                <label htmlFor="registration-name" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
+                  {t("profile.name")} <span className="text-danger">*</span>
+                </label>
+                <Input
+                  id="registration-name"
+                  aria-label={t("profile.name")}
+                  variant="bordered"
+                  radius="lg"
+                  isRequired
+                  value={registrationData.name}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, name: e.target.value })
+                  }
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-1.5">
+                <label htmlFor="registration-email" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
+                  {t("profile.email")} <span className="text-danger">*</span>
+                </label>
+                <Input
+                  id="registration-email"
+                  aria-label={t("profile.email")}
+                  type="email"
+                  variant="bordered"
+                  radius="lg"
+                  isRequired
+                  value={registrationData.email}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, email: e.target.value })
+                  }
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-1.5">
+                <label htmlFor="registration-dob" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
+                  {t("profile.dob")} <span className="text-danger">*</span>
+                </label>
+                <Input
+                  id="registration-dob"
+                  aria-label={t("profile.dob")}
+                  type="date"
+                  variant="bordered"
+                  radius="lg"
+                  isRequired
+                  value={registrationData.dob}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, dob: e.target.value })
+                  }
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "min-w-0 text-sm" }}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-1.5">
+                <label htmlFor="registration-state" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
+                  {t("profile.state")}
+                </label>
+                <Input
+                  id="registration-state"
+                  aria-label={t("profile.state")}
+                  variant="bordered"
+                  radius="lg"
+                  value={registrationData.currentState}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, currentState: e.target.value })
+                  }
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-1.5">
+                <label htmlFor="registration-district" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
+                  {t("login.district")}
+                </label>
+                <Input
+                  id="registration-district"
+                  aria-label={t("login.district")}
+                  variant="bordered"
+                  radius="lg"
+                  value={registrationData.currentCity}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, currentCity: e.target.value })
+                  }
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                />
+              </div>
 
               {error && (
                 <motion.p

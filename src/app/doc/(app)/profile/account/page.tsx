@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Chip, Input, Spinner } from "@heroui/react";
+import { Chip, Input } from "@heroui/react";
 import {
   FaArrowLeft,
   FaAt,
@@ -17,6 +17,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { Button } from "@/doctor/components/ui/Button";
+import { DoctorPageShimmer, ShimmerBlock } from "@/doctor/components/ui/DoctorShimmer";
 import { useAuth } from "@/doctor/lib/auth";
 import {
   USERNAME_RULES,
@@ -43,11 +44,7 @@ export default function AccountSecurityPage() {
   const [authNonce, setAuthNonce] = useState(0); // bump to re-read user.providerData
 
   if (loading || !user) {
-    return (
-      <div className="grid min-h-[40vh] place-items-center">
-        <Spinner color="primary" />
-      </div>
-    );
+    return <DoctorPageShimmer compact />;
   }
 
   // Re-derive sign-in methods on every render so a fresh credential link is
@@ -298,7 +295,7 @@ function AvailabilityHint({ state }: { state: Availability }) {
     case "checking":
       return (
         <span className="inline-flex items-center gap-2 text-slate-500">
-          <Spinner size="sm" color="primary" />
+          <ShimmerBlock className="h-3 w-14 rounded-full" />
           Checking…
         </span>
       );

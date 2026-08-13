@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminFirestore } from "@/lib/firebase-admin";
 import { sendWhatsAppOtp } from "@/services/whatsapp";
+import { TEST_OTP_CODE, isTestOtpNumber } from "@/lib/test-otp-numbers";
 
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RESEND_COOLDOWN_MS = 30 * 1000; // 30 seconds between sends
@@ -51,7 +52,11 @@ export async function POST(request: Request) {
         // is advisory: two requests arriving together would both pass it and both
         // send a WhatsApp message, which costs money per send. Inside the
         // transaction the loser sees the winner's `createdAt` and backs off.
-        const code = generateOtp();
+        // Demo numbers get a fixed code and no outbound message. Everything
+        // else — the doc write, expiry, cooldown, attempt limiting — is
+        // identical to a real number, so verify-otp needs no special case.
+        const isTestNumber = isTestOtpNumber(e164);
+        const code = isTestNumber ? TEST_OTP_CODE : generateOtp();
         const issued = await db.runTransaction(async (tx) => {
             const fresh = await tx.get(ref);
             const data = fresh.exists
@@ -77,6 +82,14 @@ export async function POST(request: Request) {
                 { error: `Please wait ${issued}s before requesting another code.` },
                 { status: 429 }
             );
+        }
+
+        if (isTestNumber) {
+            console.warn(
+                ">>> [SEND-OTP] TEST NUMBER — fixed code, no WhatsApp sent:",
+                e164
+            );
+            return NextResponse.json({ success: true, test: true });
         }
 
         const result = await sendWhatsAppOtp(e164, code);

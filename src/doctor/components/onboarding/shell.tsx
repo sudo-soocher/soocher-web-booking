@@ -27,31 +27,34 @@ export function ProgressHeader({ currentSlug }: ProgressHeaderProps) {
   };
 
   return (
-    <header className="w-full shrink-0 border-b border-slate-100 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
+    <header className="relative z-20 w-full shrink-0 border-b border-slate-200/70 bg-white/95 backdrop-blur-xl">
+      <div
+        className="relative mx-auto flex min-h-16 max-w-3xl items-center justify-between px-4 pb-2 sm:px-5"
+        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+      >
         {prev ? (
           <Link
             href={`/doc/onboarding/${prev}`}
             aria-label="Previous step"
-            className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-50 text-slate-600 hover:bg-primary-50 hover:text-primary"
+            className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200/80 bg-white text-slate-600 shadow-sm transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary"
           >
             <FaArrowLeft />
           </Link>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-700 text-white">
               <FaStethoscope className="text-sm" />
             </div>
-            <span className="text-sm font-black tracking-tight text-slate-900">Soocher</span>
+            <span className="hidden text-sm font-black tracking-tight text-slate-900 sm:inline">Soocher</span>
           </div>
         )}
-        <div className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-          Step {idx + 1} of {STEPS.length}
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary-50 px-3 py-1.5 text-center text-[10px] font-extrabold uppercase tracking-[0.14em] text-primary">
+          Step {idx + 1} <span className="text-primary-300">/</span> {STEPS.length}
         </div>
         <button
           onClick={handleSignOut}
           aria-label="Sign out"
-          className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+          className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200/80 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
         >
           <FaSignOutAlt />
         </button>
@@ -108,17 +111,17 @@ export function StepShell({
         initial={{ y: 6 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.2 }}
-        className="mx-auto flex w-full max-w-3xl flex-col px-5 pb-[max(7rem,env(safe-area-inset-bottom))] pt-6 md:pb-32 md:pt-10"
+        className="doctor-onboarding-content mx-auto flex w-full max-w-3xl min-w-0 flex-col px-4 pt-5 sm:px-5 sm:pt-7 md:pb-32 md:pt-10"
       >
         <div className="text-[11px] font-bold uppercase tracking-widest text-primary">
           {effectiveEyebrow}
         </div>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+        <h1 className="mt-2 text-[1.75rem] font-extrabold leading-tight tracking-tight text-slate-950 min-[360px]:text-3xl md:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 text-sm text-slate-600 md:text-base">{description}</p>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 md:text-base">{description}</p>
 
-        <div className="mt-8 space-y-5">{children}</div>
+        <div className="mt-6 min-w-0 space-y-4 sm:mt-8 sm:space-y-5">{children}</div>
       </motion.div>
 
       {/* Sticky bottom CTA — rendered OUTSIDE motion.div so its `position:
@@ -126,15 +129,15 @@ export function StepShell({
           transformed containing block (which made the bar briefly narrow on
           first mount). Onboarding has no sidebar, so the bar spans the full
           viewport and centers the CTA under the form via the inner max-w-3xl. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-100 bg-white/95 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl px-5">
+      <div className="doctor-onboarding-cta fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/95 pt-3 shadow-[0_-12px_32px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-3xl px-4 sm:px-5">
           <Button
             color="primary"
             size="lg"
             onPress={onNext}
             isDisabled={nextDisabled}
             endContent={effectiveIsLast ? <FaCheck /> : undefined}
-            className="h-14 w-full rounded-2xl font-bold shadow-2xl shadow-primary/25"
+            className="h-14 w-full rounded-2xl px-6 text-base font-extrabold shadow-xl shadow-primary/25 transition-transform active:scale-[0.99]"
           >
             {effectiveLabel}
           </Button>
@@ -157,15 +160,27 @@ export function Field({
   required?: boolean;
   children: React.ReactNode;
 }) {
+  // HeroUI does not infer an accessible name from a wrapping native label.
+  // Pass the visible field name explicitly so Input/Select/Autocomplete do not
+  // emit repeated accessibility warnings on every render.
+  const fieldElement = React.isValidElement(children)
+    ? (children as React.ReactElement<{ "aria-label"?: string }>)
+    : null;
+  const labelledChild = fieldElement
+    ? React.cloneElement(fieldElement, {
+        "aria-label": fieldElement.props["aria-label"] ?? label,
+      })
+    : children;
+
   return (
-    <label className="block">
+    <div className="block min-w-0">
       <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
         {label}
         {required && <span className="ml-1 text-rose-500">*</span>}
       </span>
-      <div className="mt-2">{children}</div>
+      <div className="mt-2 min-w-0">{labelledChild}</div>
       {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
-    </label>
+    </div>
   );
 }
 
@@ -237,14 +252,14 @@ export const selectClassNames = {
  * which clips multi-line content unless we force `h-auto` and add padding.
  */
 export const textareaClassNames = {
-  base: "h-auto",
+  base: "h-auto min-w-0",
   inputWrapper:
     "border-2 border-slate-200 bg-white rounded-2xl shadow-sm transition-all duration-200 " +
     "data-[hover=true]:border-primary-300 data-[hover=true]:shadow-md data-[hover=true]:shadow-primary/5 " +
     "group-data-[focus=true]:border-primary group-data-[focus=true]:shadow-lg group-data-[focus=true]:shadow-primary/15 " +
-    "!h-auto py-3 px-4",
+    "!h-auto min-h-32 items-start overflow-hidden py-3 px-4",
   input:
     "text-sm md:text-base font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal " +
-    "leading-relaxed outline-none focus:outline-none focus-visible:outline-none resize-none",
-  innerWrapper: "h-auto",
+    "block !h-auto min-h-24 w-full whitespace-pre-wrap break-words leading-6 outline-none focus:outline-none focus-visible:outline-none resize-none",
+  innerWrapper: "h-auto min-w-0 items-start",
 } as const;

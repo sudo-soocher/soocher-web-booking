@@ -47,7 +47,7 @@ export default function SplashPage() {
 
   // Show the loader for the whole pre-routing tick: loading=true initially,
   // and even after auth resolves we're about to router.replace() to the right
-  // destination. Without a spinner here the splash flashes as a blank slate
+  // destination. Without a shimmer here the splash flashes as a blank slate
   // background before the redirect kicks in.
   if (!ready) {
     return <PageLoader />;

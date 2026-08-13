@@ -408,5 +408,77 @@ body {
    language the LanguageProvider sets on <html>, so English users never download
    or apply it. */
 html[lang="ml"] body {
-  font-family: var(--font-malayalam), system-ui, -apple-system, sans-serif;
+  /* Keep Latin text on the app's normal metrics and use Noto only as the
+     fallback for Malayalam glyphs. This prevents a language switch from
+     changing the width/line-height of logos, numbers and untranslated text. */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", var(--font-malayalam), sans-serif;
+}
+
+/* Translated Malayalam labels are often longer than their English versions.
+   Allow natural wrapping inside mobile controls instead of letting glyphs
+   paint across neighbouring columns. */
+html[lang="ml"] .mobile-app-shell button,
+html[lang="ml"] .mobile-app-shell a,
+html[lang="ml"] .mobile-app-shell p,
+html[lang="ml"] .mobile-app-shell span {
+  overflow-wrap: anywhere;
+}
+
+html[lang="ml"] .mobile-page-title {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+@media (max-width: 359px) {
+  .mobile-speciality-card {
+    gap: 0.5rem !important;
+    padding: 0.5rem !important;
+  }
+}
+
+/* On short phones the login form must scroll rather than clip translated
+   headings or stack them on top of the actions below. */
+@media (max-width: 767px) and (max-height: 700px) {
+  .login-page {
+    height: 100dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+  }
+
+  .login-shell {
+    height: auto !important;
+    min-height: calc(100dvh - 64px) !important;
+    overflow: visible !important;
+  }
+
+  .login-panel {
+    overflow: visible !important;
+  }
+}
+
+/* Profile page phone field.
+ *
+ * The global .react-international-phone-* rules above force height:56px plus a
+ * 2px border and 16px radius, all with !important — so the inline
+ * inputStyle/buttonStyle the profile page passes (3rem, border:none) are
+ * ignored. The control then rendered 56px tall with its own border and rounded
+ * corners inside a 48px wrapper that already had a border, radius and
+ * overflow-hidden: doubled outlines, and the field overflowing its box.
+ *
+ * The existing mobile override is scoped to .login-page, which is why only the
+ * profile page was affected. Scope the reset the same way and let the wrapper
+ * own the border and radius.
+ */
+.profile-phone .react-international-phone-input,
+.profile-phone .react-international-phone-country-selector-button {
+  height: 3rem !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.profile-phone .react-international-phone-country-selector-button {
+  border-right: 1px solid #e2e8f0 !important;
 }

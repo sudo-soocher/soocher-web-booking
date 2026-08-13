@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaSearch } from "react-icons/fa";
+import { FaClock, FaMapMarkerAlt, FaSearch, FaShieldAlt, FaUserMd } from "react-icons/fa";
 import { Autocomplete, AutocompleteItem, Input, Select, SelectItem } from "@heroui/react";
 import { ErrorBanner, Field, StepShell, autocompleteClassNames, inputClassNames, selectClassNames } from "@/doctor/components/onboarding/shell";
 import { ImageUploader } from "@/doctor/components/onboarding/inputs";
@@ -109,125 +109,175 @@ export default function BasicInfoStep() {
 
   return (
     <StepShell {...meta} onNext={handleNext}>
-      <Field label="Profile photo">
-        <ImageUploader
-          value={profilePhotoUrl}
-          onChange={setProfilePhotoUrl}
-          upload={(f) => uploadDoctorFile(user!.uid, "profile-photo", f)}
-        />
-      </Field>
+      <div className="flex items-start gap-3 rounded-2xl border border-primary-100 bg-primary-50/70 p-3.5 sm:p-4">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-primary shadow-sm">
+          <FaShieldAlt className="text-sm" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-900">Your information stays private</p>
+          <p className="mt-0.5 text-xs leading-5 text-slate-600">We use these details to verify your identity and personalise your doctor profile.</p>
+        </div>
+      </div>
 
-      <Field label="Full name (as on medical licence)" required>
-        <Input
-          value={fullName}
-          onValueChange={setFullName}
-          variant="bordered"
-          radius="lg"
-          size="lg"
-          placeholder="Dr. Anika Sharma"
-          classNames={inputClassNames}
-        />
-      </Field>
+      <section className="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/50 sm:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary-50 text-primary">
+            <FaUserMd />
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-900">Personal details</h2>
+            <p className="text-xs text-slate-500">Use the same details as your licence.</p>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <Field label="Date of birth" required>
-          <Input
-            type="date"
-            value={dob}
-            onValueChange={setDob}
+        <div className="space-y-5">
+          <Field label="Profile photo">
+            <ImageUploader
+              value={profilePhotoUrl}
+              onChange={setProfilePhotoUrl}
+              upload={(f) => uploadDoctorFile(user!.uid, "profile-photo", f)}
+            />
+          </Field>
+
+          <Field label="Full name (as on medical licence)" required>
+            <Input
+              value={fullName}
+              onValueChange={setFullName}
+              variant="bordered"
+              radius="lg"
+              size="lg"
+              placeholder="Dr. Anika Sharma"
+              classNames={inputClassNames}
+            />
+          </Field>
+
+          <div className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2">
+            <Field label="Date of birth" required>
+              <Input
+                type="date"
+                value={dob}
+                onValueChange={setDob}
+                variant="bordered"
+                radius="lg"
+                size="lg"
+                classNames={inputClassNames}
+              />
+            </Field>
+            <Field label="Gender" required>
+              <Select
+                selectedKeys={gender ? [gender] : []}
+                onChange={(e) => setGender(e.target.value as Gender)}
+                variant="bordered"
+                radius="lg"
+                size="lg"
+                placeholder="Select"
+                classNames={selectClassNames}
+              >
+                {GENDERS.map((g) => (
+                  <SelectItem key={g.key}>{g.label}</SelectItem>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        </div>
+      </section>
+
+      <section className="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/50 sm:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <FaMapMarkerAlt />
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-900">Location</h2>
+            <p className="text-xs text-slate-500">Helps patients find care near them.</p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <Field label="Country" required>
+            <Autocomplete
+              defaultItems={COUNTRIES}
+              selectedKey={country || null}
+              onSelectionChange={(key) => setCountry((key as string | null) ?? "")}
+              variant="bordered"
+              radius="lg"
+              size="lg"
+              placeholder="Type to search country…"
+              menuTrigger="input"
+              allowsCustomValue={false}
+              startContent={<FaSearch className="text-slate-400" />}
+              inputProps={{ classNames: inputClassNames }}
+              classNames={autocompleteClassNames}
+            >
+              {(c) => (
+                <AutocompleteItem key={c.code} textValue={c.name}>
+                  {c.name}
+                </AutocompleteItem>
+              )}
+            </Autocomplete>
+          </Field>
+
+          <div className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2">
+            <Field label="State / Province / Region" required>
+              <Input
+                value={state}
+                onValueChange={setState}
+                variant="bordered"
+                radius="lg"
+                size="lg"
+                placeholder="e.g. Maharashtra"
+                classNames={inputClassNames}
+              />
+            </Field>
+            <Field label="City" required>
+              <Input
+                value={city}
+                onValueChange={setCity}
+                variant="bordered"
+                radius="lg"
+                size="lg"
+                placeholder="e.g. Mumbai"
+                classNames={inputClassNames}
+              />
+            </Field>
+          </div>
+        </div>
+      </section>
+
+      <section className="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/50 sm:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+            <FaClock />
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-900">Local time</h2>
+            <p className="text-xs text-slate-500">Keeps your consultation schedule accurate.</p>
+          </div>
+        </div>
+
+        <Field label="Timezone" required hint="We convert availability to each patient's local time.">
+          <Autocomplete
+            defaultItems={TIMEZONES.map((tz) => ({ key: tz }))}
+            selectedKey={timezone || null}
+            onSelectionChange={(key) => setTimezone((key as string | null) ?? "")}
             variant="bordered"
             radius="lg"
             size="lg"
-            classNames={inputClassNames}
-          />
-        </Field>
-        <Field label="Gender" required>
-          <Select
-            selectedKeys={gender ? [gender] : []}
-            onChange={(e) => setGender(e.target.value as Gender)}
-            variant="bordered"
-            radius="lg"
-            size="lg"
-            placeholder="Select"
-            classNames={selectClassNames}
+            placeholder="Search timezone (e.g. Kolkata)…"
+            menuTrigger="input"
+            allowsCustomValue={false}
+            startContent={<FaSearch className="text-slate-400" />}
+            inputProps={{ classNames: inputClassNames }}
+            classNames={autocompleteClassNames}
           >
-            {GENDERS.map((g) => (
-              <SelectItem key={g.key}>{g.label}</SelectItem>
-            ))}
-          </Select>
+            {(item) => (
+              <AutocompleteItem key={item.key} textValue={item.key}>
+                {item.key}
+              </AutocompleteItem>
+            )}
+          </Autocomplete>
         </Field>
-      </div>
-
-      <Field label="Country" required>
-        <Autocomplete
-          defaultItems={COUNTRIES}
-          selectedKey={country || null}
-          onSelectionChange={(key) => setCountry((key as string | null) ?? "")}
-          variant="bordered"
-          radius="lg"
-          size="lg"
-          placeholder="Type to search country…"
-          menuTrigger="input"
-          allowsCustomValue={false}
-          startContent={<FaSearch className="text-slate-400" />}
-          inputProps={{ classNames: inputClassNames }}
-          classNames={autocompleteClassNames}
-        >
-          {(c) => (
-            <AutocompleteItem key={c.code} textValue={c.name}>
-              {c.name}
-            </AutocompleteItem>
-          )}
-        </Autocomplete>
-      </Field>
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <Field label="State / Province / Region" required>
-          <Input
-            value={state}
-            onValueChange={setState}
-            variant="bordered"
-            radius="lg"
-            size="lg"
-            placeholder="e.g. Maharashtra"
-            classNames={inputClassNames}
-          />
-        </Field>
-        <Field label="City" required>
-          <Input
-            value={city}
-            onValueChange={setCity}
-            variant="bordered"
-            radius="lg"
-            size="lg"
-            placeholder="e.g. Mumbai"
-            classNames={inputClassNames}
-          />
-        </Field>
-      </div>
-
-      <Field label="Timezone" required hint="Used to convert your availability to each patient's local time.">
-        <Autocomplete
-          defaultItems={TIMEZONES.map((tz) => ({ key: tz }))}
-          selectedKey={timezone || null}
-          onSelectionChange={(key) => setTimezone((key as string | null) ?? "")}
-          variant="bordered"
-          radius="lg"
-          size="lg"
-          placeholder="Type to search timezone (e.g. Kolkata, London)…"
-          menuTrigger="input"
-          allowsCustomValue={false}
-          startContent={<FaSearch className="text-slate-400" />}
-          inputProps={{ classNames: inputClassNames }}
-          classNames={autocompleteClassNames}
-        >
-          {(item) => (
-            <AutocompleteItem key={item.key} textValue={item.key}>
-              {item.key}
-            </AutocompleteItem>
-          )}
-        </Autocomplete>
-      </Field>
+      </section>
 
       <ErrorBanner message={error} />
     </StepShell>

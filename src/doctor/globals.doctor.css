@@ -23,6 +23,23 @@ html.doc-app, html.doc-app body { background-color: #ffffff; }
    the document normally. */
 html.doc-app, html.doc-app body { overscroll-behavior-y: none; }
 
+/* Onboarding mobile chrome. Keep the fixed action clear of iOS/Android home
+   indicators even when a desktop device emulator reports a zero safe-area,
+   and reserve the same space in the scrollable form so no field is covered. */
+.doctor-onboarding-cta {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.doctor-onboarding-content {
+  padding-bottom: calc(6rem + max(1.25rem, env(safe-area-inset-bottom)));
+}
+
+@media (min-width: 768px) {
+  .doctor-onboarding-cta {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
 @media (max-width: 1023px) {
   html.doc-app {
     height: 100dvh;

@@ -86,42 +86,73 @@ export async function POST(request: Request) {
 
         // Login is unified: doctors authenticate through this same route and the
         // client routes them by account type once signed in.
-        const existingUserSnap = await db
+        //
+        // The Firestore doc is the account of record. The caller has just proven
+        // control of this phone via OTP, so if a Users doc owns the number we
+        // sign them in as THAT uid.
+        //
+        // This previously compared the Firestore uid against
+        // `getUserByPhoneNumber()` and rejected any mismatch. A doctor who signed
+        // up with Google or email/password has an Auth uid with no phone attached,
+        // so the lookup threw, `createUser()` minted a brand-new uid, and the
+        // comparison failed — a registered doctor was told "This number is already
+        // registered to another account" and could never log in. It also left an
+        // orphan Auth user behind on every attempt, because createUser ran before
+        // the check.
+        //
+        // limit(2) so genuine duplicates are detectable; that is the only case
+        // that is actually ambiguous.
+        const ownersSnap = await db
             .collection("Users")
             .where("phoneNumber", "==", e164)
-            .limit(1)
+            .limit(2)
             .get();
 
         const adminAuth = getAdminAuth();
-        let userRecord;
-        try {
-            userRecord = await adminAuth.getUserByPhoneNumber(e164);
-        } catch {
-            userRecord = await adminAuth.createUser({ phoneNumber: e164 });
-        }
+        let uid: string;
 
-        // Block if the phone is already saved under a different patient UID
-        if (!existingUserSnap.empty && existingUserSnap.docs[0].id !== userRecord.uid) {
+        if (ownersSnap.size > 1) {
+            console.error(
+                ">>> [VERIFY-OTP] Multiple Users docs share",
+                e164,
+                ownersSnap.docs.map((d) => d.id)
+            );
             return NextResponse.json(
-                { error: "This number is already registered to another account." },
+                { error: "This number is linked to more than one account. Please contact support." },
                 { status: 409 }
             );
+        }
+
+        if (ownersSnap.size === 1) {
+            uid = ownersSnap.docs[0].id;
+            // Attach the phone to the Auth record so future lookups line up.
+            // Best-effort: it fails harmlessly if another Auth user holds it.
+            await adminAuth
+                .updateUser(uid, { phoneNumber: e164 })
+                .catch(() => adminAuth.createUser({ uid, phoneNumber: e164 }).catch(() => {}));
+        } else {
+            // Nobody owns this number yet — normal first-time sign-up.
+            try {
+                uid = (await adminAuth.getUserByPhoneNumber(e164)).uid;
+            } catch {
+                uid = (await adminAuth.createUser({ phoneNumber: e164 })).uid;
+            }
         }
 
         try {
             await db
                 .collection("Users")
-                .doc(userRecord.uid)
+                .doc(uid)
                 .set({ phoneNumber: e164 }, { merge: true });
         } catch (err) {
             console.error(">>> [VERIFY-OTP] Failed to sync phoneNumber:", err);
         }
 
-        const customToken = await adminAuth.createCustomToken(userRecord.uid);
+        const customToken = await adminAuth.createCustomToken(uid);
         await ref.delete().catch(() => {});
 
-        console.log(">>> [VERIFY-OTP] Success for", e164, "uid:", userRecord.uid);
-        return NextResponse.json({ token: customToken, uid: userRecord.uid });
+        console.log(">>> [VERIFY-OTP] Success for", e164, "uid:", uid);
+        return NextResponse.json({ token: customToken, uid });
     } catch (err) {
         console.error(">>> [VERIFY-OTP ERROR]", err);
         const message = err instanceof Error ? err.message : "Unknown error";

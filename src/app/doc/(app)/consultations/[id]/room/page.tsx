@@ -9,6 +9,7 @@ import {
   fetchConsultationById,
   type FirestoreConsultation,
 } from "@/doctor/services/consultations";
+import { ShimmerBlock } from "@/doctor/components/ui/DoctorShimmer";
 
 const VideoCallRoom = dynamic(
   () => import("@/doctor/components/video/VideoCallRoom").then((m) => m.VideoCallRoom),
@@ -90,15 +91,13 @@ export default function VideoRoomPage() {
         </div>
 
         {loading ? (
-          /* Skeleton while fetching from Firestore */
-          <div className="flex h-full flex-col items-center justify-center gap-5 text-white">
-            <div className="relative flex items-center justify-center">
-              <span className="absolute inset-0 animate-ping rounded-full bg-primary/20 [animation-duration:2s]" />
-              <div className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-primary-400 to-primary-700 shadow-2xl shadow-primary/30">
-                <FaStethoscope className="text-2xl text-white" />
-              </div>
+          <div className="grid h-full grid-rows-[1fr_auto] gap-4 p-4 md:p-6">
+            <ShimmerBlock className="min-h-0 rounded-3xl opacity-20" />
+            <div className="mx-auto flex items-center gap-3 rounded-full bg-white/5 p-3">
+              {[0, 1, 2, 3].map((item) => (
+                <ShimmerBlock key={item} className="h-11 w-11 rounded-full opacity-20" />
+              ))}
             </div>
-            <p className="text-sm font-medium text-white/50">Loading consultation…</p>
           </div>
         ) : error ? (
           <motion.div
