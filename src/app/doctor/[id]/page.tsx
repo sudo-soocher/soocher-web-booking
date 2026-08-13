@@ -18,7 +18,7 @@ import {
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody, Avatar, Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@nextui-org/react";
+import { Card, CardBody, Avatar, Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@heroui/react";
 import {
   FaStar,
   FaLanguage,
@@ -43,7 +43,7 @@ import { parseTimeToEpoch, formatTimeRange } from "@/utils/timezone";
 import { UserTimezoneProvider, useUserTimezone } from "@/hooks/useUserTimezone";
 import { Coupon } from "@/types/coupon";
 import { validateCoupon } from "@/utils/coupon";
-import { Input } from "@nextui-org/react";
+import { Input } from "@heroui/react";
 import { RemoteImage } from "@/components/ui/RemoteImage";
 import { getCachedDoctorById } from "@/lib/doctors";
 import { AppShimmer } from "@/components/loading/AppShimmer";

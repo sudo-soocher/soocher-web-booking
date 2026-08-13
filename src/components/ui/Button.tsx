@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, forwardRef } from "react";
-import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@nextui-org/react";
+import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@heroui/react";
 
 export type ButtonProps = NextUIButtonProps;
 
@@ -29,23 +29,32 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
         }
     };
 
-    const handleClick = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    // Typed from the prop itself rather than spelled out: HeroUI types onClick as
+    // an intersection that also accepts a bare FocusableElement, which a
+    // hand-written MouseEvent<HTMLButtonElement> signature does not satisfy.
+    //
+    // The body is void-returning because HeroUI expects that, but it still awaits
+    // an async handler to drive the loading state — the promise is consumed here,
+    // so nothing is left floating.
+    const handleClick: NonNullable<ButtonProps["onClick"]> = (e) => {
         if (externalIsLoading !== undefined) {
             if (onClick) onClick(e);
             return;
         }
 
-        setInternalIsLoading(true);
-        try {
-            if (onClick) {
-                const result = onClick(e) as any;
-                if (result && typeof (result as any).then === 'function') {
-                    await result;
+        void (async () => {
+            setInternalIsLoading(true);
+            try {
+                if (onClick) {
+                    const result = onClick(e) as any;
+                    if (result && typeof (result as any).then === "function") {
+                        await result;
+                    }
                 }
+            } finally {
+                setTimeout(() => setInternalIsLoading(false), 300);
             }
-        } finally {
-            setTimeout(() => setInternalIsLoading(false), 300);
-        }
+        })();
     };
 
     const isLoading = externalIsLoading !== undefined ? externalIsLoading : internalIsLoading;

@@ -30,20 +30,10 @@ export async function POST(request: Request) {
         const ref = db.collection("phoneOtps").doc(docId);
         const now = Date.now();
 
-        // The doctor-account check and the existing-OTP read are independent, so
-        // they issue together instead of as two sequential round trips.
-        const [doctorSnap, existing] = await Promise.all([
-            db.collection("Doctors").where("whatsappNumber", "==", e164).limit(1).get(),
-            ref.get(),
-        ]);
-
-        // Block if this number belongs to a doctor account
-        if (!doctorSnap.empty) {
-            return NextResponse.json(
-                { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
-                { status: 409 }
-            );
-        }
+        // Login is unified: doctors and patients both authenticate here and are
+        // routed by account type afterwards, so the previous "this number is a
+        // doctor account" rejection is gone.
+        const existing = await ref.get();
 
         // Fast path: reject an obvious cooldown violation without a transaction.
         if (existing.exists) {

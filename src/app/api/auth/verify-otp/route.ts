@@ -84,21 +84,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // Both lookups are independent reads, so they go out together rather than
-        // as two sequential round trips on the login critical path. The Firebase
-        // Auth lookup stays *after* the doctor check because its fallback creates
-        // a user, which must not happen for a doctor's number.
-        const [doctorSnap, existingUserSnap] = await Promise.all([
-            db.collection("Doctors").where("whatsappNumber", "==", e164).limit(1).get(),
-            db.collection("Users").where("phoneNumber", "==", e164).limit(1).get(),
-        ]);
-
-        if (!doctorSnap.empty) {
-            return NextResponse.json(
-                { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
-                { status: 409 }
-            );
-        }
+        // Login is unified: doctors authenticate through this same route and the
+        // client routes them by account type once signed in.
+        const existingUserSnap = await db
+            .collection("Users")
+            .where("phoneNumber", "==", e164)
+            .limit(1)
+            .get();
 
         const adminAuth = getAdminAuth();
         let userRecord;

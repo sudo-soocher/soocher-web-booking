@@ -4,7 +4,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@nextui-org/react";
+import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@heroui/react";
 import { auth } from "@/lib/firebase-auth";
 import { clearNativeSession } from "@/lib/native-session";
 import { signOut } from "firebase/auth";

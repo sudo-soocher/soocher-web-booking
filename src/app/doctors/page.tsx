@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Select, SelectItem, Skeleton, Divider } from "@nextui-org/react";
+import { Select, SelectItem, Skeleton, Divider } from "@heroui/react";
 import {
     FaArrowLeft,
     FaStethoscope,
@@ -136,7 +136,7 @@ function DoctorsListContent() {
                         }}
                     >
                         {specialities.map((name) => (
-                            <SelectItem key={name} value={name} className="font-bold text-slate-600">{name}</SelectItem>
+                            <SelectItem key={name} className="font-bold text-slate-600">{name}</SelectItem>
                         ))}
                     </Select>
                 </div>
@@ -178,7 +178,7 @@ function DoctorsListContent() {
                             onSelectionChange={(keys: any) => { const selected = Array.from(keys)[0] as string; if (selected) handleSpecialityChange(selected); }}
                         >
                             {specialities.map((name) => (
-                                <SelectItem key={name} value={name} className="font-bold text-slate-600">{name}</SelectItem>
+                                <SelectItem key={name} className="font-bold text-slate-600">{name}</SelectItem>
                             ))}
                         </Select>
                     </div>

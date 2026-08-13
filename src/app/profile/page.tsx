@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
+import { Input, Select, SelectItem, Avatar } from "@heroui/react";
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
 import { signOut } from "firebase/auth";
@@ -386,9 +386,9 @@ export default function Profile() {
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                     classNames={{ trigger: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   >
-                    <SelectItem key="Male" value="Male">{t("profile.genderMale")}</SelectItem>
-                    <SelectItem key="Female" value="Female">{t("profile.genderFemale")}</SelectItem>
-                    <SelectItem key="Other" value="Other">{t("profile.genderOther")}</SelectItem>
+                    <SelectItem key="Male">{t("profile.genderMale")}</SelectItem>
+                    <SelectItem key="Female">{t("profile.genderFemale")}</SelectItem>
+                    <SelectItem key="Other">{t("profile.genderOther")}</SelectItem>
                   </Select>
                   <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 md:gap-4">
                     <Input

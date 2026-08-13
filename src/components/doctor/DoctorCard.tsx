@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Spinner } from "@nextui-org/react";
+import { Spinner } from "@heroui/react";
 import { FaStar, FaMapMarkerAlt, FaUserMd, FaChevronRight } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";

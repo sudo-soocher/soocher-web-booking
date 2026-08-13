@@ -5,7 +5,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { FaCheck, FaGlobe } from "react-icons/fa";
 import { LANGUAGES, useLanguage, useTranslation } from "@/i18n/LanguageProvider";
 

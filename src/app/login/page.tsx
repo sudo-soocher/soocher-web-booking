@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@nextui-org/react";
+import { Input } from "@heroui/react";
 import { FcGoogle } from "react-icons/fc";
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
@@ -23,6 +23,11 @@ import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { markNativeSession } from "@/lib/native-session";
 import { fetchUserProfile } from "@/lib/user-profile";
+import {
+  claimDoctorAccount,
+  destinationPath,
+  resolveDestination,
+} from "@/lib/post-login-route";
 import { createNewPatient } from "@/types/patient";
 import OtpInput from "@/components/forms/OtpInput";
 import { HomeShimmer } from "@/components/loading/HomeShimmer";
@@ -50,37 +55,77 @@ export default function Login() {
     currentCity: "",
   });
 
+
+  /**
+   * Send a signed-in user to wherever their account belongs.
+   *
+   * Login is unified, so role is only knowable after the session exists.
+   * `?as=doctor` (set by the /doc entry point) promotes an account that has no
+   * type yet — it can never overwrite an established one.
+   *
+   * Returns true when it redirected; false means the caller should collect the
+   * missing patient profile fields on this page.
+   */
+  const routeByAccount = React.useCallback(
+    async (user: User): Promise<boolean> => {
+      const wantsDoctor =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("as") === "doctor";
+
+      if (wantsDoctor) {
+        await claimDoctorAccount(user.uid).catch(() => false);
+      }
+
+      const destination = await resolveDestination(user.uid);
+      const path = destinationPath(destination);
+
+      if (path) {
+        markNativeSession(user.uid);
+        router.replace(path);
+        return true;
+      }
+
+      setPendingUser(user);
+      setRegistrationData((prev) => ({
+        ...prev,
+        name: destination.kind === "patient-needs-profile"
+          ? destination.profile.name || prev.name
+          : prev.name,
+        email: destination.kind === "patient-needs-profile"
+          ? destination.profile.email || user.email || prev.email
+          : prev.email,
+      }));
+
+      const hasPhone = !!(
+        user.phoneNumber ||
+        (destination.kind === "patient-needs-profile" && destination.profile.phoneNumber)
+      );
+      if (!hasPhone) {
+        setNeedsPhoneLink(true);
+        setLinkPhoneStage("input");
+      } else {
+        setNeedsRegistration(true);
+      }
+      return false;
+    },
+    [router]
+  );
+
+  // A doctor-area guard bounced this user here because their account is a
+  // patient. Read the flag off window.location rather than useSearchParams,
+  // which would force this statically-prerendered page into a Suspense boundary.
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("denied") !== "1") return;
+    setError(t("login.deniedNotDoctor"));
+  }, [t]);
+
   // Redirect if already authenticated AND profile exists; otherwise prompt for missing info
   React.useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
-          const data = await fetchUserProfile(user.uid);
-          const hasName = !!data?.name && data.name.trim().length > 0;
-          const hasEmail = !!data?.email && data.email.trim().length > 0;
-          const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
-
-          if (hasName && hasEmail && hasPhone) {
-            markNativeSession(user.uid);
-            router.replace("/");
-            return;
-          }
-
-          setPendingUser(user);
-          setRegistrationData((prev) => ({
-            ...prev,
-            name: data?.name || prev.name,
-            email: data?.email || user.email || prev.email,
-          }));
-
-          // If phone is missing (e.g. Google sign-in), verify phone first; registration after
-          if (!hasPhone) {
-            setNeedsPhoneLink(true);
-            setLinkPhoneStage("input");
-          } else {
-            setNeedsRegistration(true);
-          }
-          setCheckingAuth(false);
+          const redirected = await routeByAccount(user);
+          if (!redirected) setCheckingAuth(false);
         } catch (err) {
           console.error("Error checking user profile:", err);
           setCheckingAuth(false);
@@ -90,7 +135,7 @@ export default function Login() {
       }
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, routeByAccount]);
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,28 +168,7 @@ export default function Login() {
   };
 
   const routeAfterAuth = async (user: User) => {
-    const data = await fetchUserProfile(user.uid);
-    const hasName = !!data?.name && data.name.trim().length > 0;
-    const hasEmail = !!data?.email && data.email.trim().length > 0;
-    const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
-
-    if (hasName && hasEmail && hasPhone) {
-      markNativeSession(user.uid);
-      router.push("/");
-      return;
-    }
-    setPendingUser(user);
-    setRegistrationData((prev) => ({
-      ...prev,
-      name: data?.name || prev.name,
-      email: data?.email || user.email || prev.email,
-    }));
-    if (!hasPhone) {
-      setNeedsPhoneLink(true);
-      setLinkPhoneStage("input");
-    } else {
-      setNeedsRegistration(true);
-    }
+    await routeByAccount(user);
   };
 
   const sendLinkPhoneCode = async (e: React.FormEvent) => {

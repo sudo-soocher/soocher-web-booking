@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input, Select, SelectItem } from "@nextui-org/react";
+import { Input, Select, SelectItem } from "@heroui/react";
 import { db } from "@/lib/firebase-db";
 import { doc, setDoc } from "firebase/firestore";
 import { Patient, createNewPatient } from "@/types/patient";
@@ -90,13 +90,13 @@ export default function NewUserForm({
         onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
         required
       >
-        <SelectItem key="Male" value="Male">
+        <SelectItem key="Male">
           Male
         </SelectItem>
-        <SelectItem key="Female" value="Female">
+        <SelectItem key="Female">
           Female
         </SelectItem>
-        <SelectItem key="Other" value="Other">
+        <SelectItem key="Other">
           Other
         </SelectItem>
       </Select>

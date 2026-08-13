@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Divider } from "@nextui-org/react";
+import { Divider } from "@heroui/react";
 import { FcGoogle } from "react-icons/fc";
 import { auth } from "@/lib/firebase-auth";
 import {

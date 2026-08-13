@@ -1,12 +1,19 @@
 import type { Config } from "tailwindcss";
-import { nextui } from "@nextui-org/react";
+import { heroui } from "@heroui/react";
+
+// HeroUI bundles its own tailwindcss v4 types via a nested install. The plugin
+// runs correctly under this project's v3 install — just relax the type here.
+// (Same workaround as the doctor app.)
+const herouiPlugin = heroui as unknown as (
+  opts?: unknown
+) => Config["plugins"] extends (infer P)[] ? P : never;
 
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -29,7 +36,7 @@ const config: Config = {
   },
   darkMode: "class",
   plugins: [
-    nextui({
+    herouiPlugin({
       themes: {
         light: {
           colors: {

@@ -16,27 +16,3 @@ const firebaseConfig = {
 export const firebaseApp = getApps().length === 0
   ? initializeApp(firebaseConfig)
   : getApp();
-
-// App Check is valuable, but reCAPTCHA is not part of the critical rendering
-// path. Loading it after the browser becomes idle keeps it out of every page's
-// initial Firebase bundle and avoids competing with the first Firestore read.
-if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY) {
-  const startAppCheck = async () => {
-    const { initializeAppCheck, ReCaptchaV3Provider } = await import("firebase/app-check");
-
-    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      (window as typeof window & { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
-
-    initializeAppCheck(firebaseApp, {
-      provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY!),
-      isTokenAutoRefreshEnabled: true,
-    });
-  };
-
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(() => void startAppCheck(), { timeout: 3000 });
-  } else {
-    setTimeout(() => void startAppCheck(), 1);
-  }
-}
