@@ -15,6 +15,9 @@ import {
   FaClock,
   FaComments,
   FaPhoneAlt,
+  FaShieldAlt,
+  FaArrowRight,
+  FaUser,
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -27,7 +30,7 @@ const ChatSidebar = dynamic(
   { ssr: false }
 );
 import { getChatAvailability } from "@/utils/chat/availability";
-import { formatDisplayDateTime, formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
+import { formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
 import { Logo } from "@/components/ui/Logo";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useTranslation } from "@/i18n/LanguageProvider";
@@ -126,10 +129,6 @@ export default function Bookings() {
 
   const filterConsultations = (type: "upcoming" | "active" | "past") =>
     groupedConsultations[type];
-
-  const formatDateTime = (timestamp: number, timezone?: string) => {
-    return formatDisplayDateTime(timestamp, timezone);
-  };
 
   const getStatusChip = (consultation: Consultation) => {
     const now = Date.now();
@@ -492,38 +491,64 @@ export default function Bookings() {
         onClose={onClose}
         size="lg"
         placement="bottom-center"
+        scrollBehavior="inside"
         classNames={{
-          backdrop: "bg-slate-900/40 backdrop-blur-sm",
-          base: "rounded-t-[28px] md:rounded-[28px] border border-white/80 bg-[#F8FAFC] shadow-2xl m-0 md:m-1 sm:m-0",
-          header: "border-b border-white bg-white/65 p-5 md:p-6",
-          body: "p-4 md:p-6",
+          wrapper: "z-[100] items-end p-0 sm:items-center sm:p-4",
+          backdrop: "bg-slate-950/40 backdrop-blur-sm",
+          base: "m-0 max-h-[92dvh] w-full max-w-lg overflow-hidden rounded-b-none rounded-t-[30px] border border-white bg-white shadow-[0_-24px_80px_rgba(15,23,42,0.24)] sm:rounded-[30px]",
+          closeButton: "right-4 top-4 z-20 grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 active:scale-95",
+          header: "rounded-t-[30px] border-b border-slate-100 bg-white px-5 pb-4 pt-5 pr-16 sm:px-6 sm:pb-5 sm:pt-6",
+          body: "bg-white px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-5",
         }}
       >
-        <ModalContent>
+        <ModalContent className="bg-white">
           {() => (
             <>
-              <ModalHeader>
-                <div className="space-y-1">
-                  <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-primary">{t("bookings.overview")}</p>
-                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{t("bookings.details")}</h2>
-                  <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reference: {selectedConsultation?.consultationId.slice(0, 8)}</p>
+              <ModalHeader className="min-w-0">
+                <div className="min-w-0 space-y-1.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-xs text-primary"><FaCalendar /></span>
+                    <p className="min-w-0 truncate text-[10px] font-extrabold uppercase tracking-[0.14em] text-primary">{t("bookings.overview")}</p>
+                  </div>
+                  <h2 className="break-words text-2xl font-black leading-tight tracking-tight text-slate-950">Consultation details</h2>
+                  <p className="break-all font-mono text-[10px] font-bold uppercase tracking-wide text-slate-400">Ref #{selectedConsultation?.consultationId.slice(0, 10).toUpperCase()}</p>
                 </div>
               </ModalHeader>
               <ModalBody>
                 {selectedConsultation && (
-                  <div className="space-y-4 md:space-y-6">
-                    <div className="grid grid-cols-2 gap-3 md:gap-5 p-3.5 md:p-5 bg-white/70 border border-white rounded-[20px] shadow-sm">
-                      <div className="space-y-1 md:space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{t("bookings.doctor")}</p>
-                        <p className="text-sm md:text-base font-black text-slate-900">{selectedConsultation.doctorName}</p>
+                  <div className="space-y-4">
+                    <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+                      <div className="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                        <div className="flex min-w-0 items-center gap-3 p-4">
+                          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><FaUserMd /></span>
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">{t("bookings.doctor")}</p>
+                            <p className="mt-1 break-words text-sm font-extrabold leading-5 text-slate-900">{selectedConsultation.doctorName}</p>
+                          </div>
+                        </div>
+                        <div className="flex min-w-0 items-center gap-3 p-4">
+                          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-violet-50 text-violet-600"><FaUser /></span>
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">{t("bookings.patient")}</p>
+                            <p className="mt-1 break-words text-sm font-extrabold leading-5 text-slate-900">{selectedConsultation.extras?.patientDetails?.patientName ?? "—"}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-1 md:space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{t("bookings.patient")}</p>
-                        <p className="text-sm md:text-base font-black text-slate-900 font-bold">{selectedConsultation.extras?.patientDetails?.patientName ?? "—"}</p>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-600"><FaClock /></span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">{t("bookings.timeDate")}</p>
+                          <p className="mt-1 break-words text-base font-extrabold leading-6 text-slate-900">{formatDisplayDate(selectedConsultation.consultationTime, selectedConsultation.timezone)}</p>
+                          <p className="text-sm font-bold leading-5 text-primary">{formatDisplayTime(selectedConsultation.consultationTime, selectedConsultation.timezone)}</p>
+                        </div>
+                        <div className="shrink-0">{getStatusChip(selectedConsultation)}</div>
                       </div>
-                      <div className="space-y-1 md:space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{t("bookings.bookedVia")}</p>
-                        <span className={`inline-block text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full ${
+                      <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3">
+                        <span className="text-[10px] font-bold text-slate-400">{t("bookings.bookedVia")}</span>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider ${
                           getBookingSource(selectedConsultation) === "web"
                             ? "bg-blue-100 text-blue-600"
                             : "bg-purple-100 text-purple-600"
@@ -531,99 +556,49 @@ export default function Bookings() {
                           {getBookingSource(selectedConsultation)}
                         </span>
                       </div>
-                    </div>
+                    </section>
 
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3 rounded-2xl border border-white bg-white/60 p-3">
-                        <div className="w-9 h-9 shrink-0 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-                          <FaCalendar />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="font-black text-slate-900">{t("bookings.timeDate")}</p>
-                          <p className="text-slate-500 font-medium">
-                            {formatDateTime(selectedConsultation.consultationTime, selectedConsultation.timezone)}
-                          </p>
+                    <section className="rounded-3xl border border-blue-100 bg-blue-50/70 p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-primary shadow-sm"><FaShieldAlt /></span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-extrabold text-slate-900">{t("bookings.videoLinkDuration")}</p>
+                          <p className="mt-1 break-words text-xs leading-5 text-slate-600">Available until {formatDisplayTime(selectedConsultation.consultationExpiration, selectedConsultation.timezone)}. Join using one of the options below.</p>
                         </div>
                       </div>
+                    </section>
 
-                      <div className="flex items-start gap-3 rounded-2xl border border-white bg-white/60 p-3">
-                        <div className="w-9 h-9 shrink-0 bg-success/10 text-success rounded-xl flex items-center justify-center">
-                          <FaVideo />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="font-black text-slate-900">{t("bookings.videoLinkDuration")}</p>
-                          <p className="text-slate-500 font-medium text-sm">
-                            Available until {formatDisplayTime(selectedConsultation.consultationExpiration, selectedConsultation.timezone)}
-                          </p>
-                        </div>
-                      </div>
-
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       {selectedConsultation.extras?.streamCallId && !selectedConsultation.videoConsultDone && (Date.now() <= selectedConsultation.consultationExpiration) && (
-                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                              <FaPhoneAlt className="text-xs" />
-                            </div>
-                            <p className="text-sm font-bold text-primary">{t("bookings.videoReady")}</p>
-                          </div>
-                          <Button
-                            color="primary"
-                            size="sm"
-                            className="rounded-xl font-bold"
-                            onPress={() => router.push(`/video-call/${selectedConsultation.consultationId}`)}
-                          >
-                            Join Video
-                          </Button>
-                        </div>
+                        <button onClick={() => router.push(`/video-call/${selectedConsultation.consultationId}`)} className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl bg-primary px-4 py-3 text-left text-white shadow-lg shadow-primary/20">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15"><FaPhoneAlt /></span>
+                          <span className="min-w-0 flex-1"><span className="block text-[9px] font-bold uppercase tracking-widest text-white/65">Soocher video</span><span className="block break-words text-sm font-extrabold leading-5">Join video call</span></span>
+                          <FaArrowRight className="shrink-0 text-xs" />
+                        </button>
                       )}
 
                       {selectedConsultation.extras?.meetLink && !selectedConsultation.videoConsultDone && (Date.now() <= selectedConsultation.consultationExpiration) && (
-                        <div className="p-4 bg-success/5 border border-success/10 rounded-2xl flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success">
-                              <FaVideo className="text-xs" />
-                            </div>
-                            <p className="text-sm font-bold text-success">{t("bookings.meetReady")}</p>
-                          </div>
-                          <Button
-                            color="success"
-                            size="sm"
-                            className="rounded-xl font-bold"
-                            onPress={() => window.open(selectedConsultation.extras?.meetLink, "_blank")}
-                          >
-                            Join Now
-                          </Button>
-                        </div>
+                        <button onClick={() => window.open(selectedConsultation.extras?.meetLink, "_blank")} className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-emerald-700">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white"><FaVideo /></span>
+                          <span className="min-w-0 flex-1"><span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-600/65">Google Meet</span><span className="block break-words text-sm font-extrabold leading-5">Join meeting</span></span>
+                          <FaArrowRight className="shrink-0 text-xs" />
+                        </button>
                       )}
 
                       {selectedConsultation && getChatAvailability(selectedConsultation).isAvailable && (
-                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                              <FaComments className="text-xs" />
-                            </div>
-                            <p className="text-sm font-bold text-primary">{t("bookings.chatActive")}</p>
-                          </div>
-                          <Button
-                            color="primary"
-                            size="sm"
-                            className="rounded-xl font-bold"
-                            onPress={() => {
-                              onClose();
-                              onChatOpen();
-                            }}
-                          >
-                            Open Chat
-                          </Button>
-                        </div>
+                        <button onClick={() => { onClose(); onChatOpen(); }} className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-left text-primary">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white"><FaComments /></span>
+                          <span className="min-w-0 flex-1"><span className="block text-[9px] font-bold uppercase tracking-widest text-primary/60">{t("bookings.chatActive")}</span><span className="block break-words text-sm font-extrabold leading-5">Open chat</span></span>
+                          <FaArrowRight className="shrink-0 text-xs" />
+                        </button>
                       )}
                     </div>
 
-                    <div className="pt-1">
+                    <div className="pt-0.5">
                       <Button
-                        color="primary"
+                        variant="flat"
                         size="lg"
-                        className="w-full h-12 rounded-2xl font-black shadow-lg shadow-primary/15"
+                        className="h-12 w-full rounded-2xl bg-white font-extrabold text-slate-600 ring-1 ring-slate-200"
                         onPress={onClose}
                       >
                         Close details

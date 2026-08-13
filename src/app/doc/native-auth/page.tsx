@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithCustomToken } from "firebase/auth";
+import { signInWithCustomToken, signOut } from "firebase/auth";
 import { auth } from "@/doctor/lib/firebase";
 import { PageLoader } from "@/doctor/components/ui/PageLoader";
+import { destinationPath, resolveDestination } from "@/lib/post-login-route";
 
 export default function NativeAuthPage() {
   const router = useRouter();
@@ -13,8 +14,25 @@ export default function NativeAuthPage() {
   useEffect(() => {
     const ct = new URLSearchParams(window.location.search).get("ct");
     if (!ct) { setError("No authentication token provided."); return; }
+
     signInWithCustomToken(auth, ct)
-      .then(() => router.replace("/doc/dashboard"))
+      .then(async ({ user }) => {
+        // Resolve the real destination instead of always sending the doctor
+        // to /doc/dashboard. That previously relied on AuthGuard to notice an
+        // unfinished profile and bounce a second time — this loaded the
+        // dashboard's data before redirecting away from it, and it silently
+        // trusted every custom token as a doctor's. This is the Flutter app's
+        // doctor entry point, so a non-doctor account here means the wrong
+        // person reached this URL; sign them back out rather than showing
+        // any doctor screen.
+        const destination = await resolveDestination(user.uid);
+        if (destination.kind === "patient" || destination.kind === "patient-needs-profile") {
+          await signOut(auth);
+          router.replace("/login?denied=1");
+          return;
+        }
+        router.replace(destinationPath(destination) ?? "/doc/dashboard");
+      })
       .catch((err: { message?: string }) => setError(err?.message || "Authentication failed."));
   }, [router]);
 

@@ -102,26 +102,29 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="space-y-4">
+    <div className="flex min-w-0 flex-col gap-5">
+      <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="min-w-0 space-y-4">
         {!showOTPInput ? (
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Phone Number</label>
-            <PhoneInput
-              defaultCountry="in"
-              value={phoneNumber}
-              onChange={(phone) => setPhoneNumber(phone)}
-            />
+          <div className="min-w-0 space-y-2">
+            <label className="ml-1 block text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Phone number</label>
+            <div className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-primary/40">
+              <PhoneInput
+                defaultCountry="in"
+                value={phoneNumber}
+                onChange={(phone) => setPhoneNumber(phone)}
+              />
+            </div>
+            <p className="ml-1 text-[10px] leading-4 text-slate-400">We&apos;ll send a secure six-digit verification code.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-sm">
-              <span className="font-bold text-slate-600">{phoneNumber}</span>
-              <Button size="sm" variant="light" color="primary" onClick={() => setShowOTPInput(false)}>Change</Button>
+            <div className="flex min-w-0 items-center justify-between gap-2 rounded-2xl border border-primary/10 bg-primary/5 p-3 text-sm">
+              <span className="min-w-0 truncate font-bold text-slate-700">{phoneNumber}</span>
+              <Button size="sm" variant="light" color="primary" className="shrink-0 font-bold" onClick={() => setShowOTPInput(false)}>Change</Button>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Verification Code
+              <label className="ml-1 block text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
+                Verification code
               </label>
               <OtpInput value={verificationCode} onChange={setVerificationCode} />
             </div>
@@ -129,7 +132,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         )}
 
         {error && (
-          <p className="text-xs font-bold text-danger bg-danger/5 p-3 rounded-lg border border-danger/10">
+          <p className="break-words rounded-xl border border-danger/10 bg-danger/5 p-3 text-xs font-bold leading-5 text-danger">
             {error}
           </p>
         )}
@@ -137,7 +140,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         <Button
           color="primary"
           type="submit"
-          className="w-full h-12 rounded-xl font-bold"
+          className="h-14 w-full rounded-2xl text-base font-extrabold !text-white shadow-xl shadow-primary/20"
           isLoading={isLoading}
           spinnerPlacement="start"
         >
@@ -151,16 +154,16 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         </Button>
       </form>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Divider className="flex-1" />
-        <span className="text-default-400 text-sm">OR</span>
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">or continue with</span>
         <Divider className="flex-1" />
       </div>
 
       <Button
         startContent={<FcGoogle className="text-xl" />}
         variant="bordered"
-        className="w-full"
+        className="h-14 w-full rounded-2xl border-slate-200 bg-white text-base font-bold text-slate-800 shadow-sm"
         onClick={handleGoogleLogin}
       >
         Continue with Google

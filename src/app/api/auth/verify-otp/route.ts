@@ -100,30 +100,54 @@ export async function POST(request: Request) {
         // orphan Auth user behind on every attempt, because createUser ran before
         // the check.
         //
-        // limit(2) so genuine duplicates are detectable; that is the only case
-        // that is actually ambiguous.
-        const ownersSnap = await db
-            .collection("Users")
-            .where("phoneNumber", "==", e164)
-            .limit(2)
-            .get();
-
         const adminAuth = getAdminAuth();
+        const [ownersSnap, authPhoneUser] = await Promise.all([
+            db
+                .collection("Users")
+                .where("phoneNumber", "==", e164)
+                .limit(10)
+                .get(),
+            adminAuth.getUserByPhoneNumber(e164).catch(() => null),
+        ]);
         let uid: string;
 
         if (ownersSnap.size > 1) {
-            console.error(
-                ">>> [VERIFY-OTP] Multiple Users docs share",
-                e164,
-                ownersSnap.docs.map((d) => d.id)
-            );
-            return NextResponse.json(
-                { error: "This number is linked to more than one account. Please contact support." },
-                { status: 409 }
-            );
-        }
+            const establishedOwners = ownersSnap.docs.filter((owner) => {
+                const type = owner.data().type;
+                return type === "PATIENT" || type === "DOCTOR";
+            });
+            const authOwner = authPhoneUser
+                ? ownersSnap.docs.find((owner) => owner.id === authPhoneUser.uid)
+                : undefined;
 
-        if (ownersSnap.size === 1) {
+            // Old login flows could leave incomplete phone-only/profile-only
+            // documents behind. They are not separate accounts when one typed
+            // Users profile is also the Firebase Auth record that owns the
+            // verified phone. Prefer that canonical UID and leave cleanup to an
+            // explicit migration instead of blocking a legitimate login.
+            if (
+                authOwner &&
+                establishedOwners.length === 1 &&
+                establishedOwners[0].id === authOwner.id
+            ) {
+                uid = authOwner.id;
+                console.warn(
+                    ">>> [VERIFY-OTP] Ignoring incomplete duplicate Users docs for",
+                    e164,
+                    ownersSnap.docs.filter((owner) => owner.id !== uid).map((owner) => owner.id)
+                );
+            } else {
+                console.error(
+                    ">>> [VERIFY-OTP] Conflicting Users docs share",
+                    e164,
+                    ownersSnap.docs.map((owner) => ({ id: owner.id, type: owner.data().type ?? null }))
+                );
+                return NextResponse.json(
+                    { error: "This number is linked to more than one active account. Please contact support." },
+                    { status: 409 }
+                );
+            }
+        } else if (ownersSnap.size === 1) {
             uid = ownersSnap.docs[0].id;
             // Attach the phone to the Auth record so future lookups line up.
             // Best-effort: it fails harmlessly if another Auth user holds it.
@@ -132,11 +156,7 @@ export async function POST(request: Request) {
                 .catch(() => adminAuth.createUser({ uid, phoneNumber: e164 }).catch(() => {}));
         } else {
             // Nobody owns this number yet — normal first-time sign-up.
-            try {
-                uid = (await adminAuth.getUserByPhoneNumber(e164)).uid;
-            } catch {
-                uid = (await adminAuth.createUser({ phoneNumber: e164 })).uid;
-            }
+            uid = authPhoneUser?.uid ?? (await adminAuth.createUser({ phoneNumber: e164 })).uid;
         }
 
         try {

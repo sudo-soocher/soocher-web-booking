@@ -369,39 +369,168 @@ body {
   background: rgba(46, 109, 212, 0.25);
 }
 
-/* Stream Chat Mobile Overrides */
-@media (max-width: 768px) {
-  .str-chat {
-    height: 100% !important;
-  }
-  .str-chat__main-panel {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-  .str-chat__main-panel-inner {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-    min-height: 0 !important;
-  }
-  .str-chat-channel {
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  .str-chat__message-input-root {
-    flex-shrink: 0 !important;
-    background: white !important;
-    position: sticky !important;
-    bottom: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
-  }
-  .str-chat__message-list {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-  }
+/* User consultation chat */
+.soocher-chat-screen { height: 100dvh; }
+
+.soocher-chat-screen .str-chat,
+.soocher-chat-screen .str-chat-channel,
+.soocher-chat-screen .str-chat__main-panel,
+.soocher-chat-screen .str-chat__main-panel-inner,
+.soocher-chat-screen .str-chat__channel,
+.soocher-chat-screen .str-chat__channel-window {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.soocher-chat-screen .str-chat__main-panel,
+.soocher-chat-screen .str-chat__main-panel-inner,
+.soocher-chat-screen .str-chat-channel,
+.soocher-chat-screen .str-chat__channel,
+.soocher-chat-screen .str-chat__channel-window {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.soocher-user-chat.str-chat {
+  --str-chat__primary-color: #2f73db;
+  --str-chat__active-primary-color: #205fca;
+  --str-chat__surface-color: #f5f8ff;
+  --str-chat__secondary-surface-color: #fff;
+  background: #f5f8ff !important;
+  color: #172036;
+  font-family: inherit;
+}
+
+.soocher-chat-screen .str-chat__list,
+.soocher-chat-screen .str-chat__message-list,
+.soocher-chat-screen .str-chat__message-list-scroll {
+  min-height: 0 !important;
+  background: radial-gradient(circle at 15% 15%, rgba(125, 180, 241, 0.12), transparent 28%), linear-gradient(180deg, #f8faff 0%, #f3f7fd 100%) !important;
+}
+
+.soocher-chat-screen .str-chat__list { flex: 1 1 auto !important; overflow: hidden !important; }
+.soocher-chat-screen .str-chat__message-list-scroll { padding: 18px 12px 14px !important; }
+.soocher-chat-screen .str-chat__li {
+  padding-inline: 0 !important;
+  animation: chat-message-in 240ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
+}
+
+.soocher-chat-screen .str-chat__message-simple-text-inner {
+  max-width: min(78vw, 320px);
+  border: 1px solid rgba(213, 222, 236, 0.72) !important;
+  border-radius: 20px 20px 20px 6px !important;
+  background: #fff !important;
+  box-shadow: 0 5px 16px rgba(39, 70, 115, 0.07);
+  color: #243047 !important;
+  line-height: 1.5;
+}
+
+.soocher-chat-screen .str-chat__message--me .str-chat__message-simple-text-inner {
+  border-color: transparent !important;
+  border-radius: 20px 20px 6px 20px !important;
+  background: linear-gradient(135deg, #2f73db 0%, #3e88e4 100%) !important;
+  box-shadow: 0 7px 18px rgba(47, 115, 219, 0.18);
+  color: #fff !important;
+}
+
+.soocher-chat-screen .str-chat__message-simple-text-inner p {
+  color: inherit !important;
+  overflow-wrap: anywhere;
+}
+
+.soocher-chat-screen .str-chat__message-data,
+.soocher-chat-screen .str-chat__message-simple-status {
+  color: #8b98ad !important;
+  font-size: 10px !important;
+}
+
+.soocher-chat-screen .str-chat__avatar { box-shadow: 0 0 0 3px #fff, 0 5px 12px rgba(23, 50, 91, 0.1); }
+.soocher-chat-screen .str-chat__date-separator-line { background: #dce5f1 !important; }
+.soocher-chat-screen .str-chat__date-separator-date {
+  border: 1px solid rgba(210, 221, 237, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 5px 10px;
+  color: #7890ad;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.soocher-chat-input {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(218, 227, 240, 0.8);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 32px rgba(42, 72, 117, 0.06);
+  backdrop-filter: blur(18px);
+}
+
+.soocher-chat-screen .str-chat__message-input-root {
+  position: static !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.soocher-chat-screen .str-chat__message-input-inner {
+  min-height: 54px;
+  gap: 6px;
+  border: 1px solid #dce5f2 !important;
+  border-radius: 20px !important;
+  background: #f8faff !important;
+  padding: 6px 7px 6px 10px !important;
+  box-shadow: inset 0 1px 2px rgba(24, 52, 91, 0.03), 0 7px 20px rgba(37, 72, 121, 0.06);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.soocher-chat-screen .str-chat__message-input-inner:focus-within {
+  border-color: #8eb8ee !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 4px rgba(47, 115, 219, 0.08), 0 8px 22px rgba(37, 72, 121, 0.08);
+}
+
+.soocher-chat-screen .str-chat__textarea textarea {
+  max-height: 104px !important;
+  color: #202c43 !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+.soocher-chat-screen .str-chat__textarea textarea::placeholder { color: #9aa8ba !important; }
+.soocher-chat-screen .str-chat__send-button {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #2f73db, #438ee7) !important;
+  box-shadow: 0 7px 16px rgba(47, 115, 219, 0.24);
+  color: #fff !important;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.soocher-chat-screen .str-chat__send-button:hover { transform: translateY(-1px); box-shadow: 0 9px 19px rgba(47, 115, 219, 0.3); }
+.soocher-chat-screen .str-chat__send-button:active { transform: scale(0.94); }
+.soocher-chat-screen .str-chat__file-input-container,
+.soocher-chat-screen .str-chat__emoji-picker-button { color: #6f86a5 !important; }
+
+.chat-loading-shimmer > * { position: relative; overflow: hidden; }
+.chat-loading-shimmer > *::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: chat-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes chat-shimmer { 100% { transform: translateX(100%); } }
+@keyframes chat-message-in {
+  from { opacity: 0; transform: translateY(7px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-loading-shimmer > *::after,
+  .soocher-chat-screen .str-chat__li { animation: none; }
 }
 
 /* Malayalam script needs a font that actually carries its glyphs. Scoped to the

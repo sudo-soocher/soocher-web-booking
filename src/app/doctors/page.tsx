@@ -127,8 +127,12 @@ function DoctorsListContent() {
                         variant="bordered"
                         radius="lg"
                         classNames={{
-                            trigger: "bg-white/70 border-white/80 shadow-sm h-10 backdrop-blur-xl",
-                            value: "font-semibold text-slate-700 text-xs",
+                            trigger: "h-11 rounded-2xl border-white/90 bg-white/90 px-3 shadow-[0_5px_18px_rgba(31,65,112,0.08)] backdrop-blur-xl data-[open=true]:border-primary/35 data-[open=true]:ring-4 data-[open=true]:ring-primary/5",
+                            value: "truncate pr-2 text-xs font-bold text-slate-700",
+                            selectorIcon: "text-primary",
+                            popoverContent: "doctor-speciality-menu overflow-hidden rounded-[22px] border border-slate-200/80 bg-white p-1.5 shadow-[0_20px_55px_rgba(15,42,80,0.18)]",
+                            listboxWrapper: "max-h-[min(54dvh,360px)] px-0.5 py-0.5",
+                            listbox: "gap-1 p-0",
                         }}
                         onSelectionChange={(keys: any) => {
                             const selected = Array.from(keys)[0] as string;
@@ -136,7 +140,17 @@ function DoctorsListContent() {
                         }}
                     >
                         {specialities.map((name) => (
-                            <SelectItem key={name} className="font-bold text-slate-600">{name}</SelectItem>
+                            <SelectItem
+                                key={name}
+                                textValue={name}
+                                classNames={{
+                                    base: "min-h-12 rounded-2xl px-3 py-2.5 data-[hover=true]:bg-blue-50 data-[focus=true]:bg-blue-50 data-[selected=true]:bg-primary/10",
+                                    title: "whitespace-normal break-words text-xs font-bold leading-[1.35rem] text-slate-700",
+                                    selectedIcon: "text-primary",
+                                }}
+                            >
+                                {name}
+                            </SelectItem>
                         ))}
                     </Select>
                 </div>
@@ -174,11 +188,29 @@ function DoctorsListContent() {
                             selectedKeys={specialities.includes(selectedSpeciality) ? [selectedSpeciality] : []}
                             variant="bordered"
                             radius="lg"
-                            classNames={{ trigger: "bg-white border-slate-100 hover:border-primary/50 h-14", label: "font-black text-slate-400 uppercase tracking-widest text-[10px]", value: "font-bold text-slate-700" }}
+                            classNames={{
+                                trigger: "h-14 rounded-2xl border-slate-200 bg-white shadow-sm hover:border-primary/50 data-[open=true]:border-primary/50 data-[open=true]:ring-4 data-[open=true]:ring-primary/5",
+                                label: "text-[10px] font-black uppercase tracking-widest text-slate-400",
+                                value: "truncate pr-2 font-bold text-slate-700",
+                                selectorIcon: "text-primary",
+                                popoverContent: "doctor-speciality-menu overflow-hidden rounded-[22px] border border-slate-200/80 bg-white p-1.5 shadow-[0_20px_55px_rgba(15,42,80,0.18)]",
+                                listboxWrapper: "max-h-[min(55dvh,420px)] px-0.5 py-0.5",
+                                listbox: "gap-1 p-0",
+                            }}
                             onSelectionChange={(keys: any) => { const selected = Array.from(keys)[0] as string; if (selected) handleSpecialityChange(selected); }}
                         >
                             {specialities.map((name) => (
-                                <SelectItem key={name} className="font-bold text-slate-600">{name}</SelectItem>
+                                <SelectItem
+                                    key={name}
+                                    textValue={name}
+                                    classNames={{
+                                        base: "min-h-12 rounded-2xl px-3 py-2.5 data-[hover=true]:bg-blue-50 data-[focus=true]:bg-blue-50 data-[selected=true]:bg-primary/10",
+                                        title: "whitespace-normal break-words text-sm font-bold leading-5 text-slate-700",
+                                        selectedIcon: "text-primary",
+                                    }}
+                                >
+                                    {name}
+                                </SelectItem>
                             ))}
                         </Select>
                     </div>

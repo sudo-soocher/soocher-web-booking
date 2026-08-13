@@ -26,6 +26,7 @@ export const useStreamChat = () => {
 export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [client, setClient] = useState<StreamChat | null>(null);
     const clientRef = useRef<StreamChat | null>(null);
+    const connectionRef = useRef<Promise<StreamChat | null> | null>(null);
 
     // Lazily create the StreamChat instance — only downloads the SDK when chat is first opened
     const getOrInitClient = useCallback(async () => {
@@ -45,28 +46,42 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
         const sanitizedUserId = sanitizeStreamId(userId);
         if (chatClient.userID === sanitizedUserId) return chatClient;
-        if (chatClient.userID) await chatClient.disconnectUser();
 
-        const tokenApi = process.env.NEXT_PUBLIC_STREAM_TOKEN_API;
-        if (!tokenApi) throw new Error('NEXT_PUBLIC_STREAM_TOKEN_API is not defined');
+        // A quick close/reopen can otherwise start two connectUser calls on the
+        // same Stream singleton. Reuse the active attempt instead.
+        if (connectionRef.current) return connectionRef.current;
 
-        const fetchUrl = (typeof window !== 'undefined' && tokenApi.startsWith('/'))
-            ? `${window.location.origin}${tokenApi}`
-            : tokenApi;
+        const connection = (async () => {
+            if (chatClient.userID && chatClient.userID !== sanitizedUserId) {
+                await chatClient.disconnectUser();
+            }
 
-        const response = await fetch(fetchUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: sanitizedUserId }),
-        });
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(`Token API error (${response.status}): ${err.message || response.statusText}`);
+            const tokenApi = process.env.NEXT_PUBLIC_STREAM_TOKEN_API || '/api/stream-token';
+            const fetchUrl = (typeof window !== 'undefined' && tokenApi.startsWith('/'))
+                ? `${window.location.origin}${tokenApi}`
+                : tokenApi;
+
+            const response = await fetch(fetchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: sanitizedUserId }),
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(`Token API error (${response.status}): ${err.error || err.message || response.statusText}`);
+            }
+            const { token } = await response.json();
+            if (!token) throw new Error('Token API did not return a token');
+            await chatClient.connectUser({ id: sanitizedUserId, name: userName }, token);
+            return chatClient;
+        })();
+
+        connectionRef.current = connection;
+        try {
+            return await connection;
+        } finally {
+            connectionRef.current = null;
         }
-        const { token } = await response.json();
-        if (!token) throw new Error('Token API did not return a token');
-        await chatClient.connectUser({ id: sanitizedUserId, name: userName }, token);
-        return chatClient;
     }, [getOrInitClient]);
 
     const disconnectUser = useCallback(async () => {
