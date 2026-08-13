@@ -29,6 +29,7 @@ const ChatSidebar = dynamic(
 import { getChatAvailability } from "@/utils/chat/availability";
 import { formatDisplayDate, formatDisplayTime, getTimezoneName } from "@/utils/timezone";
 import { Logo } from "@/components/ui/Logo";
+import { BookingCompleteShimmer } from "@/components/loading/BookingCompleteShimmer";
 
 export default function BookingComplete() {
   const params = useParams();
@@ -67,19 +68,7 @@ export default function BookingComplete() {
   }, [params.id]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        <header className="px-6 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
-            <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
-            <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
-          </div>
-        </header>
-        <main className="max-w-2xl mx-auto px-6 py-12">
-          <div className="premium-card h-[600px] animate-pulse bg-slate-50 border-none" />
-        </main>
-      </div>
-    );
+    return <BookingCompleteShimmer />;
   }
 
   if (!consultation) {

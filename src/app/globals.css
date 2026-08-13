@@ -17,6 +17,33 @@ body {
   background: #f5f7fb;
 }
 
+/* Shared mobile-app loading sheen. Background animation avoids oversized
+   pseudo-elements, so the effect cannot create horizontal page overflow. */
+.app-shimmer {
+  background-image: linear-gradient(
+    105deg,
+    rgba(226, 232, 240, 0.72) 15%,
+    rgba(248, 250, 252, 0.96) 42%,
+    rgba(219, 234, 254, 0.78) 55%,
+    rgba(226, 232, 240, 0.72) 82%
+  );
+  background-size: 220% 100%;
+  animation: app-shimmer-sweep 1.35s ease-in-out infinite;
+  transform: translateZ(0);
+}
+
+@keyframes app-shimmer-sweep {
+  0% { background-position: 110% 0; }
+  100% { background-position: -110% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shimmer {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
 /* Safe area utilities */
 @layer utilities {
   .safe-top {

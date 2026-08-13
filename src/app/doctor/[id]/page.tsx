@@ -43,6 +43,7 @@ import { validateCoupon } from "@/utils/coupon";
 import { Input } from "@nextui-org/react";
 import { RemoteImage } from "@/components/ui/RemoteImage";
 import { getCachedDoctorById } from "@/lib/doctors";
+import { AppShimmer } from "@/components/loading/AppShimmer";
 
 interface Doctor {
   name: string;
@@ -803,27 +804,7 @@ function DoctorDetailsContent() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#F8FAFC]">
-        <header className="mobile-page-header md:hidden">
-          <div className="mobile-page-header-inner">
-            <div><span className="mobile-page-title">Doctor Profile</span></div>
-          </div>
-        </header>
-        <div className="mx-auto flex min-h-[calc(100dvh-56px)] max-w-7xl items-center justify-center px-4 md:min-h-[100dvh]">
-          <div className="flex flex-col items-center gap-4 rounded-[28px] border border-white/90 bg-white/75 px-8 py-7 text-center shadow-[0_16px_45px_rgba(46,109,212,0.10)] backdrop-blur-xl">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-primary/10 to-cyan-100/70 text-primary">
-              <FaUserMd className="text-2xl" />
-            </div>
-            <Spinner size="sm" color="primary" />
-            <div>
-              <p className="text-sm font-extrabold text-slate-800">Loading doctor profile</p>
-              <p className="mt-1 text-[11px] font-medium text-slate-400">Fetching profile and availability…</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AppShimmer variant="profile" />;
   }
 
   if (!doctor) {
@@ -878,9 +859,9 @@ function DoctorDetailsContent() {
           {/* Main Info Column */}
           <div className="min-w-0 lg:col-span-2 space-y-4 md:space-y-8">
             <Card className="mobile-app-card premium-card overflow-hidden border border-white/80">
-              <CardBody className="relative p-4 md:p-8">
-                <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-20 -left-20 h-44 w-44 rounded-full bg-cyan-100/60 blur-3xl" />
+              <CardBody className="relative min-w-0 overflow-x-hidden p-4 md:p-8">
+                <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 translate-x-1/3 -translate-y-1/3 rounded-full bg-primary/10 blur-3xl" />
+                <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 -translate-x-1/3 translate-y-1/3 rounded-full bg-cyan-100/60 blur-3xl" />
                 <div className="relative">
                   <div className="flex flex-row gap-3.5 md:gap-6 items-center text-left">
                     <div className="relative z-10 shrink-0">
@@ -891,7 +872,7 @@ function DoctorDetailsContent() {
                             alt={doctor.name}
                             sizes="(max-width: 768px) 84px, 128px"
                             priority
-                            shimmer={false}
+                            shimmer
                             className="object-cover object-top"
                           />
                         </div>
@@ -1005,7 +986,7 @@ function DoctorDetailsContent() {
           {/* Booking Column */}
           <div className="min-w-0 lg:col-span-1 border-none">
             <Card className="mobile-app-card premium-card md:sticky md:top-28 overflow-hidden border border-white/80 md:border-primary/10">
-              <CardBody className="p-4 md:p-6">
+              <CardBody className="min-w-0 overflow-x-hidden p-4 md:p-6">
                 <div className="flex items-center justify-between gap-3 mb-5 md:mb-6">
                   <div>
                     <p className="text-[9px] md:text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">Online consultation</p>
