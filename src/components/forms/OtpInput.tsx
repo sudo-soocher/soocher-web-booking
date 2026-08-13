@@ -85,7 +85,10 @@ export default function OtpInput({
     };
 
     return (
-        <div className="flex items-center justify-between gap-2 sm:gap-3" onPaste={handlePaste}>
+        <div
+            className="grid min-w-0 grid-cols-6 gap-1.5 sm:gap-3"
+            onPaste={handlePaste}
+        >
             {Array.from({ length }).map((_, i) => (
                 <input
                     key={i}
@@ -101,7 +104,7 @@ export default function OtpInput({
                     onKeyDown={(e) => handleKeyDown(e, i)}
                     onFocus={(e) => e.currentTarget.select()}
                     disabled={disabled}
-                    className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-xl border-2 border-slate-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all bg-white text-slate-900 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    className="h-12 min-w-0 w-full text-center text-lg sm:h-16 sm:text-2xl font-bold rounded-xl border-2 border-slate-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all bg-white text-slate-900 disabled:bg-slate-50 disabled:cursor-not-allowed"
                     aria-label={`Digit ${i + 1}`}
                 />
             ))}
