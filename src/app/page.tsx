@@ -30,6 +30,7 @@ import { Logo } from "@/components/ui/Logo";
 import Image from "next/image";
 import { getSpecialityImage } from "@/utils/speciality-images";
 import { fetchSpecialities, getCachedSpecialities, type Speciality } from "@/lib/specialities";
+import { clearCachedBookings } from "@/lib/bookings-cache";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface AIResponse {
@@ -149,6 +150,7 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       clearNativeSession();
+      clearCachedBookings(auth.currentUser?.uid);
       await signOut(auth);
       router.push("/login");
     } catch (error) {

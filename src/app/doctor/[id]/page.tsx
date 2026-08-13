@@ -222,18 +222,36 @@ function DoctorDetailsContent() {
     return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
-  // Function to calculate epoch timestamp from day name and time string
-  const calculateSlotTimestamp = (dayKey: string, timeRange: string) => {
-    try {
-      if (!dayKey || !timeRange) return 0;
-      // Actual implementation would be here, for now use them to avoid lint errors
-      const [startTime] = timeRange.split(" - ");
-      return startTime ? 1 : 0; // Dummy logic using the variables
-    } catch (error) {
-      console.error("Error calculating slot timestamp:", error);
-      return 0;
-    }
-  };
+  /**
+   * Epoch for a stored slot whose document predates the `bookingDate` field.
+   *
+   * This was previously stubbed to `return startTime ? 1 : 0`, i.e. every such
+   * slot claimed to start at epoch 1 (Jan 1970). That made them look like they
+   * were in the past, so they were filtered out of today's list entirely, and
+   * the availability lookup queried `consultationTime == 1` for them.
+   *
+   * `timeRange` is a display range ("08:00PM - 08:15PM"); only the start matters,
+   * and it is wall-clock in the *doctor's* timezone — the same basis
+   * generateDynamicSlots uses, so both paths produce comparable timestamps.
+   */
+  const calculateSlotTimestamp = useCallback(
+    (dayKey: string, timeRange: string) => {
+      try {
+        if (!dayKey || !timeRange) return 0;
+        const [startTime] = timeRange.split(" - ");
+        if (!startTime) return 0;
+        return parseTimeToEpoch(
+          dayKey,
+          startTime.trim(),
+          doctor?.timezone || "Asia/Kolkata"
+        );
+      } catch (error) {
+        console.error("Error calculating slot timestamp:", error);
+        return 0;
+      }
+    },
+    [doctor?.timezone]
+  );
 
   // Function to get available days
   const getAvailableDays = () => {
@@ -430,7 +448,7 @@ function DoctorDetailsContent() {
     return candidateSlots
       .filter((slot) => !bookedSet.has(slot.calculatedTimestamp))
       .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
-  }, [selectedDay, doctor, params.id, generateDynamicSlots]);
+  }, [selectedDay, doctor, params.id, generateDynamicSlots, calculateSlotTimestamp]);
 
   useEffect(() => {
     const fetchDoctorAndSlots = async () => {

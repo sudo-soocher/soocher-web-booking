@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } from "@nextui-org/react";
 import { db } from "@/lib/firebase-db";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, limit, getDocsFromCache } from "firebase/firestore";
 import {
   FaVideo,
   FaArrowLeft,
@@ -30,6 +30,7 @@ import { getChatAvailability } from "@/utils/chat/availability";
 import { formatDisplayDateTime, formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
 import { Logo } from "@/components/ui/Logo";
 import { BookingsShimmer } from "@/components/loading/BookingsShimmer";
+import { getCachedBookings, setCachedBookings } from "@/lib/bookings-cache";
 
 export default function Bookings() {
   const router = useRouter();
@@ -56,8 +57,32 @@ export default function Bookings() {
       consultationsRef,
       where("participants", "array-contains", user.uid),
       orderBy("consultationTime", "desc"),
-      limit(50)
+      // Keep the initial realtime payload bounded. Thirty appointments covers
+      // the useful recent history while avoiding a heavy 50-card cold render.
+      limit(30)
     );
+
+    // Paint revisits from memory immediately. Firestore's local cache is the
+    // second choice; the live listener below always refreshes in background.
+    const memoryCached = getCachedBookings(user.uid);
+    if (memoryCached) {
+      setConsultations(memoryCached);
+      setLoading(false);
+    } else {
+      void getDocsFromCache(q)
+        .then((snapshot) => {
+          if (snapshot.empty) return;
+          const cached = snapshot.docs.map(
+            (bookingDoc) => bookingDoc.data() as Consultation
+          );
+          setCachedBookings(user.uid, cached);
+          setConsultations(cached);
+          setLoading(false);
+        })
+        .catch(() => {
+          // A cold Firestore cache is normal; the listener handles the fetch.
+        });
+    }
 
     const unsubscribe = onSnapshot(
       q,
@@ -66,6 +91,7 @@ export default function Bookings() {
         snapshot.forEach((doc) => {
           consultationsList.push({ ...doc.data() } as Consultation);
         });
+        setCachedBookings(user.uid, consultationsList);
         setConsultations(consultationsList);
         setLoading(false);
       },
@@ -78,29 +104,25 @@ export default function Bookings() {
     return () => unsubscribe();
   }, [authReady, user, router]);
 
-  const filterConsultations = (type: "upcoming" | "active" | "past") => {
+  const groupedConsultations = useMemo(() => {
     const now = Date.now();
+    return consultations.reduce(
+      (groups, consultation) => {
+        if (consultation.videoConsultDone || consultation.consultationExpiration < now) {
+          groups.past.push(consultation);
+        } else if (consultation.consultationTime <= now) {
+          groups.active.push(consultation);
+        } else {
+          groups.upcoming.push(consultation);
+        }
+        return groups;
+      },
+      { upcoming: [], active: [], past: [] } as Record<"upcoming" | "active" | "past", Consultation[]>
+    );
+  }, [consultations]);
 
-    switch (type) {
-      case "upcoming":
-        return consultations.filter(
-          (c) => !c.videoConsultDone && c.consultationTime > now
-        );
-      case "active":
-        return consultations.filter(
-          (c) =>
-            !c.videoConsultDone &&
-            c.consultationTime <= now &&
-            c.consultationExpiration >= now
-        );
-      case "past":
-        return consultations.filter(
-          (c) => c.videoConsultDone || c.consultationExpiration < now
-        );
-      default:
-        return [];
-    }
-  };
+  const filterConsultations = (type: "upcoming" | "active" | "past") =>
+    groupedConsultations[type];
 
   const formatDateTime = (timestamp: number, timezone?: string) => {
     return formatDisplayDateTime(timestamp, timezone);
@@ -225,10 +247,10 @@ export default function Bookings() {
               <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={selectedTab}
-                initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -8, filter: "blur(3px)" }}
-                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.14, ease: "easeOut" }}
                 className="grid grid-cols-1 gap-3 md:gap-4"
               >
                 {filterConsultations(
@@ -237,10 +259,10 @@ export default function Bookings() {
                   <motion.div
                     key={consultation.consultationId ?? `consultation-${index}`}
                     layout
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.985 }}
-                    transition={{ duration: 0.24, delay: Math.min(index * 0.035, 0.18) }}
+                    transition={{ duration: 0.14 }}
                     whileHover={{ y: -2 }}
                   >
                     <div
