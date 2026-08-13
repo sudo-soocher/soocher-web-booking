@@ -23,28 +23,32 @@ export function BookingCompleteShimmer() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-6 md:py-12">
-        <div className="rounded-[26px] border border-white/90 bg-white/[0.72] p-5 shadow-sm md:p-7">
-          {/* Success badge + headline */}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <Shimmer className="h-14 w-14 rounded-full" />
-            <Shimmer className="h-6 w-52" />
-            <Shimmer className="h-3 w-64" />
-          </div>
+      <div className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6 md:px-6 md:py-12">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Shimmer className="h-16 w-16 rounded-full" />
+          <Shimmer className="h-7 w-48" />
+          <Shimmer className="h-3 w-64 max-w-full" />
+        </div>
 
-          {/* Appointment detail rows */}
-          <div className="mt-7 space-y-3">
-            {[1, 2, 3, 4].map((item) => (
-              <Shimmer key={item} className="h-14" />
-            ))}
+        <div className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-sm">
+          <Shimmer className="h-24 w-full rounded-none" />
+          <div className="space-y-4 p-4 sm:p-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Shimmer className="h-16" />
+              <Shimmer className="h-16" />
+            </div>
+            <div className="grid grid-cols-1 gap-3 border-y border-dashed border-slate-200 py-4 sm:grid-cols-2">
+              <Shimmer className="h-20" />
+              <Shimmer className="h-20" />
+            </div>
+            <Shimmer className="h-16 w-full" />
           </div>
+        </div>
 
-          {/* Meet link + actions */}
-          <Shimmer className="mt-6 h-12 w-full" />
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <Shimmer className="h-12" />
-            <Shimmer className="h-12" />
-          </div>
+        <Shimmer className="h-24 w-full rounded-3xl" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Shimmer className="h-14" />
+          <Shimmer className="h-14" />
         </div>
       </div>
       <span className="sr-only">Loading booking confirmation…</span>

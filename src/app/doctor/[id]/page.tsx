@@ -1267,11 +1267,15 @@ function DoctorDetailsContent() {
           setShowNewUserForm(false);
         }}
         size="lg"
+        placement="center"
+        scrollBehavior="inside"
         classNames={{
-          backdrop: "bg-[#2e6dd4]/20 backdrop-blur-md",
-          base: "rounded-[32px] border-none",
-          header: "border-b border-slate-100 p-8",
-          body: "p-8",
+          wrapper: "items-end p-0 sm:items-center sm:p-4",
+          backdrop: "bg-slate-950/35 backdrop-blur-sm",
+          base: "m-0 max-h-[92dvh] w-full max-w-lg rounded-b-none rounded-t-[28px] border border-white bg-white shadow-[0_-20px_70px_rgba(15,23,42,0.22)] sm:rounded-[30px]",
+          closeButton: "right-4 top-4 z-20 grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 active:scale-95",
+          header: "border-b border-slate-100 px-5 pb-4 pt-5 pr-16 sm:px-7 sm:pb-5 sm:pt-7 sm:pr-16",
+          body: "px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pb-7 sm:pt-6",
         }}
         motionProps={{
           variants: {
@@ -1283,15 +1287,16 @@ function DoctorDetailsContent() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <h2 className="text-2xl font-black text-slate-900">
+              <ModalHeader className="flex min-w-0 flex-col gap-1.5">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">Secure sign in</p>
+                <h2 className="break-words text-2xl font-black leading-tight tracking-tight text-slate-950">
                   {showLoginForm
                     ? "Welcome Back"
                     : showNewUserForm
                       ? "Create Your Profile"
                       : "Patient Information"}
                 </h2>
-                <p className="text-sm font-medium text-slate-400 italic">
+                <p className="max-w-sm break-words text-sm font-medium leading-5 text-slate-500">
                   Complete these details to finalize your appointment.
                 </p>
               </ModalHeader>
@@ -1342,11 +1347,10 @@ function DoctorDetailsContent() {
         <ModalContent>
           <ModalBody className="py-12 px-8">
             <div className="flex flex-col items-center justify-center text-center space-y-8">
-              <div className="relative">
-                <Spinner size="lg" color="primary" labelColor="primary" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full animate-ping" />
-                </div>
+              <div className="w-full space-y-3" role="status" aria-label="Processing booking">
+                <div className="app-shimmer mx-auto h-14 w-14 rounded-2xl bg-primary/15" />
+                <div className="app-shimmer mx-auto h-4 w-40 rounded-full bg-slate-200" />
+                <div className="app-shimmer mx-auto h-3 w-56 max-w-full rounded-full bg-slate-200" />
               </div>
               <div className="space-y-3">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Processing Booking</h3>

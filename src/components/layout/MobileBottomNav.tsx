@@ -23,7 +23,7 @@ const tabs = [
  * (Home / Find / Bookings / Profile) on a doctor screen, and the authenticated
  * doctor pages stacked two bottom navs on top of each other.
  */
-const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth", "/doc"];
+const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth", "/booking-complete", "/doc"];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
