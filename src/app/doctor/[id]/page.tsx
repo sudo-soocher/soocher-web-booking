@@ -47,6 +47,7 @@ import { Input } from "@nextui-org/react";
 import { RemoteImage } from "@/components/ui/RemoteImage";
 import { getCachedDoctorById } from "@/lib/doctors";
 import { AppShimmer } from "@/components/loading/AppShimmer";
+import { formatCountWithPlus } from "@/utils/format-count";
 
 interface Doctor {
   name: string;
@@ -924,7 +925,7 @@ function DoctorDetailsContent() {
           {/* Main Info Column */}
           <div className="min-w-0 lg:col-span-2 space-y-4 md:space-y-8">
             <Card className="mobile-app-card premium-card overflow-hidden border border-white/80">
-              <CardBody className="relative min-w-0 overflow-x-hidden p-4 md:p-8">
+              <CardBody className="relative min-w-0 !overflow-visible p-4 md:p-8">
                 <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 translate-x-1/3 -translate-y-1/3 rounded-full bg-primary/10 blur-3xl" />
                 <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 -translate-x-1/3 translate-y-1/3 rounded-full bg-cyan-100/60 blur-3xl" />
                 <div className="relative">
@@ -981,11 +982,11 @@ function DoctorDetailsContent() {
                       <p className="mt-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">Rating</p>
                     </div>
                     <div className="border-x border-slate-100 px-2 py-3 text-center md:py-4">
-                      <p className="text-sm md:text-xl font-black text-slate-900">{doctor.numExp || 0}+</p>
+                      <p className="text-sm md:text-xl font-black text-slate-900">{formatCountWithPlus(doctor.numExp)}</p>
                       <p className="mt-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">Years</p>
                     </div>
                     <div className="px-2 py-3 text-center md:py-4">
-                      <p className="text-sm md:text-xl font-black text-primary">{typeof consultationCount === 'string' && consultationCount.endsWith('+') ? consultationCount : `${consultationCount}+`}</p>
+                      <p className="text-sm md:text-xl font-black text-primary">{formatCountWithPlus(consultationCount)}</p>
                       <p className="mt-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">Consults</p>
                     </div>
                   </div>
