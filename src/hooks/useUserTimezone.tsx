@@ -88,7 +88,11 @@ export function UserTimezoneProvider({ children }: { children: ReactNode }) {
                 permissionDenied: false,
                 coords: stored.coords,
             });
-            if (stored.source === "geolocation") return;
+            // Any cached answer is good enough for the cache window. Previously
+            // only a "geolocation" result short-circuited, so a visitor who had
+            // denied location paid the full 8s geolocation timeout — plus an
+            // external timeapi.io round trip — on every single launch.
+            return;
         } else {
             setState({
                 timezone: readBrowserTimezone(),

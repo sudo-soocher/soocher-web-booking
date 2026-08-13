@@ -16,7 +16,7 @@ import 'stream-chat-react/dist/css/v2/index.css';
 import { Button } from '@nextui-org/react';
 import { useStreamChat } from './StreamChatContext';
 import { Consultation } from '@/types/consultation';
-import { auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase-auth';
 import { FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,7 +33,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
     const [error, setError] = useState<string | null>(null);
 
     const initChat = React.useCallback(async () => {
-        if (!client || !isOpen) return;
+        if (!isOpen) return;
 
         setLoading(true);
         setError(null);
@@ -44,9 +44,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             const name = auth.currentUser.displayName || 'Patient';
 
             console.log('Attempting to connect Stream user:', uid);
-            await connectUser(uid, name);
+            // `client` is null the first time chat opens because the SDK is
+            // intentionally lazy-loaded. Use the instance returned by
+            // connectUser instead of waiting for a React state round-trip.
+            const chatClient = await connectUser(uid, name);
 
-            if (!client.userID) {
+            if (!chatClient?.userID) {
                 throw new Error('Stream client failed to connect user');
             }
 
@@ -65,7 +68,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             console.log('Finalizing Channel Config - ID:', channelId, 'Members:', members);
 
             // Fetch doctor avatar if available? (Consultation type doesn't have it directly, but we can add what we have)
-            const newChannel = client.channel('messaging', channelId, {
+            const newChannel = chatClient.channel('messaging', channelId, {
                 name: `Consultation with ${consultation.doctorName}`,
                 members: members,
                 doctor_name: consultation.doctorName,
@@ -86,7 +89,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         } finally {
             setLoading(false);
         }
-    }, [client, isOpen, consultation, connectUser, sanitizeId]);
+    }, [isOpen, consultation, connectUser, sanitizeId]);
 
     useEffect(() => {
         if (isOpen) {

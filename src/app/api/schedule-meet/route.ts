@@ -40,7 +40,6 @@ export async function POST(request: Request) {
 
         // Format date and time for the scheduler API using the patient's timezone
         // (unchanged behavior for calendar/meet).
-        const d = new Date(consultationTime);
         const dateStr = formatDateStr(consultationTime, patientTimezone);
         const timeStr = formatTimeStr(consultationTime, patientTimezone);
 
@@ -153,4 +152,3 @@ export async function POST(request: Request) {
         );
     }
 }
-

@@ -12,7 +12,7 @@ import {
 } from "@stream-io/video-react-sdk";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import { motion } from "framer-motion";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
 import {
   FaMicrophone, FaMicrophoneSlash,
   FaVideo, FaVideoSlash,

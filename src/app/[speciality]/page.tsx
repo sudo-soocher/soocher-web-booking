@@ -6,9 +6,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Image } from "@nextui-org/react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import {
   FaStar,
   FaMapMarkerAlt,
@@ -22,6 +19,7 @@ import { Logo } from "@/components/ui/Logo";
 
 import { Doctor } from "@/types/doctor";
 import { DoctorCard } from "@/components/doctor/DoctorCard";
+import { fetchDoctorsBySpeciality } from "@/lib/doctors";
 
 export default function SpecialityPage() {
   const params = useParams();
@@ -44,25 +42,8 @@ export default function SpecialityPage() {
     const fetchDoctors = async () => {
       setLoading(true);
       try {
-        const doctorsRef = collection(db, "Users");
         const decodedSpeciality = getDecodedSpeciality();
-
-        const baseQuery = query(
-          doctorsRef,
-          where("specialization", "==", decodedSpeciality),
-          where("isAccountVerified", "==", true)
-        );
-
-        const querySnapshot = await getDocs(baseQuery);
-        const doctorsList: Doctor[] = [];
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as Omit<Doctor, "id">;
-          doctorsList.push({
-            id: doc.id,
-            ...data,
-          });
-        });
+        const doctorsList = await fetchDoctorsBySpeciality(decodedSpeciality);
 
         if (stateParam && cityParam) {
           const local = doctorsList.filter(
@@ -121,23 +102,38 @@ export default function SpecialityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full px-4 md:px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+    <div className="min-h-[100dvh] bg-[#F8FAFC]">
+
+      {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
+      <header
+        className="mobile-page-header md:hidden sticky top-0 z-40"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="mobile-page-header-inner">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <button
+              onClick={() => router.push("/")}
+              className="mobile-page-back"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+              aria-label="Go back"
+            >
+              <FaArrowLeft className="text-[11px]" />
+            </button>
+            <span className="mobile-page-title">
+              {decodeURIComponent(params.speciality as string)}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Desktop Navbar ─────────────────────────────────────────── */}
+      <header className="hidden md:block sticky top-0 z-40 w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
-          <Button
-            variant="flat"
-            size="sm"
-            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-            startContent={<FaArrowLeft className="text-xs" />}
-            onPress={() => router.push("/")}
-          >
-            Back
-          </Button>
+          <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>Back</Button>
         </nav>
       </header>
 
@@ -167,7 +163,7 @@ export default function SpecialityPage() {
       </div>
 
       {/* Doctors List */}
-      <main className="max-w-7xl mx-auto px-4 md:px-6 pb-24">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 pb-safe-nav md:pb-24">
         <div className="space-y-12 md:space-y-16">
           {cityParam && localDoctors.length > 0 && (
             <div className="space-y-6 md:space-y-8">
@@ -216,4 +212,3 @@ export default function SpecialityPage() {
     </div>
   );
 }
-

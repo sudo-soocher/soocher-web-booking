@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-db";
 import { doc, getDoc } from "firebase/firestore";
 
 // Initialize Gemini

@@ -1,117 +1,77 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { StreamChat } from 'stream-chat';
+// stream-chat is NOT imported at the top — it is lazily loaded on first chat use
+// This removes ~200KB from the global bundle for every page that never uses chat.
+
+import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
+import type { StreamChat } from 'stream-chat';
+
+const sanitizeStreamId = (id: string) => id.replace(/[^a-zA-Z0-9_-]/g, '_');
 
 interface StreamChatContextType {
     client: StreamChat | null;
-    connectUser: (userId: string, userName: string) => Promise<void>;
+    connectUser: (userId: string, userName: string) => Promise<StreamChat | null>;
     disconnectUser: () => Promise<void>;
     sanitizeId: (id: string) => string;
 }
-
-const sanitizeStreamId = (id: string) => id.replace(/[^a-zA-Z0-9_\-]/g, '_');
 
 const StreamChatContext = createContext<StreamChatContextType | undefined>(undefined);
 
 export const useStreamChat = () => {
     const context = useContext(StreamChatContext);
-    if (!context) {
-        throw new Error('useStreamChat must be used within a StreamChatProvider');
-    }
+    if (!context) throw new Error('useStreamChat must be used within a StreamChatProvider');
     return context;
 };
 
 export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [client, setClient] = useState<StreamChat | null>(null);
+    const clientRef = useRef<StreamChat | null>(null);
 
-    useEffect(() => {
+    // Lazily create the StreamChat instance — only downloads the SDK when chat is first opened
+    const getOrInitClient = useCallback(async () => {
+        if (clientRef.current) return clientRef.current;
         const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY;
-        if (!apiKey) {
-            console.warn('NEXT_PUBLIC_STREAM_API_KEY is missing');
-            return;
-        }
+        if (!apiKey) { console.warn('NEXT_PUBLIC_STREAM_API_KEY is missing'); return null; }
+        const { StreamChat } = await import('stream-chat');
         const chatClient = StreamChat.getInstance(apiKey);
+        clientRef.current = chatClient;
         setClient(chatClient);
-
-        return () => {
-            chatClient.disconnectUser();
-        };
+        return chatClient;
     }, []);
 
-    const connectUser = React.useCallback(async (userId: string, userName: string) => {
-        if (!client) {
-            console.error('Stream client not initialized');
-            return;
-        }
+    const connectUser = useCallback(async (userId: string, userName: string) => {
+        const chatClient = await getOrInitClient();
+        if (!chatClient) { console.error('Stream client not initialized'); return null; }
 
         const sanitizedUserId = sanitizeStreamId(userId);
-
-        // If user is already connected with the same ID, don't reconnect
-        if (client.userID === sanitizedUserId) {
-            return;
-        }
-
-        // Stream allows only one connected user per client instance
-        if (client.userID) {
-            console.log('Disconnecting current user:', client.userID);
-            await client.disconnectUser();
-        }
+        if (chatClient.userID === sanitizedUserId) return chatClient;
+        if (chatClient.userID) await chatClient.disconnectUser();
 
         const tokenApi = process.env.NEXT_PUBLIC_STREAM_TOKEN_API;
+        if (!tokenApi) throw new Error('NEXT_PUBLIC_STREAM_TOKEN_API is not defined');
 
-        try {
-            if (!tokenApi) throw new Error('NEXT_PUBLIC_STREAM_TOKEN_API is not defined');
+        const fetchUrl = (typeof window !== 'undefined' && tokenApi.startsWith('/'))
+            ? `${window.location.origin}${tokenApi}`
+            : tokenApi;
 
-            console.log('Fetching Stream token for userId:', sanitizedUserId, 'from:', tokenApi);
-
-            // If it's a relative URL, build an absolute one for robustness in some fetch environments
-            const fetchUrl = (typeof window !== 'undefined' && tokenApi.startsWith('/'))
-                ? `${window.location.origin}${tokenApi}`
-                : tokenApi;
-
-            const response = await fetch(fetchUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId: sanitizedUserId }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(`Token API error (${response.status}): ${errorData.message || response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log('Token received successfully');
-            const token = data.token;
-
-            if (!token) throw new Error('Token API did not return a token');
-
-            console.log('Connecting user to Stream Chat:', sanitizedUserId);
-            await client.connectUser(
-                {
-                    id: sanitizedUserId,
-                    name: userName,
-                },
-                token
-            );
-            console.log('User connected successfully to Stream Chat');
-        } catch (error: any) {
-            console.error('Stream Connection Error:', error);
-            if (error.message === 'Failed to fetch' && tokenApi?.startsWith('http')) {
-                console.warn('Network error detected when hitting external API. This is likely a CORS issue. Please use the local /api/stream-token proxy.');
-            }
-            throw error;
+        const response = await fetch(fetchUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: sanitizedUserId }),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(`Token API error (${response.status}): ${err.message || response.statusText}`);
         }
-    }, [client]);
+        const { token } = await response.json();
+        if (!token) throw new Error('Token API did not return a token');
+        await chatClient.connectUser({ id: sanitizedUserId, name: userName }, token);
+        return chatClient;
+    }, [getOrInitClient]);
 
-    const disconnectUser = React.useCallback(async () => {
-        if (client) {
-            await client.disconnectUser();
-        }
-    }, [client]);
+    const disconnectUser = useCallback(async () => {
+        if (clientRef.current) await clientRef.current.disconnectUser();
+    }, []);
 
     return (
         <StreamChatContext.Provider value={{ client, connectUser, disconnectUser, sanitizeId: sanitizeStreamId }}>

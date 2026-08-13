@@ -4,12 +4,13 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#f5f7fb",
 };
 
 export const metadata: Metadata = {
@@ -18,6 +19,14 @@ export const metadata: Metadata = {
   icons: {
     icon: "/soocherlogo.jpg",
     apple: "/soocherlogo.jpg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Soocher",
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 
@@ -31,6 +40,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background">
         <Providers>
           {children}
+          <MobileBottomNav />
           <Analytics />
           <SpeedInsights />
         </Providers>

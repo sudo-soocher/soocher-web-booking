@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, SelectItem, Textarea } from "@nextui-org/react";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-db";
 import { addDoc, collection } from "firebase/firestore";
 
 interface PatientFormProps {

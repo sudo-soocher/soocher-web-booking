@@ -13,7 +13,6 @@ import {
     FaCheckCircle,
     FaClock,
     FaHeadset,
-    FaStethoscope,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { Footer } from "@/components/layout/Footer";

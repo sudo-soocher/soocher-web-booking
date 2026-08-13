@@ -22,6 +22,7 @@ export const Logo = ({ className, imageClassName, size = "md" }: LogoProps) => {
         src="/soocherlogo.jpg"
         alt="Soocher Logo"
         fill
+        sizes={size === "xl" ? "64px" : size === "lg" ? "48px" : size === "md" ? "40px" : "32px"}
         className={`object-cover ${imageClassName || ""}`}
         priority
       />

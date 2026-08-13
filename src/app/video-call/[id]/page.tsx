@@ -4,12 +4,28 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
+import { db } from "@/lib/firebase-db";
 import { onAuthStateChanged } from "firebase/auth";
 import { Consultation } from "@/types/consultation";
-import { VideoCallRoom } from "@/components/video/VideoCallRoom";
+import dynamic from "next/dynamic";
 import { FaArrowLeft, FaStethoscope, FaExclamationTriangle } from "react-icons/fa";
 import { Logo } from "@/components/ui/Logo";
+
+// The Stream video SDK is the application's largest client dependency. Do not
+// download/parse it until authentication and the consultation access check have
+// both succeeded.
+const VideoCallRoom = dynamic(
+  () => import("@/components/video/VideoCallRoom").then((module) => module.VideoCallRoom),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-sm font-medium text-white/50">
+        Preparing secure video…
+      </div>
+    ),
+  }
+);
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);

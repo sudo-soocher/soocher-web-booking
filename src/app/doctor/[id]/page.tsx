@@ -12,9 +12,10 @@ import {
   where,
   getCountFromServer,
 } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
+import { db } from "@/lib/firebase-db";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody, Image, Avatar, Chip, Skeleton, Tabs, Tab, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@nextui-org/react";
+import { Card, CardBody, Avatar, Chip, Skeleton, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@nextui-org/react";
 import {
   FaStar,
   FaLanguage,
@@ -23,7 +24,6 @@ import {
   FaUserMd,
   FaArrowLeft,
   FaClock,
-  FaStethoscope,
 } from "react-icons/fa";
 import { Logo } from "@/components/ui/Logo";
 
@@ -37,10 +37,11 @@ import LoginForm from "@/components/forms/LoginForm";
 import PatientForm from "@/components/forms/PatientForm";
 import { Footer } from "@/components/layout/Footer";
 import { parseTimeToEpoch, formatTimeRange } from "@/utils/timezone";
-import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { UserTimezoneProvider, useUserTimezone } from "@/hooks/useUserTimezone";
 import { Coupon } from "@/types/coupon";
 import { validateCoupon } from "@/utils/coupon";
 import { Input } from "@nextui-org/react";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 
 interface Doctor {
   name: string;
@@ -92,7 +93,71 @@ interface Slot {
   calculatedTimestamp?: number;
 }
 
-export default function DoctorDetails() {
+/**
+ * Which of these slot times are already taken.
+ *
+ * Two things this fixes:
+ *  - the chunked "in" queries are issued in parallel rather than awaited in a
+ *    loop, so a day with 40 slots costs one round trip instead of four;
+ *  - results are cached by (doctor, exact slot times). The slot list is
+ *    recomputed whenever the visitor's timezone resolves from geolocation, a
+ *    second or two after load — but timezone only changes the *labels*, not the
+ *    underlying epoch timestamps, so without this the page silently re-ran every
+ *    availability query for an identical answer.
+ */
+const bookedTimestampCache = new Map<string, Promise<Set<number>>>();
+
+function fetchBookedTimestamps(
+  doctorId: string,
+  timestamps: number[]
+): Promise<Set<number>> {
+  if (timestamps.length === 0) return Promise.resolve(new Set<number>());
+
+  const sorted = [...timestamps].sort((a, b) => a - b);
+  const cacheKey = `${doctorId}|${sorted.join(",")}`;
+
+  const cached = bookedTimestampCache.get(cacheKey);
+  if (cached) return cached;
+
+  const chunkSize = 30; // Firestore "in" limit
+  const chunks: number[][] = [];
+  for (let i = 0; i < sorted.length; i += chunkSize) {
+    chunks.push(sorted.slice(i, i + chunkSize));
+  }
+
+  const pending = Promise.all(
+    chunks.map((chunk) =>
+      getDocs(
+        query(
+          collection(db, "Consultations"),
+          where("participants", "array-contains", doctorId),
+          where("consultationTime", "in", chunk)
+        )
+      )
+    )
+  )
+    .then((snaps) => {
+      const booked = new Set<number>();
+      snaps.forEach((snap) =>
+        snap.docs.forEach((d) => {
+          if (!d.data().cancelledByDoctor) {
+            booked.add(d.data().consultationTime as number);
+          }
+        })
+      );
+      return booked;
+    })
+    .catch((err) => {
+      // Don't cache a failure — the next attempt should hit the network again.
+      bookedTimestampCache.delete(cacheKey);
+      throw err;
+    });
+
+  bookedTimestampCache.set(cacheKey, pending);
+  return pending;
+}
+
+function DoctorDetailsContent() {
   const params = useParams();
   const router = useRouter();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
@@ -146,9 +211,13 @@ export default function DoctorDetails() {
 
     return date.toLocaleDateString("en-US", {
       weekday: "short",
-      month: "short",
-      day: "numeric",
     });
+  };
+
+  const formatDateLabel = (offset: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
   // Function to calculate epoch timestamp from day name and time string
@@ -170,9 +239,9 @@ export default function DoctorDetails() {
     const today = new Date();
     const todayIndex = today.getDay();
 
-    // Get next 4 consecutive days including today
+    // Always show the next 3 consecutive booking days, including today.
     const availableDays = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       const dayIndex = (todayIndex + i) % 7;
       const dayKey = days[dayIndex];
       availableDays.push(dayKey);
@@ -265,7 +334,9 @@ export default function DoctorDetails() {
   const fetchAvailableCoupons = useCallback(async () => {
     try {
       const couponsRef = collection(db, "coupons");
-      const querySnapshot = await getDocs(couponsRef);
+      // Filter visible coupons server-side to reduce reads
+      const couponsQuery = query(couponsRef, where("tray_visibility", "==", true));
+      const querySnapshot = await getDocs(couponsQuery);
 
       const coupons: Coupon[] = [];
       const doctorId = params.id as string;
@@ -313,31 +384,10 @@ export default function DoctorDetails() {
     }
   }, [params.id]);
 
-  // Function to check if a slot is booked
-  const isSlotBooked = useCallback(async (timestamp: number) => {
-    try {
-      // Query consultations collection for this doctor and time slot
-      const consultationsRef = collection(db, "Consultations");
-      const q = query(
-        consultationsRef,
-        where("participants", "array-contains", params.id),
-        where("consultationTime", "==", timestamp),
-        where("cancelledByDoctor", "==", false)
-      );
-
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty; // Return true if there are any bookings
-    } catch (error) {
-      console.error("Error checking slot availability:", error);
-      return true; // Return true (booked) on error to prevent double booking
-    }
-  }, [params.id]);
-
-  // Function to filter and sort available slots
+  // Function to filter and sort available slots — one batch query instead of N per-slot queries
   const getFilteredSlots = useCallback(async (slots: DaySlots["availableSlots"]) => {
     let slotsToProcess = slots || [];
 
-    // Fallback if slots are empty but doctor has schedule
     if (slotsToProcess.length === 0 && doctor?.timeSlots) {
       slotsToProcess = generateDynamicSlots(selectedDay);
     }
@@ -347,7 +397,6 @@ export default function DoctorDetails() {
     const now = new Date();
     const currentTime = now.getTime();
 
-    // Map slots to include calculated timestamps if missing
     const slotsWithTimestamps = slotsToProcess.map((slot) => ({
       ...slot,
       calculatedTimestamp:
@@ -356,50 +405,50 @@ export default function DoctorDetails() {
           : calculateSlotTimestamp(selectedDay, slot.time),
     }));
 
-    // Filter and check bookings for each slot
-    const availableSlots = await Promise.all(
-      slotsWithTimestamps
-        .filter((slot) => {
-          // Skip slots already marked as booked in the DB
-          if (slot.isBooked === true) return false;
+    // Pre-filter: skip already-marked-booked and past slots
+    const candidateSlots = slotsWithTimestamps.filter((slot) => {
+      if (slot.isBooked === true) return false;
+      if (selectedDay === getCurrentDay()) {
+        return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
+      }
+      return true;
+    });
 
-          // For today, only show future slots (with 10 minute buffer)
-          if (selectedDay === getCurrentDay()) {
-            return slot.calculatedTimestamp > currentTime - 10 * 60 * 1000;
-          }
-          return true;
-        })
-        .map(async (slot) => {
-          const isBooked = await isSlotBooked(slot.calculatedTimestamp);
-          return { ...slot, isBooked };
-        })
-    );
+    if (candidateSlots.length === 0) return [];
 
-    // Return only available slots sorted by time
-    return availableSlots
-      .filter((slot) => !slot.isBooked)
+    const timestamps = candidateSlots.map((s) => s.calculatedTimestamp);
+    let bookedSet: Set<number>;
+    try {
+      bookedSet = await fetchBookedTimestamps(params.id as string, timestamps);
+    } catch (error) {
+      console.error("Error checking slot availability:", error);
+      bookedSet = new Set<number>();
+    }
+
+    return candidateSlots
+      .filter((slot) => !bookedSet.has(slot.calculatedTimestamp))
       .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
-  }, [selectedDay, doctor, isSlotBooked, generateDynamicSlots]);
+  }, [selectedDay, doctor, params.id, generateDynamicSlots]);
 
   useEffect(() => {
     const fetchDoctorAndSlots = async () => {
       try {
-        // Fetch doctor details
-        const docRef = doc(db, "Users", params.id as string);
-        const docSnap = await getDoc(docRef);
+        // Coupons and the lifetime consultation count are secondary content.
+        // Start them in parallel, but never hold the doctor profile or bookable
+        // slots behind those slower aggregate queries.
+        void Promise.allSettled([
+          fetchAvailableCoupons(),
+          fetchConsultationCount(),
+        ]);
+
+        const [docSnap, slotsSnap] = await Promise.all([
+          getDoc(doc(db, "Users", params.id as string)),
+          getDocs(collection(db, "Users", params.id as string, "Available Slots")),
+        ]);
 
         if (docSnap.exists()) {
           setDoctor(docSnap.data() as Doctor);
         }
-
-        // Fetch available slots
-        const slotsRef = collection(
-          db,
-          "Users",
-          params.id as string,
-          "Available Slots"
-        );
-        const slotsSnap = await getDocs(slotsRef);
 
         const slotsData: AvailableSlots = {};
         slotsSnap.forEach((doc) => {
@@ -407,21 +456,19 @@ export default function DoctorDetails() {
         });
 
         setSlots(slotsData);
-        await fetchAvailableCoupons();
-        await fetchConsultationCount();
 
         // Set current day as selected if available, otherwise set first available day
         const currentDay = getCurrentDay();
         if (slotsData[currentDay]?.availableSlots?.length > 0) {
           setSelectedDay(currentDay);
         } else {
-          // Find next available day within the next 4 days
+          // Find the first available day within the three visible booking days.
           const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
           const currentDayIndex = days.indexOf(currentDay);
 
           let foundDay = false;
-          // Check next 4 days starting from current day
-          for (let i = 0; i < 4; i++) {
+          // Check the same three-day window shown in the selector.
+          for (let i = 0; i < 3; i++) {
             const nextDayIndex = (currentDayIndex + i) % 7;
             const nextDay = days[nextDayIndex];
             if (slotsData[nextDay]?.availableSlots?.length > 0) {
@@ -431,7 +478,7 @@ export default function DoctorDetails() {
             }
           }
 
-          // If no slots in the next 4 days, just select current day
+          // If no slots in the visible window, keep today selected.
           if (!foundDay) {
             setSelectedDay(currentDay);
           }
@@ -456,14 +503,7 @@ export default function DoctorDetails() {
     }
   }, [selectedDay, slots, getFilteredSlots]);
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchAvailableCoupons();
-      }
-    });
-    return () => unsubscribe();
-  }, [fetchAvailableCoupons]);
+  // Removed duplicate auth-state coupon fetch — coupons are already fetched in fetchDoctorAndSlots
 
   /* Commented out unused sortSlots
   const sortSlots = (slots: { bookingDate: number; time: string }[]) => {
@@ -606,65 +646,43 @@ export default function DoctorDetails() {
           return;
         }
 
-        // 2. Create a Google Meet link for the consultation
-        setBookingStatus("Scheduling your Google Meet session...");
-        let meetLink: string | null = null;
-        try {
-          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 2: calling /api/schedule-meet (external meet-scheduler.soocher.in)`);
-          const meetResponse = await fetch("/api/schedule-meet", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              consultationId,
-              consultationTime,
-              doctorName: doctor!.name,
-              patientName: userData.name,
-              patientEmail: userData.email || auth.currentUser?.email || "",
-              patientPhone: userData.phoneNumber || "",
-              doctorPhone: doctor!.whatsappNumber || "",
-              specialization: doctor!.specialization || "",
-              timezone: userTimezone,
-              doctorTimezone: doctor!.timezone || "Asia/Kolkata",
-            }),
-          });
-          if (meetResponse.ok) {
+        // 2 + 4 run in parallel: schedule Meet AND save Stream call ID simultaneously
+        setBookingStatus("Scheduling your session...");
+        const streamCallId = `consultation_${consultationId}`;
+        const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
+
+        const [meetResult] = await Promise.allSettled([
+          // Step 2+3: fetch Meet link then write it
+          (async () => {
+            const meetResponse = await fetch("/api/schedule-meet", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                consultationId,
+                consultationTime,
+                doctorName: doctor!.name,
+                patientName: userData.name,
+                patientEmail: userData.email || auth.currentUser?.email || "",
+                patientPhone: userData.phoneNumber || "",
+                doctorPhone: doctor!.whatsappNumber || "",
+                specialization: doctor!.specialization || "",
+                timezone: userTimezone,
+                doctorTimezone: doctor!.timezone || "Asia/Kolkata",
+              }),
+            });
+            if (!meetResponse.ok) return null;
             const meetData = await meetResponse.json();
-            meetLink = meetData.meetLink || null;
-
-            // 3. Update the Firestore consultation doc with the Meet link
+            const meetLink: string | null = meetData.meetLink || null;
             if (meetLink) {
-              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: meet link received, updating Consultations.${consultationId}.extras.meetLink (this triggers a Consultations.onUpdate Cloud Function if one exists)`);
-              const { updateDoc, doc: firestoreDoc } = await import(
-                "firebase/firestore"
-              );
-              await updateDoc(
-                firestoreDoc(db, "Consultations", consultationId),
-                { "extras.meetLink": meetLink }
-              );
-              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: meetLink update COMPLETE`);
-            } else {
-              console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 3: skipped — no meetLink returned`);
+              await updateDoc(firestoreDoc(db, "Consultations", consultationId), { "extras.meetLink": meetLink });
             }
-          }
-        } catch (meetError) {
-          console.error(
-            "Meet link creation failed (non-fatal):",
-            meetError
-          );
-        }
-
-        // 4. Save Stream.io video call ID to Firestore
-        try {
-          const streamCallId = `consultation_${consultationId}`;
-          const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
-          await updateDoc(
-            firestoreDoc(db, "Consultations", consultationId),
-            { "extras.streamCallId": streamCallId }
-          );
-          console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 4: streamCallId saved — ${streamCallId}`);
-        } catch (streamError) {
-          console.error("Stream call ID save failed (non-fatal):", streamError);
-        }
+            return meetLink;
+          })(),
+          // Step 4: save Stream call ID (independent of Meet)
+          updateDoc(firestoreDoc(db, "Consultations", consultationId), { "extras.streamCallId": streamCallId })
+            .catch((e) => console.error("Stream call ID save failed (non-fatal):", e)),
+        ]);
+        console.log(`>>> [BOOKING DEBUG] ${ts()} STEPS 2+4 COMPLETE`, { meetResult: meetResult.status });
 
         console.log(`>>> [BOOKING DEBUG] ${ts()} END — no further outbound calls from this app. Any WhatsApp arriving NOW is from a backend listener.`);
 
@@ -814,124 +832,152 @@ export default function DoctorDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar Container */}
-      <header className="w-full px-4 md:px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-4 md:px-6 py-3 border border-white/40 shadow-sm">
+    <div className="mobile-app-shell min-h-[100dvh] bg-[#F8FAFC]">
+
+      {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
+      <header
+        className="mobile-page-header md:hidden sticky top-0 z-40"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="mobile-page-header-inner">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <button
+              onClick={() => router.back()}
+              className="mobile-page-back"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+              aria-label="Go back"
+            >
+              <FaArrowLeft className="text-[11px]" />
+            </button>
+            <span className="mobile-page-title">Doctor Profile</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Desktop Navbar ─────────────────────────────────────────── */}
+      <header className="hidden md:block w-full px-6 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
           </div>
-          <Button
-            variant="flat"
-            size="sm"
-            className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-            startContent={<FaArrowLeft className="text-xs" />}
-            onPress={() => router.back()}
-          >
-            Back
-          </Button>
+          <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>Back</Button>
         </nav>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-8 pb-safe-nav md:pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 items-start">
           {/* Main Info Column */}
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="premium-card overflow-hidden">
-              <CardBody className="p-0">
-                <div className="h-32 bg-gradient-to-tr from-primary to-primary-600 opacity-90" />
-                <div className="px-4 md:px-8 pb-8">
-                  <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-end text-center md:text-left">
-                    <div className="relative -mt-12 md:-mt-16 z-10">
+          <div className="lg:col-span-2 space-y-4 md:space-y-8">
+            <Card className="mobile-app-card premium-card overflow-hidden border border-white/80">
+              <CardBody className="relative p-4 md:p-8">
+                <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-20 h-44 w-44 rounded-full bg-cyan-100/60 blur-3xl" />
+                <div className="relative">
+                  <div className="flex flex-row gap-3.5 md:gap-6 items-center text-left">
+                    <div className="relative z-10 shrink-0">
                       {doctor.profileImage ? (
-                        <Image
-                          src={doctor.profileImage}
-                          alt={doctor.name}
-                          className="w-32 h-32 md:w-40 md:h-40 rounded-[24px] md:rounded-[32px] object-cover ring-8 ring-white shadow-xl bg-white"
-                        />
+                        <div className="relative w-[84px] h-[92px] md:w-32 md:h-36 overflow-hidden rounded-[20px] md:rounded-[28px] ring-2 md:ring-4 ring-white shadow-lg md:shadow-xl bg-white">
+                          <RemoteImage
+                            src={doctor.profileImage}
+                            alt={doctor.name}
+                            sizes="(max-width: 768px) 84px, 128px"
+                            priority
+                            className="object-cover object-top"
+                          />
+                        </div>
                       ) : (
                         <Avatar
                           name={doctor.name}
-                          className="w-32 h-32 md:w-40 md:h-40 text-4xl font-bold rounded-[24px] md:rounded-[32px] ring-8 ring-white shadow-xl bg-primary/10 text-primary"
+                          className="w-[84px] h-[92px] md:w-32 md:h-36 text-xl md:text-4xl font-bold rounded-[20px] md:rounded-[28px] ring-2 md:ring-4 ring-white shadow-lg md:shadow-xl bg-primary/10 text-primary"
                         />
                       )}
-                      <div className="absolute -bottom-2 -right-2 md:bottom-2 md:-right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-5 h-5 md:w-7 md:h-7 rounded-full border-[3px] border-white flex items-center justify-center shadow-lg">
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-white rounded-full" />
                       </div>
                     </div>
-                    <div className="flex-1 space-y-3 pt-4 md:pt-0 w-full">
-                      <div className="flex flex-col md:flex-row items-center gap-3">
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    <div className="min-w-0 flex-1 space-y-2 md:space-y-3 w-full">
+                      <div className="flex flex-col items-start gap-1.5 md:gap-2">
+                        <Chip size="sm" color="success" variant="flat" className="h-6 bg-emerald-50 text-[9px] md:text-xs text-emerald-700 font-extrabold border border-emerald-100">
+                          Verified specialist
+                        </Chip>
+                        <h1 className="line-clamp-2 text-lg md:text-3xl font-black text-slate-900 leading-tight tracking-tight">
                           {doctor.specialization?.toLowerCase().includes("psycho")
                             ? doctor.name
                             : `Dr. ${doctor.name}`}
                         </h1>
-                        <Chip size="sm" color="success" variant="flat" className="bg-success-50 text-success-600 font-bold border-none mt-2 md:mt-0">
-                          Verified Specialist
-                        </Chip>
                       </div>
-                      <div className="flex flex-col md:flex-row flex-wrap items-center justify-center md:justify-start gap-y-2 gap-x-6 text-slate-500 font-medium text-sm md:text-base">
-                        <div className="flex items-center gap-2">
+                      <div className="space-y-1 text-slate-500 font-semibold text-[10px] md:text-sm">
+                        <div className="flex min-w-0 items-center gap-1.5 md:gap-2 text-primary">
                           <FaUserMd className="text-primary/70" />
-                          <span>{doctor.specialization}</span>
+                          <span className="truncate">{doctor.specialization}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <FaStar className="text-amber-400" />
-                          <span className="text-slate-900 font-bold">{(doctor.averageRating ?? 0).toFixed(1)}</span>
-                          <span className="text-slate-400">Rating</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <FaClock className="text-primary/70" />
-                          <span>{doctor.numExp} Years Experience</span>
+                        <div className="flex min-w-0 items-center gap-1.5 md:gap-2">
+                          <FaMapMarkerAlt className="shrink-0 text-slate-400" />
+                          <span className="truncate">{doctor.currentCity}, {doctor.currentState}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <h2 className="text-lg font-bold text-slate-900">Professional Bio</h2>
-                        <p className="text-slate-600 leading-relaxed">
+                  <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-2xl border border-white/90 bg-white/55 shadow-sm backdrop-blur-xl">
+                    <div className="px-2 py-3 text-center md:py-4">
+                      <p className="flex items-center justify-center gap-1 text-sm md:text-xl font-black text-slate-900"><FaStar className="text-[10px] md:text-sm text-amber-400" />{(doctor.averageRating ?? 0).toFixed(1)}</p>
+                      <p className="mt-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">Rating</p>
+                    </div>
+                    <div className="border-x border-slate-100 px-2 py-3 text-center md:py-4">
+                      <p className="text-sm md:text-xl font-black text-slate-900">{doctor.numExp || 0}+</p>
+                      <p className="mt-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">Years</p>
+                    </div>
+                    <div className="px-2 py-3 text-center md:py-4">
+                      <p className="text-sm md:text-xl font-black text-primary">{typeof consultationCount === 'string' && consultationCount.endsWith('+') ? consultationCount : `${consultationCount}+`}</p>
+                      <p className="mt-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">Consults</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 md:mt-8 grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+                    <div className="space-y-5 md:space-y-6">
+                      <div className="space-y-1.5 md:space-y-3">
+                        <h2 className="text-sm md:text-lg font-black md:font-bold text-slate-900">About</h2>
+                        <p className="text-xs md:text-base text-slate-600 leading-relaxed line-clamp-4 md:line-clamp-none">
                           {doctor.aboutMe || "A highly dedicated and experienced medical professional committed to providing exceptional healthcare and personalized treatment plans for every patient."}
                         </p>
                       </div>
 
-                      <div className="space-y-3">
-                        <h2 className="text-lg font-bold text-slate-900">Practice Details</h2>
-                        <div className="space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                          <div className="flex items-center gap-4 text-slate-700">
-                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
+                      <div className="space-y-2 md:space-y-3">
+                        <h2 className="text-sm md:text-lg font-black md:font-bold text-slate-900">Practice details</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3 bg-white/55 p-2.5 md:p-4 rounded-2xl border border-white/90 shadow-sm">
+                          <div className="flex min-w-0 items-center gap-2 md:gap-4 text-slate-700">
+                            <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-xl bg-primary/5 md:bg-white flex items-center justify-center text-primary shadow-sm">
                               <FaHospital />
                             </div>
-                            <div>
-                              <p className="text-xs text-slate-400 font-bold uppercase">Clinic/Hospital</p>
-                              <p className="font-semibold">{doctor.worksAt || "Private Practice"}</p>
+                            <div className="min-w-0">
+                              <p className="text-[8px] md:text-xs text-slate-400 font-bold uppercase">Clinic</p>
+                              <p className="truncate text-[10px] md:text-base font-semibold">{doctor.worksAt || "Private Practice"}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 text-slate-700">
-                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
+                          <div className="flex min-w-0 items-center gap-2 md:gap-4 text-slate-700">
+                            <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-xl bg-primary/5 md:bg-white flex items-center justify-center text-primary shadow-sm">
                               <FaMapMarkerAlt />
                             </div>
-                            <div>
-                              <p className="text-xs text-slate-400 font-bold uppercase">Location</p>
-                              <p className="font-semibold">{doctor.currentCity}, {doctor.currentState}</p>
+                            <div className="min-w-0">
+                              <p className="text-[8px] md:text-xs text-slate-400 font-bold uppercase">Location</p>
+                              <p className="truncate text-[10px] md:text-base font-semibold">{doctor.currentCity}, {doctor.currentState}</p>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-8">
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-bold text-slate-900">Patient Communication</h2>
-                        <div className="flex flex-wrap gap-2">
+                    <div className="space-y-5 md:space-y-8">
+                      <div className="space-y-2 md:space-y-4">
+                        <h2 className="text-sm md:text-lg font-black md:font-bold text-slate-900">Languages</h2>
+                        <div className="flex flex-wrap gap-1.5 md:gap-2">
                           {(doctor.knownLanguages?.length ? doctor.knownLanguages : ["English", "Hindi"]).map((language, idx) => (
                             <Chip
                               key={idx}
                               variant="flat"
-                              className="bg-primary/5 text-primary border-none px-4 font-semibold"
+                              className="h-7 md:h-auto bg-primary/5 text-primary border-none px-2 md:px-4 text-[10px] md:text-sm font-semibold"
                               startContent={<FaLanguage className="text-xs opacity-60" />}
                             >
                               {language}
@@ -940,25 +986,6 @@ export default function DoctorDetails() {
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-bold text-slate-900">Analytics Overview</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                            <p className="text-2xl font-black text-primary">
-                              {typeof consultationCount === 'string' && consultationCount.endsWith('+')
-                                ? consultationCount
-                                : `${consultationCount}+`}
-                            </p>
-                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Online Consul</p>
-                          </div>
-                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                            <p className="text-2xl font-black text-slate-800">
-                              {doctor.numExp ? String(doctor.numExp).padStart(2, '0') : '00'}
-                            </p>
-                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Years Active</p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -968,49 +995,55 @@ export default function DoctorDetails() {
 
           {/* Booking Column */}
           <div className="lg:col-span-1 border-none">
-            <Card className="premium-card sticky top-32 overflow-hidden border-2 border-primary/10">
-              <CardBody className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Book Now</h2>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Consultation Fee</p>
+            <Card className="mobile-app-card premium-card md:sticky md:top-28 overflow-hidden border border-white/80 md:border-primary/10">
+              <CardBody className="p-4 md:p-6">
+                <div className="flex items-center justify-between gap-3 mb-5 md:mb-6">
+                  <div>
+                    <p className="text-[9px] md:text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">Online consultation</p>
+                    <h2 className="mt-1 text-lg md:text-xl font-black text-slate-900 tracking-tight">Book appointment</h2>
+                  </div>
+                  <div className="rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2 text-right">
+                    <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Fee</p>
                     <div className="flex flex-col items-end">
                       {couponDiscount > 0 && (
-                        <span className="text-sm font-bold text-slate-400 line-through">
+                        <span className="text-[10px] font-bold text-slate-400 line-through">
                           ₹{doctor?.consultationFees ? Number(doctor.consultationFees) + 50 : 0}
                         </span>
                       )}
-                      <p className="text-2xl font-black text-primary">
+                      <p className="text-lg md:text-xl leading-none font-black text-primary">
                         ₹{doctor?.consultationFees ? (Number(doctor.consultationFees) + 50 - couponDiscount) : 0}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-5 md:space-y-6">
                   {/* Day Selection */}
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">1. Select Appointment Date</label>
+                  <div className="space-y-2 md:space-y-4">
+                    <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">1. Select date</label>
                     {getAvailableDays().length > 0 ? (
-                      <Tabs
-                        selectedKey={selectedDay}
-                        onSelectionChange={(key) => {
-                          setSelectedDay(key as string);
-                          setSelectedSlot("");
-                        }}
-                        className="w-full"
-                        variant="underlined"
-                        classNames={{
-                          tabList: "gap-6 w-full relative rounded-none p-0 border-b border-divider",
-                          cursor: "w-full bg-primary",
-                          tab: "max-w-fit px-0 h-12",
-                          tabContent: "group-data-[selected=true]:text-primary font-bold text-sm"
-                        }}
-                      >
-                        {getAvailableDays().map((day) => (
-                          <Tab key={day} title={formatDayLabel(day)} />
-                        ))}
-                      </Tabs>
+                      <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100/80 p-1.5">
+                        {getAvailableDays().map((day, index) => {
+                          const isSelected = selectedDay === day;
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDay(day);
+                                setSelectedSlot("");
+                              }}
+                              className={`min-w-0 rounded-xl px-1.5 py-2 text-center transition-all ${isSelected
+                                ? "bg-white text-primary shadow-sm ring-1 ring-white"
+                                : "text-slate-500 hover:bg-white/50"
+                                }`}
+                            >
+                              <span className="block truncate text-[10px] md:text-xs font-extrabold">{formatDayLabel(day)}</span>
+                              <span className={`mt-0.5 block text-[9px] md:text-[10px] font-semibold ${isSelected ? "text-primary/70" : "text-slate-400"}`}>{formatDateLabel(index)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                         <p className="text-amber-700 text-xs font-medium">No booking slots currently configured.</p>
@@ -1019,11 +1052,11 @@ export default function DoctorDetails() {
                   </div>
 
                   {/* Time Slots */}
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">2. Select Preferred Time</label>
+                  <div className="space-y-2 md:space-y-4">
+                    <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">2. Select time</label>
                     {selectedDay && (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3 max-h-[300px] pr-2 overflow-y-auto custom-scrollbar">
+                        <div className="grid grid-cols-3 md:grid-cols-2 gap-2 md:gap-3 max-h-[220px] md:max-h-[300px] pr-1 md:pr-2 overflow-y-auto custom-scrollbar">
                           {filteredSlots.length > 0 ? (
                             filteredSlots.map((slot, index) => {
                               const isBooked = slot.isBooked;
@@ -1034,19 +1067,19 @@ export default function DoctorDetails() {
                                   disabled={isBooked}
                                   onClick={() => !isBooked && setSelectedSlot(slot.time)}
                                   className={`
-                                    flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-200
+                                    flex min-h-10 flex-col items-center justify-center p-2 md:p-3 rounded-xl border transition-all duration-200
                                     ${isBooked ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100' :
                                       isSelected ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' :
-                                        'bg-white border-slate-100 hover:border-primary/30 text-slate-600'}
+                                        'bg-white/75 border-white hover:border-primary/30 text-slate-600 shadow-sm'}
                                   `}
                                 >
-                                  <span className={`text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>Session</span>
-                                  <span className="text-sm font-black">{slot.time.split(' - ')[0]}</span>
+                                  <span className={`hidden md:block text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>Session</span>
+                                  <span className="text-xs md:text-sm font-black">{slot.time.split(' - ')[0]}</span>
                                 </button>
                               );
                             })
                           ) : (
-                            <div className="col-span-2 py-12 text-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
+                            <div className="col-span-full py-8 md:py-12 text-center bg-slate-50 rounded-2xl md:rounded-[32px] border-2 border-dashed border-slate-200">
                               <FaClock className="mx-auto text-3xl text-slate-300 mb-3" />
                               <p className="text-slate-400 text-sm font-medium">No available slots</p>
                             </div>
@@ -1057,8 +1090,8 @@ export default function DoctorDetails() {
                   </div>
 
                   {/* Coupon Section */}
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">3. Apply Coupon Code</label>
+                  <div className="space-y-2 md:space-y-4">
+                    <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">3. Coupon</label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Enter code"
@@ -1067,7 +1100,7 @@ export default function DoctorDetails() {
                         variant="flat"
                         className="flex-1"
                         classNames={{
-                          inputWrapper: "bg-slate-50 border border-slate-100 rounded-xl h-12"
+                          inputWrapper: "bg-white/60 md:bg-slate-50 border border-white/80 md:border-slate-100 rounded-xl h-10 md:h-12"
                         }}
                         isDisabled={!!appliedCoupon}
                       />
@@ -1075,7 +1108,7 @@ export default function DoctorDetails() {
                         <Button
                           color="danger"
                           variant="flat"
-                          className="rounded-xl h-12 font-bold"
+                          className="rounded-xl h-10 md:h-12 font-bold"
                           onPress={() => {
                             setAppliedCoupon(null);
                             setCouponDiscount(0);
@@ -1087,7 +1120,7 @@ export default function DoctorDetails() {
                       ) : (
                         <Button
                           color="primary"
-                          className="rounded-xl h-12 font-bold"
+                          className="rounded-xl h-10 md:h-12 font-bold"
                           isLoading={isApplyingCoupon}
                           onPress={handleApplyCoupon}
                         >
@@ -1114,7 +1147,7 @@ export default function DoctorDetails() {
                                 setCouponCode(coupon.couponCode);
                                 // Trigger apply automatically or let user click Apply
                               }}
-                              className="flex-shrink-0 cursor-pointer p-3 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors min-w-[120px]"
+                              className="flex-shrink-0 cursor-pointer p-2.5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors min-w-[112px]"
                             >
                               <p className="text-xs font-black text-primary">{coupon.couponCode}</p>
                               <p className="text-[8px] font-bold text-primary/60">
@@ -1128,24 +1161,24 @@ export default function DoctorDetails() {
                   </div>
 
                   {/* Book Button */}
-                  <div className="pt-4 space-y-4">
+                  <div className="pt-1 md:pt-4 space-y-3 md:space-y-4">
                     {/* Final Price Summary */}
-                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                      <span className="text-sm font-bold text-slate-700">Total Payable Amount</span>
-                      <span className="text-2xl font-black text-primary">
+                    <div className="flex items-center justify-between p-3 md:p-4 bg-gradient-to-r from-primary/10 to-blue-50/80 rounded-2xl border border-primary/10">
+                      <span className="text-xs md:text-sm font-bold text-slate-700">Total payable</span>
+                      <span className="text-xl md:text-2xl font-black text-primary">
                         ₹{doctor?.consultationFees ? (Number(doctor.consultationFees) + 50 - couponDiscount) : 0}
                       </span>
                     </div>
 
                     <Button
                       color="primary"
-                      className="w-full rounded-[24px] h-16 text-lg font-black shadow-[0_20px_40px_rgba(46,109,212,0.3)] disabled:opacity-50 disabled:shadow-none"
+                      className="w-full rounded-2xl md:rounded-[24px] h-12 md:h-16 text-sm md:text-lg font-black shadow-[0_14px_30px_rgba(46,109,212,0.24)] md:shadow-[0_20px_40px_rgba(46,109,212,0.3)] disabled:opacity-50 disabled:shadow-none"
                       isDisabled={!selectedSlot}
                       onPress={handleBookingClick}
                     >
-                      Process Booking
+                      Confirm appointment
                     </Button>
-                    <div className="mt-6 space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="mt-3 md:mt-6 space-y-2 md:space-y-3 bg-white/55 md:bg-slate-50 p-3 md:p-4 rounded-2xl border border-white/80 md:border-slate-100">
                       <p className="text-[10px] text-slate-400 font-bold flex items-center justify-between">
                         <span>CONSULTATION PERIOD</span>
                         <span className="text-slate-600 uppercase">
@@ -1283,5 +1316,13 @@ export default function DoctorDetails() {
       )}
       <Footer />
     </div>
+  );
+}
+
+export default function DoctorDetails() {
+  return (
+    <UserTimezoneProvider>
+      <DoctorDetailsContent />
+    </UserTimezoneProvider>
   );
 }

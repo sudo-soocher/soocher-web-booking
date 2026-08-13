@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
+import { db } from "@/lib/firebase-db";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -13,11 +14,12 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { FaStethoscope, FaShieldAlt } from "react-icons/fa";
+import { FaArrowLeft, FaCheckCircle, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
+import { markNativeSession } from "@/lib/native-session";
 import { createNewPatient } from "@/types/patient";
 import OtpInput from "@/components/forms/OtpInput";
 
@@ -57,6 +59,7 @@ export default function Login() {
           const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
 
           if (hasName && hasEmail && hasPhone) {
+            markNativeSession(user.uid);
             router.replace("/");
             return;
           }
@@ -127,6 +130,7 @@ export default function Login() {
     const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
 
     if (hasName && hasEmail && hasPhone) {
+      markNativeSession(user.uid);
       router.push("/");
       return;
     }
@@ -328,77 +332,99 @@ export default function Login() {
   }
 
   return (
-    <main className="flex min-h-screen bg-white">
-      {/* Visual Side */}
-      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden mesh-gradient items-center justify-center">
-        <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px]" />
+    <main className="relative min-h-[100dvh] overflow-hidden bg-[#F4F8FF] px-3 pb-6 pt-20 md:px-8 md:pb-8 md:pt-24">
+      <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
 
-        <div className="relative z-10 p-20 max-w-2xl space-y-12">
+      <button
+        type="button"
+        onClick={() => router.push("/")}
+        className="mobile-pressable absolute left-4 top-4 z-20 flex h-10 items-center gap-2 rounded-2xl border border-white/90 bg-white/70 px-3.5 text-xs font-extrabold text-slate-700 shadow-[0_8px_24px_rgba(46,109,212,0.10)] backdrop-blur-xl md:left-8 md:top-7"
+        style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
+        aria-label="Back to home"
+      >
+        <FaArrowLeft className="text-[10px] text-primary" />
+        Back to home
+      </button>
+
+      <div className="relative z-10 mx-auto grid min-h-[calc(100dvh-7rem)] w-full max-w-6xl items-stretch overflow-hidden rounded-[32px] border border-white/90 bg-white/50 shadow-[0_30px_90px_rgba(46,109,212,0.14)] backdrop-blur-2xl lg:grid-cols-[0.92fr_1.08fr]">
+      {/* Visual Side */}
+      <div className="relative hidden overflow-hidden border-r border-white/80 bg-gradient-to-br from-blue-50 via-white to-cyan-50 lg:flex lg:items-center lg:justify-center">
+        <div className="pointer-events-none absolute -left-20 top-1/3 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
+        <div className="relative z-10 w-full max-w-md space-y-8 p-10 xl:p-14">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-white rounded-[28px] flex items-center justify-center shadow-2xl p-4"
+            className="flex items-center gap-3"
           >
-            <Logo size="lg" className="w-full h-full rounded-2xl" />
+            <Logo size="md" className="rounded-2xl shadow-lg shadow-primary/15" />
+            <div>
+              <p className="text-lg font-black tracking-tight text-slate-900">Soocher</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary">Healthcare, simplified</p>
+            </div>
           </motion.div>
 
-          <div className="space-y-6">
+          <div className="relative overflow-hidden rounded-[28px] border border-white bg-white/60 p-2 shadow-xl shadow-primary/10">
+            <div
+              className="h-64 rounded-[22px] bg-cover bg-top"
+              style={{ backgroundImage: "url('/specialities/general-physician.jpg')" }}
+              role="img"
+              aria-label="Soocher healthcare specialist"
+            />
+            <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/80 bg-white/80 p-4 shadow-lg backdrop-blur-xl">
+              <p className="text-sm font-black text-slate-900">Care that fits your day</p>
+              <p className="mt-1 text-[11px] font-medium leading-relaxed text-slate-500">Connect with verified specialists from wherever you are.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-7xl font-black text-white leading-tight tracking-tight"
+              className="text-4xl font-black leading-tight tracking-tight text-slate-900"
             >
-              Elegance in <br /><span className="text-white/60 italic">Healthcare.</span>
+              Your health journey,<br /><span className="text-primary">all in one place.</span>
             </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-xl text-white/80 font-medium leading-relaxed"
-            >
-              Experience the future of medical consultations with our premium, minimal platform. Secure, swift, and sophisticated.
-            </motion.p>
           </div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex gap-12"
+            className="grid grid-cols-1 gap-3"
           >
-            <div>
-              <p className="text-4xl font-black text-white">4k+</p>
-              <p className="text-white/60 font-bold uppercase tracking-widest text-[10px] mt-1">Specialists</p>
-            </div>
-            <div>
-              <p className="text-4xl font-black text-white">100k+</p>
-              <p className="text-white/60 font-bold uppercase tracking-widest text-[10px] mt-1">Happy Souls</p>
-            </div>
+            {["Verified healthcare specialists", "Secure consultations and bookings", "Simple appointment management"].map((item) => (
+              <div key={item} className="flex items-center gap-2.5 text-xs font-bold text-slate-600"><FaCheckCircle className="shrink-0 text-emerald-500" />{item}</div>
+            ))}
           </motion.div>
         </div>
       </div>
 
       {/* Form Side */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-4 md:p-8 bg-[#F8FAFC]">
+      <div className="flex w-full items-center justify-center p-3 md:p-8 lg:p-10">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-full max-w-sm space-y-6 md:space-y-10"
+          className="w-full max-w-md space-y-6 rounded-[28px] border border-white/90 bg-white/72 p-5 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:p-8"
         >
+          <div className="flex items-center gap-3 lg:hidden">
+            <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
+            <div><p className="text-base font-black tracking-tight text-slate-900">Soocher</p><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
+          </div>
           <div className="space-y-2">
             <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
               {needsPhoneLink
                 ? "Verify Your Phone"
                 : needsRegistration
                 ? "Complete Your Profile"
-                : "Access Soocher"}
+                : "Welcome back"}
             </h2>
             <p className="text-slate-500 font-medium tracking-tight italic text-base md:text-lg">
               {needsPhoneLink
                 ? "We need a verified mobile number to continue."
                 : needsRegistration
                 ? "A few details and you're in."
-                : "Your health sanctuary awaits."}
+                : "Sign in to continue your healthcare journey."}
             </p>
           </div>
 
@@ -577,7 +603,7 @@ export default function Login() {
               </Button>
             </form>
           ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Phone Login */}
             <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="space-y-6">
               {!showOTPInput ? (
@@ -588,7 +614,7 @@ export default function Login() {
                     value={phoneNumber}
                     onChange={(phone) => setPhoneNumber(phone)}
                   />
-                  <p className="text-[10px] text-slate-400 font-medium italic ml-1">Verifying your identity with military-grade precision.</p>
+                  <p className="text-[10px] text-slate-400 font-medium ml-1">We&apos;ll send a secure one-time code via WhatsApp.</p>
                 </div>
               ) : (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -624,16 +650,16 @@ export default function Login() {
                 {showOTPInput
                   ? isLoading
                     ? "Verifying..."
-                    : "Unlock Account"
+                    : "Verify & continue"
                   : isLoading
                   ? "Sending..."
-                  : "Access Sanctuary"}
+                  : "Send verification code"}
               </Button>
             </form>
 
             <div className="relative flex items-center">
               <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-4 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em]">Or Transcend with</span>
+              <span className="flex-shrink mx-4 text-slate-400 font-bold text-[10px] uppercase tracking-[0.16em]">Or continue with</span>
               <div className="flex-grow border-t border-slate-200"></div>
             </div>
 
@@ -646,19 +672,20 @@ export default function Login() {
                 onClick={handleGoogleLogin}
                 startContent={<FcGoogle className="text-2xl" />}
               >
-                Google
+                Continue with Google
               </Button>
             </div>
           </div>
           )}
 
-          <div className="pt-8 flex items-center justify-center gap-2 text-slate-400">
+          <div className="flex items-center justify-center gap-2 border-t border-slate-100 pt-4 text-slate-400">
             <FaShieldAlt className="text-success" />
-            <p className="text-xs font-bold uppercase tracking-widest leading-loose">
-              Military-grade encryption active
+            <p className="text-[10px] font-bold tracking-wide leading-loose">
+              Secure sign-in and protected account data
             </p>
           </div>
         </motion.div>
+      </div>
       </div>
     </main>
   );

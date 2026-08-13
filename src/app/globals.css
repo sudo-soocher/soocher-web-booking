@@ -2,6 +2,159 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── iOS Native App Feel ─────────────────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overscroll-behavior-y: contain;
+  background: #f5f7fb;
+}
+
+/* Safe area utilities */
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Mobile bottom nav clearance */
+  .pb-safe-nav {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Frosted glass for bottom nav */
+  .bg-primary\/12 {
+    background-color: rgb(46 109 212 / 0.12);
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(79, 126, 255, 0.10), transparent 34%),
+      #f5f7fb;
+  }
+
+  .mobile-app-shell {
+    width: 100%;
+    min-height: 100dvh;
+    background: transparent;
+  }
+
+  .mobile-glass-panel {
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(239, 246, 255, 0.66));
+    backdrop-filter: blur(24px) saturate(145%);
+    -webkit-backdrop-filter: blur(24px) saturate(145%);
+  }
+
+  .mobile-page-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.82);
+    background: rgba(248, 250, 252, 0.76);
+    backdrop-filter: blur(24px) saturate(155%);
+    -webkit-backdrop-filter: blur(24px) saturate(155%);
+    box-shadow: 0 8px 28px rgba(46, 109, 212, 0.055);
+  }
+
+  .mobile-page-header-inner {
+    position: relative;
+    display: flex;
+    height: 56px;
+    align-items: center;
+    padding-inline: 16px;
+  }
+
+  .mobile-page-header-inner > div {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-page-back {
+    position: absolute;
+    left: 16px;
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.68);
+    color: #2e6dd4;
+    box-shadow: 0 5px 14px rgba(46, 109, 212, 0.09);
+    transition: transform 150ms ease, background-color 150ms ease;
+  }
+
+  .mobile-page-back:active {
+    transform: scale(0.92);
+    background: rgba(238, 244, 255, 0.9);
+  }
+
+  .mobile-page-title {
+    max-width: calc(100% - 96px);
+    overflow: hidden;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .mobile-app-card.mobile-app-card {
+    border: 1px solid rgba(255, 255, 255, 0.86);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: 0 12px 36px rgba(38, 63, 112, 0.09);
+  }
+
+  .mobile-speciality-card.mobile-speciality-card {
+    border: 1px solid rgba(174, 199, 239, 0.82);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(245, 249, 255, 0.72));
+    box-shadow:
+      0 10px 24px rgba(46, 109, 212, 0.10),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.86);
+  }
+
+  .mobile-speciality-card:active {
+    border-color: rgba(46, 109, 212, 0.52);
+    box-shadow:
+      0 5px 14px rgba(46, 109, 212, 0.12),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+  }
+
+  .mobile-pressable {
+    touch-action: manipulation;
+    transition: transform 150ms ease, opacity 150ms ease;
+  }
+
+  .mobile-pressable:active {
+    transform: scale(0.96);
+    opacity: 0.82;
+  }
+}
+
+/* Smooth momentum scrolling on iOS */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ── Stream.io video call — Soocher brand overrides ─────────────── */
 .soocher-call {
   --str-video__brand-color1: #2e6dd4;
@@ -52,10 +205,23 @@
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.premium-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 40px 80px -20px rgba(46, 109, 212, 0.1);
-  border-color: rgba(46, 109, 212, 0.2);
+.desktop-speciality-card {
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  box-shadow:
+    0 12px 32px -18px rgba(46, 109, 212, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+@media (hover: hover) and (min-width: 768px) {
+  .premium-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 40px 80px -20px rgba(46, 109, 212, 0.1);
+    border-color: rgba(46, 109, 212, 0.2);
+  }
+
+  .desktop-speciality-card:hover {
+    border-color: rgba(46, 109, 212, 0.45);
+  }
 }
 
 @keyframes mesh-animation {
