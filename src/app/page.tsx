@@ -4,7 +4,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Chip, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@nextui-org/react";
+import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@nextui-org/react";
 import { auth } from "@/lib/firebase-auth";
 import { clearNativeSession } from "@/lib/native-session";
 import { signOut } from "firebase/auth";
@@ -20,6 +20,7 @@ import {
   FaHeartbeat,
   FaShieldAlt,
   FaChevronRight,
+  FaRegBell,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -27,6 +28,8 @@ import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Footer } from "@/components/layout/Footer";
 import { Logo } from "@/components/ui/Logo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useTranslation } from "@/i18n/LanguageProvider";
 import Image from "next/image";
 import { getSpecialityImage } from "@/utils/speciality-images";
 import { fetchSpecialities, getCachedSpecialities, type Speciality } from "@/lib/specialities";
@@ -61,6 +64,7 @@ const itemVariants = {
 
 export default function Home() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   // The server cannot read sessionStorage, so the hydration render must always
   // start from the same empty/loading state. The effect below applies the cache
@@ -213,38 +217,25 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Logo size="sm" className="rounded-[10px] shadow-md shadow-primary/10" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Welcome to Soocher</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{t("brand.welcome")}</p>
               <span className="text-base font-extrabold tracking-tight text-slate-900">
-                {isLoggedIn ? `Hello, ${auth.currentUser?.displayName?.split(" ")[0] || "there"}` : "Your health, simplified"}
+                {isLoggedIn ? t("home.greeting", { name: auth.currentUser?.displayName?.split(" ")[0] || t("home.greetingFallback") }) : t("home.tagline")}
               </span>
             </div>
           </div>
-          {isLoggedIn && (
-            <Dropdown placement="bottom-end">
-              <DropdownTrigger>
-                <Avatar
-                  isBordered
-                  as="button"
-                  className="transition-transform ring-offset-2 ring-primary"
-                  color="primary"
-                  name={auth.currentUser?.displayName || "User"}
-                  size="sm"
-                  src={auth.currentUser?.photoURL || undefined}
-                />
-              </DropdownTrigger>
-              <DropdownMenu aria-label="Profile Actions" variant="flat" className="p-2">
-                <DropdownItem key="profile" className="h-14 gap-2 opacity-100 cursor-default">
-                  <p className="text-xs text-slate-500">Signed in as</p>
-                  <p className="font-semibold text-slate-900">
-                    {auth.currentUser?.phoneNumber || auth.currentUser?.email}
-                  </p>
-                </DropdownItem>
-                <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">My Profile</DropdownItem>
-                <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">My Bookings</DropdownItem>
-                <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>Sign Out</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          )}
+          <div className="flex items-center gap-2" aria-label={t("nav.quickSettings")}>
+            <LanguageSwitcher />
+            <button
+              type="button"
+              aria-label={t("nav.notifications", { count: 3 })}
+              className="mobile-pressable relative flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-900 shadow-sm transition-colors hover:bg-slate-200"
+            >
+              <FaRegBell className="text-lg" aria-hidden="true" />
+              <span className="absolute -right-0.5 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#F5F7FB] bg-red-500 px-1 text-[10px] font-black leading-none text-white">
+                3
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -253,29 +244,30 @@ export default function Home() {
         <nav className="max-w-7xl mx-auto flex justify-between items-center rounded-[22px] bg-white/[0.78] backdrop-blur-2xl px-5 py-2.5 border border-white/90 shadow-[0_12px_36px_rgba(46,109,212,0.09)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-md shadow-primary/15 rounded-xl" />
-            <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
+            <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">{t("brand.tagline")}</p></div>
           </div>
           <div className="flex items-center gap-7">
-            <button onClick={() => document.getElementById("specialities")?.scrollIntoView({ behavior: "smooth" })} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">Specialities</button>
-            <button onClick={() => router.push("/doctors")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">Find doctors</button>
-            <button onClick={() => router.push("/contact")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">Contact</button>
+            <button onClick={() => document.getElementById("specialities")?.scrollIntoView({ behavior: "smooth" })} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">{t("nav.specialities")}</button>
+            <button onClick={() => router.push("/doctors")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">{t("nav.findDoctors")}</button>
+            <button onClick={() => router.push("/contact")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">{t("nav.contact")}</button>
+            <LanguageSwitcher />
             {isLoggedIn ? (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
                   <Avatar isBordered as="button" className="transition-transform ring-offset-2 ring-primary hover:scale-105" color="primary" name={auth.currentUser?.displayName || "User"} size="sm" src={auth.currentUser?.photoURL || undefined} />
                 </DropdownTrigger>
-                <DropdownMenu aria-label="Profile Actions" variant="flat" className="p-2">
+                <DropdownMenu aria-label={t("nav.profileActions")} variant="flat" className="p-2">
                   <DropdownItem key="profile" className="h-14 gap-2 opacity-100 cursor-default">
-                    <p className="text-xs text-slate-500">Signed in as</p>
+                    <p className="text-xs text-slate-500">{t("nav.signedInAs")}</p>
                     <p className="font-semibold text-slate-900">{auth.currentUser?.phoneNumber || auth.currentUser?.email}</p>
                   </DropdownItem>
-                  <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">My Profile</DropdownItem>
-                  <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">My Bookings</DropdownItem>
-                  <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>Sign Out</DropdownItem>
+                  <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">{t("nav.myProfile")}</DropdownItem>
+                  <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">{t("nav.myBookings")}</DropdownItem>
+                  <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>{t("nav.signOut")}</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             ) : (
-              <Button color="primary" onClick={() => router.push("/login")} size="md" className="rounded-xl h-10 font-bold shadow-lg shadow-primary/20 px-6">Sign In</Button>
+              <Button color="primary" onClick={() => router.push("/login")} size="md" className="rounded-xl h-10 font-bold shadow-lg shadow-primary/20 px-6">{t("nav.signIn")}</Button>
             )}
           </div>
         </nav>
@@ -293,29 +285,26 @@ export default function Home() {
           <div className="absolute -bottom-20 -left-12 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
           <div className="absolute right-5 bottom-5 h-20 w-20 rounded-full border border-primary/10" />
           <div className="relative z-10 max-w-[78%]">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-primary shadow-sm backdrop-blur-xl">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Doctors available today
-            </div>
-            <h1 className="text-[28px] font-black leading-[1.08] tracking-[-0.035em] text-slate-900">Quality care,<br />wherever you are.</h1>
-            <p className="mt-3 text-xs leading-relaxed text-slate-600">Book a verified specialist and consult securely from home.</p>
+            <h1 className="text-[28px] font-black leading-[1.08] tracking-[-0.035em] text-slate-900">{t("home.heroTitleMobile")}<br />{t("home.heroTitleMobile2")}</h1>
+            <p className="mt-3 text-xs leading-relaxed text-slate-600">{t("home.heroSubtitleMobile")}</p>
           </div>
           <button onClick={() => router.push("/doctors")} className="mobile-pressable relative z-10 mt-5 flex h-11 w-full items-center justify-between rounded-2xl border border-white/70 bg-white/75 px-4 text-sm font-extrabold text-slate-900 shadow-lg shadow-primary/10 backdrop-blur-xl">
-            Book a consultation
+            {t("home.bookConsultation")}
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white"><FaChevronRight className="text-[10px]" /></span>
           </button>
         </motion.div>
 
         <button onClick={() => router.push("/doctors")} className="mobile-pressable mt-4 flex h-13 w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 text-left shadow-sm">
           <FaSearch className="text-primary" />
-          <span className="flex-1 text-sm font-semibold text-slate-400">Search doctors or specialities</span>
+          <span className="flex-1 text-sm font-semibold text-slate-400">{t("home.searchPlaceholder")}</span>
           <FaChevronRight className="text-[10px] text-slate-300" />
         </button>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
           {[
-            { label: "Video consult", icon: FaVideo, href: "/doctors", tone: "bg-blue-50 text-primary" },
-            { label: "My bookings", icon: FaCalendarCheck, href: "/bookings", tone: "bg-emerald-50 text-emerald-600" },
-            { label: "My profile", icon: FaHeartbeat, href: "/profile", tone: "bg-rose-50 text-rose-500" },
+            { label: t("home.videoConsult"), icon: FaVideo, href: "/doctors", tone: "bg-blue-50 text-primary" },
+            { label: t("home.myBookings"), icon: FaCalendarCheck, href: "/bookings", tone: "bg-emerald-50 text-emerald-600" },
+            { label: t("home.myProfile"), icon: FaHeartbeat, href: "/profile", tone: "bg-rose-50 text-rose-500" },
           ].map(({ label, icon: Icon, href, tone }) => (
             <button key={label} onClick={() => router.push(href)} className="mobile-pressable mobile-app-card flex min-h-24 flex-col items-start justify-between p-3.5 text-left">
               <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}><Icon className="text-sm" /></span>
@@ -332,28 +321,22 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto overflow-hidden rounded-[38px] border border-white/90 bg-white/55 p-7 lg:p-10 shadow-[0_30px_90px_rgba(46,109,212,0.12)] backdrop-blur-2xl">
           <div className="grid grid-cols-[0.95fr_1.05fr] gap-8 lg:gap-12 items-center">
           <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55 }} className="z-10 will-change-transform flex flex-col items-start text-left">
-            <Chip variant="flat" color="primary" className="mb-5 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] bg-primary/10 text-primary border border-primary/10">
-              <span className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Doctors available today
-              </span>
-            </Chip>
             <h1 className="text-[42px] lg:text-[58px] xl:text-[64px] font-black text-slate-900 leading-[1.04] tracking-[-0.045em]">
-              Quality healthcare,<br />
-              <span className="text-primary">built around you.</span>
+              {t("home.heroTitle")}<br />
+              <span className="text-primary">{t("home.heroTitleAccent")}</span>
             </h1>
             <p className="mt-5 text-sm lg:text-base text-slate-600 leading-relaxed max-w-lg">
-              Find verified specialists, choose a convenient time, and consult securely from home—all in a few simple steps.
+              {t("home.heroSubtitle")}
             </p>
             <div className="mt-7 flex items-center gap-3">
               <Button size="lg" color="primary" className="rounded-2xl px-7 font-black shadow-xl shadow-primary/20 h-12 text-sm" onClick={() => router.push("/doctors")}>
-                Book a consultation
+                {t("home.bookConsultation")}
               </Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-bold text-slate-500">
-              <span className="flex items-center gap-1.5"><FaShieldAlt className="text-emerald-500" /> Verified specialists</span>
-              <span className="flex items-center gap-1.5"><FaVideo className="text-primary" /> Secure video care</span>
-              <span className="flex items-center gap-1.5"><FaCalendarCheck className="text-violet-500" /> Easy scheduling</span>
+              <span className="flex items-center gap-1.5"><FaShieldAlt className="text-emerald-500" /> {t("home.verifiedSpecialists")}</span>
+              <span className="flex items-center gap-1.5"><FaVideo className="text-primary" /> {t("home.secureVideoCare")}</span>
+              <span className="flex items-center gap-1.5"><FaCalendarCheck className="text-violet-500" /> {t("home.easyScheduling")}</span>
             </div>
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.65 }} className="relative min-h-[390px] lg:min-h-[455px] will-change-transform">
@@ -363,22 +346,22 @@ export default function Home() {
             </div>
             <div className="absolute -left-5 bottom-6 flex items-center gap-3 rounded-2xl border border-white/90 bg-white/[0.88] p-3 shadow-xl backdrop-blur-xl">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><FaShieldAlt /></span>
-              <div><p className="text-xs font-black text-slate-900">100% verified</p><p className="mt-0.5 text-[9px] font-semibold text-slate-500">Trusted medical professionals</p></div>
+              <div><p className="text-xs font-black text-slate-900">{t("home.hundredVerified")}</p><p className="mt-0.5 text-[9px] font-semibold text-slate-500">{t("home.trustedProfessionals")}</p></div>
             </div>
             <div className="absolute -right-4 top-6 rounded-2xl border border-white/90 bg-white/[0.88] px-4 py-3 shadow-xl backdrop-blur-xl">
-              <p className="text-xl font-black text-primary">29</p><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Specialities</p>
+              <p className="text-xl font-black text-primary">29</p><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("home.specialitiesCount")}</p>
             </div>
             <div className="absolute bottom-5 right-5 flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-3 py-2 shadow-lg backdrop-blur-xl">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" /><span className="text-[9px] font-extrabold text-slate-700">Consult online</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /><span className="text-[9px] font-extrabold text-slate-700">{t("home.consultOnline")}</span>
             </div>
           </motion.div>
           </div>
 
           <div className="mt-8 grid grid-cols-3 divide-x divide-slate-100 overflow-hidden rounded-2xl border border-white/90 bg-white/[0.62] shadow-sm">
             {[
-              { icon: FaSearch, title: "Find your specialist", text: "Browse care by speciality" },
-              { icon: FaCalendarCheck, title: "Choose a time", text: "Pick from live availability" },
-              { icon: FaVideo, title: "Consult securely", text: "Meet your doctor online" },
+              { icon: FaSearch, title: t("home.stepFind"), text: t("home.stepFindBlurb") },
+              { icon: FaCalendarCheck, title: t("home.stepTime"), text: t("home.stepTimeBlurb") },
+              { icon: FaVideo, title: t("home.stepConsult"), text: t("home.stepConsultBlurb") },
             ].map(({ icon: Icon, title, text }) => (
               <button key={title} onClick={() => router.push("/doctors")} className="group flex items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-white/70">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105"><Icon /></span>
@@ -397,13 +380,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-10 gap-3 md:gap-6">
             <div className="space-y-1 md:space-y-4">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">Explore care</p>
-              <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">Find care by speciality</h2>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">{t("home.exploreCare")}</p>
+              <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">{t("home.findBySpeciality")}</h2>
               <p className="text-sm md:text-base text-slate-500 max-w-xl">
-                Choose a category to see verified doctors and their available appointment times.
+                {t("home.findBySpecialityBlurb")}
               </p>
             </div>
-            <Button onClick={() => router.push("/doctors")} variant="flat" color="primary" className="rounded-xl px-5 font-bold">View all doctors <FaChevronRight className="ml-1 text-[9px]" /></Button>
+            <Button onClick={() => router.push("/doctors")} variant="flat" color="primary" className="rounded-xl px-5 font-bold">{t("home.viewAllDoctors")} <FaChevronRight className="ml-1 text-[9px]" /></Button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
@@ -447,14 +430,14 @@ export default function Home() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="line-clamp-3 text-sm font-extrabold leading-snug text-slate-800">{speciality.name}</h3>
-                    <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-slate-500"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Available</p>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-slate-500"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {t("home.available.short")}</p>
                   </div>
                 </motion.div>
               ))
             )}
             {!loading && specialities.length === 0 && (
               <div className="col-span-full py-12 text-center">
-                <p className="text-slate-400 font-medium italic">No specialities listed at the moment.</p>
+                <p className="text-slate-400 font-medium italic">{t("home.noSpecialities")}</p>
               </div>
             )}
           </div>
@@ -464,12 +447,12 @@ export default function Home() {
       <main id="mobile-specialities" className="md:hidden flex-1 px-4 pt-2 pb-safe-nav">
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">Explore care</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">Specialities</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">{t("home.exploreCare")}</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">{t("nav.specialities")}</h2>
           </div>
           {specialities.length > 8 && (
             <button onClick={() => setShowAllSpecialities((shown) => !shown)} className="mobile-pressable flex items-center gap-1 text-xs font-bold text-primary">
-              {showAllSpecialities ? "Show less" : "View all"}
+              {showAllSpecialities ? t("home.showLess") : t("home.viewAll")}
               <FaChevronRight className={`text-[9px] transition-transform ${showAllSpecialities ? "-rotate-90" : "rotate-90"}`} />
             </button>
           )}
@@ -503,7 +486,7 @@ export default function Home() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="line-clamp-3 text-[11px] font-extrabold leading-snug text-slate-800">{speciality.name}</span>
-                <span className="mt-1.5 flex items-center gap-1 text-[9px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Available</span>
+                <span className="mt-1.5 flex items-center gap-1 text-[9px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> {t("home.available.short")}</span>
               </span>
             </button>
           ))}
@@ -512,8 +495,8 @@ export default function Home() {
         <div className="mt-5 flex items-center gap-3 rounded-[22px] border border-emerald-100 bg-emerald-50/80 p-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm"><FaShieldAlt /></span>
           <div>
-            <p className="text-xs font-extrabold text-slate-800">Your consultations are private</p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">Secure booking and protected health conversations.</p>
+            <p className="text-xs font-extrabold text-slate-800">{t("home.privateTitle")}</p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">{t("home.privateBlurb")}</p>
           </div>
         </div>
       </main>

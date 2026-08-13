@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaHome, FaStethoscope, FaCalendarCheck, FaUser } from "react-icons/fa";
+import { useTranslation } from "@/i18n/LanguageProvider";
 
 const tabs = [
-  { icon: FaHome, label: "Home", href: "/" },
-  { icon: FaStethoscope, label: "Find", href: "/doctors" },
-  { icon: FaCalendarCheck, label: "Bookings", href: "/bookings" },
-  { icon: FaUser, label: "Profile", href: "/profile" },
+  { icon: FaHome, labelKey: "nav.home", href: "/" },
+  { icon: FaStethoscope, labelKey: "nav.find", href: "/doctors" },
+  { icon: FaCalendarCheck, labelKey: "nav.bookings", href: "/bookings" },
+  { icon: FaUser, labelKey: "nav.profile", href: "/profile" },
 ];
 
 const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth"];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const isHidden = HIDDEN_ROUTES.some((r) => pathname.startsWith(r));
   if (isHidden) return null;
@@ -22,14 +24,15 @@ export function MobileBottomNav() {
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pointer-events-none"
-      aria-label="Bottom navigation"
+      aria-label={t("nav.bottomNav")}
     >
       <div
         className="pointer-events-auto max-w-md mx-auto mb-2 bg-white/72 backdrop-blur-3xl border border-white/80 rounded-[28px] shadow-[0_18px_50px_rgba(46,109,212,0.14)]"
         style={{ marginBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="flex items-center px-2 py-2 gap-0">
-          {tabs.map(({ icon: Icon, label, href }) => {
+          {tabs.map(({ icon: Icon, labelKey, href }) => {
+            const label = t(labelKey);
             const isActive =
               href === "/" ? pathname === href : pathname.startsWith(href);
 

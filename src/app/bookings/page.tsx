@@ -29,11 +29,14 @@ const ChatSidebar = dynamic(
 import { getChatAvailability } from "@/utils/chat/availability";
 import { formatDisplayDateTime, formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
 import { Logo } from "@/components/ui/Logo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useTranslation } from "@/i18n/LanguageProvider";
 import { BookingsShimmer } from "@/components/loading/BookingsShimmer";
 import { getCachedBookings, setCachedBookings } from "@/lib/bookings-cache";
 
 export default function Bookings() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, ready: authReady } = useAuthUser();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,29 +135,29 @@ export default function Bookings() {
     const now = Date.now();
 
     if (consultation.cancelledByDoctor) {
-      return <Chip size="sm" className="h-6 border border-rose-100 bg-rose-50 text-[9px] font-extrabold text-rose-600">Cancelled</Chip>;
+      return <Chip size="sm" className="h-6 border border-rose-100 bg-rose-50 text-[9px] font-extrabold text-rose-600">{t("bookings.cancelled")}</Chip>;
     } else if (consultation.videoConsultDone) {
       return (
         <Chip size="sm" className="h-6 border border-slate-200 bg-slate-100 text-[9px] font-extrabold text-slate-500">
-          Completed
+          {t("bookings.completed")}
         </Chip>
       );
     } else if (consultation.consultationTime > now) {
       return (
         <Chip size="sm" className="h-6 border border-blue-100 bg-blue-50 text-[9px] font-extrabold text-primary">
-          Upcoming
+          {t("bookings.upcoming")}
         </Chip>
       );
     } else if (consultation.consultationExpiration >= now) {
       return (
         <Chip size="sm" className="h-6 border border-emerald-100 bg-emerald-50 text-[9px] font-extrabold text-emerald-600">
-          Active
+          {t("bookings.active")}
         </Chip>
       );
     } else {
       return (
         <Chip size="sm" className="h-6 border border-slate-200 bg-slate-100 text-[9px] font-extrabold text-slate-500">
-          Completed
+          {t("bookings.completed")}
         </Chip>
       );
     }
@@ -190,11 +193,11 @@ export default function Bookings() {
                 onClick={() => router.push("/")}
                 className="mobile-page-back"
                 style={{ WebkitTapHighlightColor: "transparent" }}
-                aria-label="Go back"
+                aria-label={t("nav.back")}
               >
                 <FaArrowLeft className="text-[11px]" />
               </button>
-              <span className="mobile-page-title">My Bookings</span>
+              <span className="mobile-page-title">{t("bookings.title")}</span>
             </div>
           </div>
         </header>
@@ -204,9 +207,12 @@ export default function Bookings() {
           <nav className="max-w-7xl mx-auto flex justify-between items-center rounded-[22px] bg-white/[0.78] backdrop-blur-2xl px-5 py-2.5 border border-white/90 shadow-[0_12px_36px_rgba(46,109,212,0.09)]">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
               <Logo size="md" className="shadow-md shadow-primary/15 rounded-xl" />
-              <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
+              <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">{t("brand.tagline")}</p></div>
             </div>
-            <Button variant="flat" size="sm" className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>Back home</Button>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
+            <Button variant="flat" size="sm" className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>{t("nav.backHome")}</Button>
+            </div>
           </nav>
         </header>
 
@@ -215,20 +221,20 @@ export default function Bookings() {
             {/* Page Heading - desktop only (mobile has it in top bar) */}
             <div className="hidden md:flex items-end justify-between gap-6 rounded-[28px] border border-white/90 bg-white/55 p-7 shadow-[0_18px_50px_rgba(46,109,212,0.07)] backdrop-blur-xl">
               <div className="space-y-2">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">Your care journey</p>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">{t("bookings.careJourney")}</p>
               <h1 className="text-4xl font-black text-slate-900 tracking-tight">
                 My consultations
               </h1>
               <p className="text-sm text-slate-500 font-medium">View appointments, join consultations, and chat with your doctor.</p>
               </div>
-              <Button color="primary" className="h-11 rounded-xl px-6 font-black shadow-lg shadow-primary/15" onPress={() => router.push("/doctors")}>Book new consultation</Button>
+              <Button color="primary" className="h-11 rounded-xl px-6 font-black shadow-lg shadow-primary/15" onPress={() => router.push("/doctors")}>{t("bookings.bookNew")}</Button>
             </div>
 
             <div className="grid grid-cols-3 gap-2 md:gap-3">
               {[
-                { key: "upcoming", label: "Upcoming", count: filterConsultations("upcoming").length, tone: "bg-blue-50 text-primary border-blue-100" },
-                { key: "active", label: "Active", count: filterConsultations("active").length, tone: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-                { key: "past", label: "Completed", count: filterConsultations("past").length, tone: "bg-slate-100 text-slate-600 border-slate-200" },
+                { key: "upcoming", label: t("bookings.upcoming"), count: filterConsultations("upcoming").length, tone: "bg-blue-50 text-primary border-blue-100" },
+                { key: "active", label: t("bookings.active"), count: filterConsultations("active").length, tone: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+                { key: "past", label: t("bookings.completed"), count: filterConsultations("past").length, tone: "bg-slate-100 text-slate-600 border-slate-200" },
               ].map((item) => (
                 <button key={item.key} onClick={() => setSelectedTab(item.key)} className={`mobile-pressable relative overflow-hidden rounded-2xl border p-2.5 text-left shadow-sm transition-all duration-300 md:p-4 ${selectedTab === item.key ? `${item.tone} border-transparent shadow-[0_12px_28px_rgba(46,109,212,0.10)]` : "border-white/90 bg-white/65 text-slate-500 hover:bg-white/85"}`}>
                   {selectedTab === item.key && <motion.span layoutId="booking-filter-glow" className="absolute inset-0 bg-gradient-to-br from-white/55 to-transparent" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
@@ -240,8 +246,8 @@ export default function Bookings() {
 
             <div className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between px-1">
-                <div><h2 className="text-sm md:text-lg font-black text-slate-900">{selectedTab === "upcoming" ? "Upcoming appointments" : selectedTab === "active" ? "Consultations in progress" : "Consultation history"}</h2><p className="mt-0.5 text-[9px] md:text-[10px] font-semibold text-slate-400">{filterConsultations(selectedTab as "upcoming" | "active" | "past").length} {filterConsultations(selectedTab as "upcoming" | "active" | "past").length === 1 ? "appointment" : "appointments"}</p></div>
-                {selectedTab === "upcoming" && <Button size="sm" variant="flat" color="primary" className="hidden md:flex rounded-xl font-bold" onPress={() => router.push("/doctors")}>New booking</Button>}
+                <div><h2 className="text-sm md:text-lg font-black text-slate-900">{selectedTab === "upcoming" ? t("bookings.upcomingAppointments") : selectedTab === "active" ? t("bookings.inProgress") : t("bookings.history")}</h2><p className="mt-0.5 text-[9px] md:text-[10px] font-semibold text-slate-400">{filterConsultations(selectedTab as "upcoming" | "active" | "past").length} {filterConsultations(selectedTab as "upcoming" | "active" | "past").length === 1 ? t("bookings.appointment") : t("bookings.appointments")}</p></div>
+                {selectedTab === "upcoming" && <Button size="sm" variant="flat" color="primary" className="hidden md:flex rounded-xl font-bold" onPress={() => router.push("/doctors")}>{t("bookings.newBooking")}</Button>}
               </div>
               {/* List */}
               <AnimatePresence mode="wait" initial={false}>
@@ -303,9 +309,9 @@ export default function Bookings() {
                                 e.stopPropagation();
                                 router.push(`/video-call/${consultation.consultationId}`);
                               }}
-                              title="Join Video Call"
+                              title={t("bookings.joinVideoCall")}
                             >
-                              <FaPhoneAlt className="text-xs" /> Join call
+                              <FaPhoneAlt className="text-xs" /> {t("bookings.joinCall")}
                             </button>
                           )}
 
@@ -316,7 +322,7 @@ export default function Bookings() {
                                 e.stopPropagation();
                                 window.open(consultation.extras?.meetLink, "_blank");
                               }}
-                              title="Join Google Meet"
+                              title={t("bookings.joinGoogleMeet")}
                             >
                               <FaVideo className="text-xs" /> Join meet
                             </button>
@@ -330,7 +336,7 @@ export default function Bookings() {
                                 setSelectedConsultation(consultation);
                                 onChatOpen();
                               }}
-                              title="Open Chat"
+                              title={t("bookings.openChat")}
                             >
                               <FaComments className="text-xs" /> Chat
                             </button>
@@ -428,7 +434,7 @@ export default function Bookings() {
 
                           {/* Source */}
                           <div className="hidden xl:flex flex-col items-center gap-1 w-[60px]">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Source</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">{t("bookings.source")}</span>
                             <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap ${
                               getBookingSource(consultation) === "web"
                                 ? "bg-blue-100 text-blue-600"
@@ -440,7 +446,7 @@ export default function Bookings() {
 
                           {/* Status */}
                           <div className="flex flex-col items-center gap-1 w-[82px]">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Status</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">{t("bookings.status")}</span>
                             {getStatusChip(consultation)}
                           </div>
 
@@ -464,11 +470,11 @@ export default function Bookings() {
                       <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-4xl text-slate-200">
                         <FaClock />
                       </div>
-                      <div className="text-center">
-                        <p className="text-xl font-black text-slate-900">No appointments found</p>
-                        <p className="text-slate-400 font-medium">Your {selectedTab} consultations will appear here.</p>
+                      <div className="px-4 text-center">
+                        <p className="text-base font-black text-slate-900 md:text-xl">{t("bookings.none")}</p>
+                        <p className="mt-1 text-xs font-medium text-slate-400 md:text-sm">Your {selectedTab} consultations will appear here.</p>
                       </div>
-                      <Button color="primary" variant="flat" className="rounded-xl font-bold" onPress={() => router.push("/doctors")}>Find a specialist</Button>
+                      <Button color="primary" variant="flat" className="rounded-xl text-xs font-bold md:text-sm" onPress={() => router.push("/doctors")}>{t("bookings.findSpecialist")}</Button>
                     </motion.div>
                   )}
               </motion.div>
@@ -498,8 +504,8 @@ export default function Bookings() {
             <>
               <ModalHeader>
                 <div className="space-y-1">
-                  <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-primary">Consultation overview</p>
-                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Appointment details</h2>
+                  <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-primary">{t("bookings.overview")}</p>
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{t("bookings.details")}</h2>
                   <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reference: {selectedConsultation?.consultationId.slice(0, 8)}</p>
                 </div>
               </ModalHeader>
@@ -508,15 +514,15 @@ export default function Bookings() {
                   <div className="space-y-4 md:space-y-6">
                     <div className="grid grid-cols-2 gap-3 md:gap-5 p-3.5 md:p-5 bg-white/70 border border-white rounded-[20px] shadow-sm">
                       <div className="space-y-1 md:space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Doctor</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{t("bookings.doctor")}</p>
                         <p className="text-sm md:text-base font-black text-slate-900">{selectedConsultation.doctorName}</p>
                       </div>
                       <div className="space-y-1 md:space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Patient</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{t("bookings.patient")}</p>
                         <p className="text-sm md:text-base font-black text-slate-900 font-bold">{selectedConsultation.extras?.patientDetails?.patientName ?? "—"}</p>
                       </div>
                       <div className="space-y-1 md:space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Booked Via</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{t("bookings.bookedVia")}</p>
                         <span className={`inline-block text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full ${
                           getBookingSource(selectedConsultation) === "web"
                             ? "bg-blue-100 text-blue-600"
@@ -533,7 +539,7 @@ export default function Bookings() {
                           <FaCalendar />
                         </div>
                         <div className="space-y-1">
-                          <p className="font-black text-slate-900">Time & Date</p>
+                          <p className="font-black text-slate-900">{t("bookings.timeDate")}</p>
                           <p className="text-slate-500 font-medium">
                             {formatDateTime(selectedConsultation.consultationTime, selectedConsultation.timezone)}
                           </p>
@@ -545,7 +551,7 @@ export default function Bookings() {
                           <FaVideo />
                         </div>
                         <div className="space-y-1">
-                          <p className="font-black text-slate-900">Video Link Duration</p>
+                          <p className="font-black text-slate-900">{t("bookings.videoLinkDuration")}</p>
                           <p className="text-slate-500 font-medium text-sm">
                             Available until {formatDisplayTime(selectedConsultation.consultationExpiration, selectedConsultation.timezone)}
                           </p>
@@ -558,7 +564,7 @@ export default function Bookings() {
                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                               <FaPhoneAlt className="text-xs" />
                             </div>
-                            <p className="text-sm font-bold text-primary">Soocher Video is ready</p>
+                            <p className="text-sm font-bold text-primary">{t("bookings.videoReady")}</p>
                           </div>
                           <Button
                             color="primary"
@@ -577,7 +583,7 @@ export default function Bookings() {
                             <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success">
                               <FaVideo className="text-xs" />
                             </div>
-                            <p className="text-sm font-bold text-success">Google Meet is ready</p>
+                            <p className="text-sm font-bold text-success">{t("bookings.meetReady")}</p>
                           </div>
                           <Button
                             color="success"
@@ -596,7 +602,7 @@ export default function Bookings() {
                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                               <FaComments className="text-xs" />
                             </div>
-                            <p className="text-sm font-bold text-primary">Chat is active</p>
+                            <p className="text-sm font-bold text-primary">{t("bookings.chatActive")}</p>
                           </div>
                           <Button
                             color="primary"

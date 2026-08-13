@@ -403,3 +403,10 @@ body {
     min-height: 0 !important;
   }
 }
+
+/* Malayalam script needs a font that actually carries its glyphs. Scoped to the
+   language the LanguageProvider sets on <html>, so English users never download
+   or apply it. */
+html[lang="ml"] body {
+  font-family: var(--font-malayalam), system-ui, -apple-system, sans-serif;
+}
