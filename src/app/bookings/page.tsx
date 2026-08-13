@@ -29,6 +29,7 @@ const ChatSidebar = dynamic(
 import { getChatAvailability } from "@/utils/chat/availability";
 import { formatDisplayDateTime, formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
 import { Logo } from "@/components/ui/Logo";
+import { BookingsShimmer } from "@/components/loading/BookingsShimmer";
 
 export default function Bookings() {
   const router = useRouter();
@@ -143,27 +144,10 @@ export default function Bookings() {
     return "app";
   };
 
+  // Same component the route-level loading.tsx renders, so the tap-to-content
+  // transition is one continuous placeholder rather than two different ones.
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] bg-[#F8FAFC]">
-        <header className="hidden md:block px-6 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
-              <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
-            </div>
-          </div>
-        </header>
-        <div className="md:hidden h-14 bg-white/70 border-b border-white animate-pulse" />
-
-        <main className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-10 space-y-3 md:space-y-4 pb-safe-nav md:pb-0">
-          <div className="grid grid-cols-3 gap-2 md:gap-3 mb-5">{[1,2,3].map((i) => <div key={i} className="h-16 md:h-20 rounded-2xl bg-white/70 border border-white animate-pulse" />)}</div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="mobile-app-card premium-card h-32 md:h-28 animate-pulse bg-white/70 border border-white" />
-          ))}
-        </main>
-      </div>
-    );
+    return <BookingsShimmer />;
   }
 
   return (

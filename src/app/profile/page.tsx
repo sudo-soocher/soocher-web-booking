@@ -19,6 +19,7 @@ import { Footer } from "@/components/layout/Footer";
 import { storage } from "@/lib/firebase-storage";
 import { Logo } from "@/components/ui/Logo";
 import { RemoteImage } from "@/components/ui/RemoteImage";
+import { ProfileShimmer } from "@/components/loading/ProfileShimmer";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
@@ -165,27 +166,10 @@ export default function Profile() {
     }
   };
 
+  // Same component the route-level loading.tsx renders, so the tap-to-content
+  // transition is one continuous placeholder rather than two different ones.
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] bg-[#F8FAFC]">
-        <div className="md:hidden h-14 bg-white/70 border-b border-white animate-pulse" />
-        <header className="hidden md:block px-6 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
-              <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-6xl mx-auto px-3 md:px-6 py-4 md:py-9">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[280px_minmax(0,1fr)] md:gap-5 animate-pulse">
-            <div className="h-28 md:h-72 rounded-[26px] bg-white/70 border border-white" />
-            <div className="space-y-4"><div className="h-72 rounded-[26px] bg-white/70 border border-white" /><div className="h-48 rounded-[26px] bg-white/70 border border-white" /></div>
-          </div>
-        </main>
-      </div>
-    );
+    return <ProfileShimmer />;
   }
 
   return (

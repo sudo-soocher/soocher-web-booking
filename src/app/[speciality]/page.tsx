@@ -87,13 +87,13 @@ export default function SpecialityPage() {
       <div className="min-h-screen bg-[#F8FAFC]">
         <header className="px-6 py-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
-            <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
-            <div className="w-24 h-6 bg-slate-200 rounded-lg animate-pulse" />
+            <div className="app-shimmer w-10 h-10 rounded-xl" />
+            <div className="app-shimmer w-24 h-6 rounded-lg" />
           </div>
         </header>
         <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="premium-card h-48 animate-pulse bg-slate-50 border-none" />
+            <div key={i} className="premium-card app-shimmer h-48 border-none" />
           ))}
         </main>
         <Footer />

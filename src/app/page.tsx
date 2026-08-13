@@ -112,6 +112,14 @@ export default function Home() {
     };
   }, []);
 
+  // Every primary action on this page — the hero CTA, the search bar, the quick
+  // actions and each speciality card — lands on /doctors, so warming that one
+  // chunk covers all of them. The bottom nav prefetches it on mobile; this is
+  // what makes the desktop header and hero buttons instant too.
+  useEffect(() => {
+    router.prefetch("/doctors");
+  }, [router]);
+
   /* Commented out AI Assistant effects
   useEffect(() => {
     // Show chat after 10 seconds
@@ -467,7 +475,7 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-3">
           {loading ? [1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="mobile-speciality-card mobile-app-card h-[84px] animate-pulse bg-white" />
+            <div key={i} className="mobile-speciality-card mobile-app-card app-shimmer h-[84px]" />
           )) : specialities.slice(0, showAllSpecialities ? specialities.length : 8).map((speciality, index) => (
             <button
               key={speciality.name}

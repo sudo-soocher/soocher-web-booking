@@ -197,7 +197,7 @@ function DoctorsListContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-8">
                         {loading ? (
                             [1, 2, 3].map((i) => (
-                                <div key={i} className="mobile-app-card premium-card h-24 md:h-64 animate-pulse bg-white/70 border-none" />
+                                <div key={i} className="mobile-app-card premium-card app-shimmer h-24 md:h-64 border-none" />
                             ))
                         ) : (
                             <AnimatePresence mode="popLayout">
@@ -241,7 +241,7 @@ function DoctorsListContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-8">
                         {loading ? (
                             [1, 2, 3, 4, 5, 6].map((i) => (
-                                <div key={i} className="mobile-app-card premium-card h-24 md:h-48 animate-pulse bg-white/70 border-none" />
+                                <div key={i} className="mobile-app-card premium-card app-shimmer h-24 md:h-48 border-none" />
                             ))
                         ) : (
                             remainingDoctors.map((doctor) => (

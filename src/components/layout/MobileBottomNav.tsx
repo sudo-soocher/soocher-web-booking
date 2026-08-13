@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FaHome, FaStethoscope, FaCalendarCheck, FaUser } from "react-icons/fa";
 
 const tabs = [
@@ -14,7 +15,6 @@ const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth"];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const isHidden = HIDDEN_ROUTES.some((r) => pathname.startsWith(r));
   if (isHidden) return null;
@@ -34,9 +34,15 @@ export function MobileBottomNav() {
               href === "/" ? pathname === href : pathname.startsWith(href);
 
             return (
-              <button
+              // <Link prefetch> instead of router.push: the nav is on screen at
+              // all times, so Next downloads all four route chunks in the
+              // background. Tapping then swaps to a chunk that is already local
+              // rather than starting a ~350 kB download at tap time — that
+              // download was the multi-second wait before anything appeared.
+              <Link
                 key={href}
-                onClick={() => router.push(href)}
+                href={href}
+                prefetch
                 className="flex-1 flex flex-col items-center gap-0.5 py-1 rounded-2xl transition-all duration-150 active:scale-90 active:opacity-60 select-none"
                 style={{ WebkitTapHighlightColor: "transparent" }}
                 aria-label={label}
@@ -61,7 +67,7 @@ export function MobileBottomNav() {
                 >
                   {label}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>
