@@ -12,7 +12,7 @@ import {
   signInWithCustomToken,
   User,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { FaArrowLeft, FaCheckCircle, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -20,6 +20,7 @@ import { Logo } from "@/components/ui/Logo";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { markNativeSession } from "@/lib/native-session";
+import { fetchUserProfile } from "@/lib/user-profile";
 import { createNewPatient } from "@/types/patient";
 import OtpInput from "@/components/forms/OtpInput";
 
@@ -50,10 +51,7 @@ export default function Login() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
-          const snap = await getDoc(doc(db, "Users", user.uid));
-          const data = snap.exists()
-            ? (snap.data() as { name?: string; email?: string; phoneNumber?: string })
-            : null;
+          const data = await fetchUserProfile(user.uid);
           const hasName = !!data?.name && data.name.trim().length > 0;
           const hasEmail = !!data?.email && data.email.trim().length > 0;
           const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
@@ -121,10 +119,7 @@ export default function Login() {
   };
 
   const routeAfterAuth = async (user: User) => {
-    const snap = await getDoc(doc(db, "Users", user.uid));
-    const data = snap.exists()
-      ? (snap.data() as { name?: string; email?: string; phoneNumber?: string })
-      : null;
+    const data = await fetchUserProfile(user.uid);
     const hasName = !!data?.name && data.name.trim().length > 0;
     const hasEmail = !!data?.email && data.email.trim().length > 0;
     const hasPhone = !!(user.phoneNumber || data?.phoneNumber);
@@ -200,8 +195,7 @@ export default function Login() {
       if (!response.ok) throw new Error(data.error || "Invalid code.");
 
       await auth.currentUser.reload();
-      const snap = await getDoc(doc(db, "Users", auth.currentUser.uid));
-      const docData = snap.exists() ? (snap.data() as { name?: string; email?: string }) : null;
+      const docData = await fetchUserProfile(auth.currentUser.uid);
       const hasName = !!docData?.name && docData.name.trim().length > 0;
       const hasEmail = !!docData?.email && docData.email.trim().length > 0;
 

@@ -1,0 +1,32 @@
+{
+  "indexes": [
+    {
+      "//": "Bookings list: participants array-contains + orderBy(consultationTime desc) + limit(30). src/app/bookings/page.tsx",
+      "collectionGroup": "Consultations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "consultationTime", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "Slot availability range scan: participants array-contains + consultationTime between day start and end. src/app/doctor/[id]/page.tsx (fetchBookedTimestamps). Without this the code falls back to chunked 'in' queries, which cost ceil(slots/30) round trips instead of 1.",
+      "collectionGroup": "Consultations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "consultationTime", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Doctor listings: specialization == X AND isAccountVerified == true. src/lib/doctors.ts",
+      "collectionGroup": "Users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "specialization", "order": "ASCENDING" },
+        { "fieldPath": "isAccountVerified", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
