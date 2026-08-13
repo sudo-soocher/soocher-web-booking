@@ -1,5 +1,5 @@
-import { AppShimmer } from "@/components/loading/AppShimmer";
+import { HomeShimmer } from "@/components/loading/HomeShimmer";
 
 export default function Loading() {
-  return <AppShimmer />;
+  return <HomeShimmer />;
 }

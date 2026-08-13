@@ -19,12 +19,15 @@ import { Footer } from "@/components/layout/Footer";
 import { storage } from "@/lib/firebase-storage";
 import { Logo } from "@/components/ui/Logo";
 import { RemoteImage } from "@/components/ui/RemoteImage";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useTranslation } from "@/i18n/LanguageProvider";
 import { ProfileShimmer } from "@/components/loading/ProfileShimmer";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
 export default function Profile() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, ready: authReady } = useAuthUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,12 +95,12 @@ export default function Profile() {
 
     // Basic validation
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file.');
+      alert(t('profile.imageOnly'));
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) { // 2MB limit
-      alert('File is too large. Please choose an image under 2MB.');
+      alert(t('profile.imageTooLarge'));
       return;
     }
 
@@ -118,7 +121,7 @@ export default function Profile() {
 
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert('Failed to upload image. Please try again.');
+      alert(t('profile.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -160,7 +163,7 @@ export default function Profile() {
       setTimeout(() => setShowSuccess(false), 4000);
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to save profile. Please check your connection.");
+      alert(t("profile.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -186,11 +189,11 @@ export default function Profile() {
               onClick={() => router.back()}
               className="mobile-page-back"
               style={{ WebkitTapHighlightColor: "transparent" }}
-              aria-label="Go back"
+              aria-label={t("nav.back")}
             >
               <FaArrowLeft className="text-[11px]" />
             </button>
-            <span className="mobile-page-title">Profile</span>
+            <span className="mobile-page-title">{t("profile.title")}</span>
           </div>
         </div>
       </header>
@@ -200,16 +203,16 @@ export default function Profile() {
         <nav className="max-w-7xl mx-auto flex justify-between items-center rounded-[22px] bg-white/[0.78] backdrop-blur-2xl px-5 py-2.5 border border-white/90 shadow-[0_12px_36px_rgba(46,109,212,0.09)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <Logo size="md" className="shadow-md shadow-primary/15 rounded-xl" />
-            <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
+            <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">{t("brand.tagline")}</p></div>
           </div>
-          <Button variant="flat" size="sm" className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>Back</Button>
+          <Button variant="flat" size="sm" className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>{t("nav.backLabel")}</Button>
         </nav>
       </header>
 
       <main className="max-w-6xl mx-auto px-3 md:px-6 py-3 md:py-6 pb-safe-nav md:pb-20">
         <div className="hidden md:block mb-5">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">Account settings</p>
-          <h1 className="mt-1 text-3xl font-black text-slate-900 tracking-tight">Your profile</h1>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">{t("profile.accountSettings")}</p>
+          <h1 className="mt-1 text-3xl font-black text-slate-900 tracking-tight">{t("profile.heading")}</h1>
           <p className="mt-1.5 text-xs text-slate-500 font-medium">Keep your personal and medical information up to date.</p>
         </div>
 
@@ -273,12 +276,15 @@ export default function Profile() {
               </div>
             </div>
             <div className="relative mt-3 rounded-2xl border border-white bg-white/55 p-3 shadow-sm">
-              <div className="flex items-center justify-between"><span className="text-[9px] font-extrabold text-slate-600">Profile completeness</span><span className="text-[10px] font-black text-primary">{profileCompletion}%</span></div>
+              <div className="flex items-center justify-between"><span className="text-[9px] font-extrabold text-slate-600">{t("profile.completeness")}</span><span className="text-[10px] font-black text-primary">{profileCompletion}%</span></div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><motion.div initial={{ width: 0 }} animate={{ width: `${profileCompletion}%` }} className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400" /></div>
             </div>
+            <div className="relative mt-3 border-t border-slate-100 pt-3">
+              <LanguageSwitcher variant="row" />
+            </div>
             <div className="relative mt-3 hidden space-y-2 border-t border-slate-100 pt-3 lg:block">
-              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50/80 p-3 text-left"><FaMapMarkerAlt className="shrink-0 text-primary" /><div className="min-w-0"><p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Location</p><p className="truncate text-[10px] font-extrabold text-slate-700">{formData.currentCity || "City"}, {formData.currentState || "State"}</p></div></div>
-              <p className="flex items-start gap-2 px-1 pt-1 text-[9px] leading-relaxed text-slate-400"><FaShieldAlt className="mt-0.5 shrink-0 text-emerald-500" />Your health details are private and shared only during care.</p>
+              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50/80 p-3 text-left"><FaMapMarkerAlt className="shrink-0 text-primary" /><div className="min-w-0"><p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">{t("profile.location")}</p><p className="truncate text-[10px] font-extrabold text-slate-700">{formData.currentCity || "City"}, {formData.currentState || "State"}</p></div></div>
+              <p className="flex items-start gap-2 px-1 pt-1 text-[9px] leading-relaxed text-slate-400"><FaShieldAlt className="mt-0.5 shrink-0 text-emerald-500" />{t("profile.privacyNote")}</p>
             </div>
           </aside>
 
@@ -286,11 +292,11 @@ export default function Profile() {
               <section className="mobile-app-card rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_14px_40px_rgba(46,109,212,0.07)] backdrop-blur-xl md:p-4 xl:p-5">
                 <div className="mb-3 flex items-center gap-2.5 md:mb-4">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm text-primary"><FaUser /></span>
-                  <div><h3 className="text-sm md:text-base font-black text-slate-900">Personal information</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">Your contact and identity details</p></div>
+                  <div><h3 className="text-sm md:text-base font-black text-slate-900">{t("profile.personalInfo")}</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">{t("profile.personalBlurb")}</p></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
                   <Input
-                    label="Full Name"
+                    label={t("profile.name")}
                     startContent={<FaUser className="text-xs text-primary/60" />}
                     variant="bordered"
                     radius="lg"
@@ -299,7 +305,7 @@ export default function Profile() {
                     classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Input
-                    label="Email Address"
+                    label={t("profile.email")}
                     startContent={<FaEnvelope className="text-xs text-primary/60" />}
                     type="email"
                     variant="bordered"
@@ -345,7 +351,7 @@ export default function Profile() {
                     </div>
                   </div>
                   <Input
-                    label="Date of Birth"
+                    label={t("profile.dob")}
                     startContent={<FaCalendarAlt className="text-xs text-primary/60" />}
                     type="date"
                     variant="bordered"
@@ -355,7 +361,7 @@ export default function Profile() {
                     classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Select
-                    label="Gender"
+                    label={t("profile.gender")}
                     startContent={<FaVenusMars className="text-xs text-primary/60" />}
                     variant="bordered"
                     radius="lg"
@@ -363,13 +369,13 @@ export default function Profile() {
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                     classNames={{ trigger: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   >
-                    <SelectItem key="Male" value="Male">Male</SelectItem>
-                    <SelectItem key="Female" value="Female">Female</SelectItem>
-                    <SelectItem key="Other" value="Other">Other</SelectItem>
+                    <SelectItem key="Male" value="Male">{t("profile.genderMale")}</SelectItem>
+                    <SelectItem key="Female" value="Female">{t("profile.genderFemale")}</SelectItem>
+                    <SelectItem key="Other" value="Other">{t("profile.genderOther")}</SelectItem>
                   </Select>
                   <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 md:gap-4">
                     <Input
-                      label="State"
+                      label={t("profile.state")}
                       startContent={<FaMapMarkerAlt className="text-xs text-primary/60" />}
                       variant="bordered"
                       radius="lg"
@@ -378,7 +384,7 @@ export default function Profile() {
                       classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                     />
                     <Input
-                      label="City"
+                      label={t("profile.city")}
                       startContent={<FaMapMarkerAlt className="text-xs text-primary/60" />}
                       variant="bordered"
                       radius="lg"
@@ -393,36 +399,36 @@ export default function Profile() {
               <section className="mobile-app-card rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_14px_40px_rgba(46,109,212,0.07)] backdrop-blur-xl md:p-4 xl:p-5">
                 <div className="mb-3 flex items-center gap-2.5 md:mb-4">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-sm text-emerald-600"><FaNotesMedical /></span>
-                  <div><h3 className="text-sm md:text-base font-black text-slate-900">Medical profile</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">Optional information shared during care</p></div>
+                  <div><h3 className="text-sm md:text-base font-black text-slate-900">{t("profile.medicalInfo")}</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">{t("profile.medicalBlurb")}</p></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
                   <Input
-                    label="Known Allergies"
+                    label={t("profile.allergies")}
                     startContent={<FaAllergies className="text-xs text-amber-500" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.allergies}
-                    placeholder="e.g. Peanuts, Penicillin..."
+                    placeholder={t("profile.allergiesPlaceholder")}
                     onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
                     classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Input
-                    label="Regular Medications"
+                    label={t("profile.medications")}
                     startContent={<FaCapsules className="text-xs text-emerald-500" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.regularMedications}
-                    placeholder="e.g. Insulin, Aspirin..."
+                    placeholder={t("profile.medicationsPlaceholder")}
                     onChange={(e) => setFormData({ ...formData, regularMedications: e.target.value })}
                     classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Input
-                    label="Medical Conditions"
+                    label={t("profile.conditions")}
                     startContent={<FaHeartbeat className="text-xs text-rose-500" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.medicalConditions}
-                    placeholder="e.g. Diabetes, Hypertension..."
+                    placeholder={t("profile.conditionsPlaceholder")}
                     className="sm:col-span-2"
                     onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
                     classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}

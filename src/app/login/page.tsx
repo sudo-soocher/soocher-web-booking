@@ -17,12 +17,15 @@ import { useRouter } from "next/navigation";
 import { FaArrowLeft, FaCheckCircle, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useTranslation } from "@/i18n/LanguageProvider";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { markNativeSession } from "@/lib/native-session";
 import { fetchUserProfile } from "@/lib/user-profile";
 import { createNewPatient } from "@/types/patient";
 import OtpInput from "@/components/forms/OtpInput";
+import { HomeShimmer } from "@/components/loading/HomeShimmer";
 
 export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -31,6 +34,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { t } = useTranslation();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [needsRegistration, setNeedsRegistration] = useState(false);
   const [needsPhoneLink, setNeedsPhoneLink] = useState(false);
@@ -92,7 +96,7 @@ export default function Login() {
     e.preventDefault();
 
     if (!phoneNumber || phoneNumber.length <= 4) {
-      setError("Please enter a valid phone number.");
+      setError(t("login.invalidPhone"));
       return;
     }
 
@@ -107,12 +111,12 @@ export default function Login() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Failed to send code. Please try again.");
+        throw new Error(data.error || t("login.sendFailedRetry"));
       }
       setShowOTPInput(true);
     } catch (err: unknown) {
       console.error("Error sending code:", err);
-      setError((err as { message?: string }).message || "Failed to send code.");
+      setError((err as { message?: string }).message || t("login.sendFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +150,7 @@ export default function Login() {
   const sendLinkPhoneCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!linkPhoneNumber || linkPhoneNumber.length <= 4) {
-      setError("Please enter a valid phone number.");
+      setError(t("login.invalidPhone"));
       return;
     }
     setIsLoading(true);
@@ -159,10 +163,10 @@ export default function Login() {
         body: JSON.stringify({ phone: formattedPhone }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to send code.");
+      if (!response.ok) throw new Error(data.error || t("login.sendFailed"));
       setLinkPhoneStage("otp");
     } catch (err: unknown) {
-      setError((err as { message?: string }).message || "Failed to send code.");
+      setError((err as { message?: string }).message || t("login.sendFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -171,11 +175,11 @@ export default function Login() {
   const verifyLinkPhoneCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!linkPhoneCode || linkPhoneCode.length !== 6) {
-      setError("Enter the 6-digit code.");
+      setError(t("login.invalidCode"));
       return;
     }
     if (!auth.currentUser) {
-      setError("Not signed in.");
+      setError(t("login.notSignedIn"));
       return;
     }
     setIsLoading(true);
@@ -192,7 +196,7 @@ export default function Login() {
         body: JSON.stringify({ phone: formattedPhone, code: linkPhoneCode }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Invalid code.");
+      if (!response.ok) throw new Error(data.error || t("login.invalidCodeErr"));
 
       await auth.currentUser.reload();
       const docData = await fetchUserProfile(auth.currentUser.uid);
@@ -206,7 +210,7 @@ export default function Login() {
         setNeedsRegistration(true);
       }
     } catch (err: unknown) {
-      setError((err as { message?: string }).message || "Invalid code.");
+      setError((err as { message?: string }).message || t("login.invalidCodeErr"));
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +219,7 @@ export default function Login() {
   const verifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!verificationCode || verificationCode.length !== 6) {
-      setError("Enter the 6-digit code.");
+      setError(t("login.invalidCode"));
       return;
     }
 
@@ -230,7 +234,7 @@ export default function Login() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Invalid verification code.");
+        throw new Error(data.error || t("login.invalidVerificationCode"));
       }
       const result = await signInWithCustomToken(auth, data.token);
       if (result.user) {
@@ -238,7 +242,7 @@ export default function Login() {
       }
     } catch (err: unknown) {
       console.error("Error verifying code:", err);
-      setError((err as { message?: string }).message || "Invalid verification code.");
+      setError((err as { message?: string }).message || t("login.invalidVerificationCode"));
     } finally {
       setIsLoading(false);
     }
@@ -258,7 +262,7 @@ export default function Login() {
       if (firebaseErr.code === "auth/unauthorized-domain") {
         setError("This domain is not authorized for Google Sign-in. Please add it to your Firebase Console.");
       } else {
-        setError(firebaseErr.message || "Google sign-in failed.");
+        setError(firebaseErr.message || t("login.googleFailed"));
       }
     }
   };
@@ -268,20 +272,20 @@ export default function Login() {
     if (!pendingUser) return;
 
     if (!registrationData.name.trim()) {
-      setError("Please enter your full name.");
+      setError(t("login.enterName"));
       return;
     }
     const emailValue = (registrationData.email || pendingUser.email || "").trim();
     if (!emailValue) {
-      setError("Please enter your email address.");
+      setError(t("login.enterEmail"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
-      setError("Please enter a valid email address.");
+      setError(t("login.enterValidEmail"));
       return;
     }
     if (!registrationData.dob) {
-      setError("Please enter your date of birth.");
+      setError(t("login.enterDob"));
       return;
     }
 
@@ -305,7 +309,7 @@ export default function Login() {
       console.error("Error saving profile:", err);
       const errorMessage =
         (err as { message?: string }).message ||
-        "Failed to save profile. Please try again.";
+        t("login.saveFailed");
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -313,16 +317,7 @@ export default function Login() {
   };
 
   if (checkingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-slate-400 font-medium animate-pulse uppercase tracking-widest text-[10px]">
-            Verifying your sanctuary access...
-          </p>
-        </div>
-      </div>
-    );
+    return <HomeShimmer />;
   }
 
   return (
@@ -335,11 +330,20 @@ export default function Login() {
         onClick={() => router.push("/")}
         className="mobile-pressable absolute left-4 top-4 z-20 flex h-10 items-center gap-2 rounded-2xl border border-white/90 bg-white/70 px-3.5 text-xs font-extrabold text-slate-700 shadow-[0_8px_24px_rgba(46,109,212,0.10)] backdrop-blur-xl md:left-8 md:top-7"
         style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
-        aria-label="Back to home"
+        aria-label={t("login.backToHome")}
       >
         <FaArrowLeft className="text-[10px] text-primary" />
-        Back to home
+        {t("login.backToHome")}
       </button>
+
+      {/* Mirrors the back button, so a first-time user can switch language
+          before having to read English to sign in. */}
+      <div
+        className="absolute right-4 top-4 z-20 md:right-8 md:top-7"
+        style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <LanguageSwitcher className="border border-white/90 bg-white/70 backdrop-blur-xl" />
+      </div>
 
       <div className="login-shell relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl items-stretch overflow-hidden rounded-[28px] border border-white/90 bg-white/50 shadow-[0_30px_90px_rgba(46,109,212,0.14)] backdrop-blur-2xl lg:grid-cols-[0.92fr_1.08fr] md:rounded-[32px]">
       {/* Visual Side */}
@@ -354,7 +358,7 @@ export default function Login() {
             <Logo size="md" className="rounded-2xl shadow-lg shadow-primary/15" />
             <div>
               <p className="text-lg font-black tracking-tight text-slate-900">Soocher</p>
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary">Healthcare, simplified</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary">{t("brand.tagline")}</p>
             </div>
           </motion.div>
 
@@ -363,11 +367,11 @@ export default function Login() {
               className="h-64 rounded-[22px] bg-cover bg-top"
               style={{ backgroundImage: "url('/specialities/general-physician.jpg')" }}
               role="img"
-              aria-label="Soocher healthcare specialist"
+              aria-label={t("login.heroAlt")}
             />
             <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/80 bg-white/80 p-4 shadow-lg backdrop-blur-xl">
-              <p className="text-sm font-black text-slate-900">Care that fits your day</p>
-              <p className="mt-1 text-[11px] font-medium leading-relaxed text-slate-500">Connect with verified specialists from wherever you are.</p>
+              <p className="text-sm font-black text-slate-900">{t("login.heroTitle")}</p>
+              <p className="mt-1 text-[11px] font-medium leading-relaxed text-slate-500">{t("login.heroBlurb")}</p>
             </div>
           </div>
 
@@ -387,7 +391,7 @@ export default function Login() {
             transition={{ delay: 0.3 }}
             className="grid grid-cols-1 gap-3"
           >
-            {["Verified healthcare specialists", "Secure consultations and bookings", "Simple appointment management"].map((item) => (
+            {[t("login.perk1"), t("login.perk2"), t("login.perk3")].map((item) => (
               <div key={item} className="flex items-center gap-2.5 text-xs font-bold text-slate-600"><FaCheckCircle className="shrink-0 text-emerald-500" />{item}</div>
             ))}
           </motion.div>
@@ -403,22 +407,22 @@ export default function Login() {
         >
           <div className="login-brand flex items-center gap-3 lg:hidden">
             <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
-            <div><p className="text-base font-black tracking-tight text-slate-900">Soocher</p><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
+            <div><p className="text-base font-black tracking-tight text-slate-900">Soocher</p><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-primary">{t("brand.tagline")}</p></div>
           </div>
           <div className="login-intro space-y-1.5 md:space-y-2">
             <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
               {needsPhoneLink
-                ? "Verify Your Phone"
+                ? t("login.verifyPhoneTitle")
                 : needsRegistration
-                ? "Complete Your Profile"
-                : "Welcome back"}
+                ? t("login.completeProfileTitle")
+                : t("login.welcomeBack")}
             </h2>
             <p className="login-subtitle text-sm font-medium italic tracking-tight text-slate-500 md:text-lg">
               {needsPhoneLink
-                ? "We need a verified mobile number to continue."
+                ? t("login.verifyPhoneBlurb2")
                 : needsRegistration
-                ? "A few details and you're in."
-                : "Sign in to continue your healthcare journey."}
+                ? t("login.completeProfileBlurb2")
+                : t("login.welcomeBackBlurb")}
             </p>
           </div>
 
@@ -430,7 +434,7 @@ export default function Login() {
               {linkPhoneStage === "input" ? (
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                    Mobile Number
+                    {t("login.mobileNumber")}
                   </label>
                   <PhoneInput
                     defaultCountry="in"
@@ -500,7 +504,7 @@ export default function Login() {
           ) : needsRegistration ? (
             <form onSubmit={submitRegistration} className="login-registration-form space-y-3 md:space-y-4">
               <Input
-                label="Full Name"
+                label={t("profile.name")}
                 variant="bordered"
                 radius="lg"
                 isRequired
@@ -514,7 +518,7 @@ export default function Login() {
                 }}
               />
               <Input
-                label="Email Address"
+                label={t("profile.email")}
                 type="email"
                 variant="bordered"
                 radius="lg"
@@ -529,7 +533,7 @@ export default function Login() {
                 }}
               />
               <Input
-                label="Date of Birth"
+                label={t("profile.dob")}
                 type="date"
                 variant="bordered"
                 radius="lg"
@@ -544,7 +548,7 @@ export default function Login() {
                 }}
               />
               <Input
-                label="State"
+                label={t("profile.state")}
                 variant="bordered"
                 radius="lg"
                 value={registrationData.currentState}
@@ -560,7 +564,7 @@ export default function Login() {
                 }}
               />
               <Input
-                label="District"
+                label={t("login.district")}
                 variant="bordered"
                 radius="lg"
                 value={registrationData.currentCity}
@@ -602,7 +606,7 @@ export default function Login() {
             <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="space-y-4 md:space-y-6">
               {!showOTPInput ? (
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">{t("login.phoneNumberLabel")}</label>
                   <PhoneInput
                     defaultCountry="in"
                     value={phoneNumber}
@@ -614,7 +618,7 @@ export default function Login() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                   <div className="min-w-0 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-sm font-bold text-slate-600">{phoneNumber}</span>
-                    <Button size="sm" variant="light" color="primary" className="font-bold" onClick={() => setShowOTPInput(false)}>Change</Button>
+                    <Button size="sm" variant="light" color="primary" className="font-bold" onClick={() => setShowOTPInput(false)}>{t("login.change")}</Button>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
@@ -653,7 +657,7 @@ export default function Login() {
 
             <div className="relative flex items-center">
               <div className="flex-grow border-t border-slate-200"></div>
-              <span className="mx-2 shrink-0 text-slate-400 font-bold text-[9px] uppercase tracking-[0.12em] sm:mx-4 sm:text-[10px] sm:tracking-[0.16em]">Or continue with</span>
+              <span className="mx-2 shrink-0 text-slate-400 font-bold text-[9px] uppercase tracking-[0.12em] sm:mx-4 sm:text-[10px] sm:tracking-[0.16em]">{t("login.orContinue")}</span>
               <div className="flex-grow border-t border-slate-200"></div>
             </div>
 

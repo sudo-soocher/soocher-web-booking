@@ -19,11 +19,14 @@ import { Doctor } from "@/types/doctor";
 import { DoctorCard } from "@/components/doctor/DoctorCard";
 import { Footer } from "@/components/layout/Footer";
 import { Logo } from "@/components/ui/Logo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useTranslation } from "@/i18n/LanguageProvider";
 import { fetchSpecialities, getCachedSpecialities } from "@/lib/specialities";
 import { fetchDoctorsBySpeciality } from "@/lib/doctors";
 
 function DoctorsListContent() {
     const router = useRouter();
+    const { t } = useTranslation();
     const searchParams = useSearchParams();
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     // Keep the hydration render deterministic; sessionStorage is only read
@@ -107,18 +110,18 @@ function DoctorsListContent() {
                             onClick={() => router.push("/")}
                             className="mobile-page-back"
                             style={{ WebkitTapHighlightColor: "transparent" }}
-                            aria-label="Go back"
+                            aria-label={t("nav.back")}
                         >
                             <FaArrowLeft className="text-[11px]" />
                         </button>
-                        <span className="mobile-page-title">Find Specialists</span>
+                        <span className="mobile-page-title">{t("doctors.title")}</span>
                     </div>
                 </div>
                 {/* Mobile filter strip */}
                 <div className="px-4 pb-3">
                     <Select
-                        aria-label="Filter by Speciality"
-                        placeholder="Filter by speciality"
+                        aria-label={t("doctors.filterLabel")}
+                        placeholder={t("doctors.filterPlaceholderShort")}
                         selectedKeys={specialities.includes(selectedSpeciality) ? [selectedSpeciality] : []}
                         size="sm"
                         variant="bordered"
@@ -146,7 +149,10 @@ function DoctorsListContent() {
                         <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
                         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
                     </div>
-                    <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>Back</Button>
+                    <div className="flex items-center gap-2">
+                        <LanguageSwitcher />
+                        <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.push("/")}>{t("nav.backLabel")}</Button>
+                    </div>
                 </nav>
             </header>
 
@@ -155,16 +161,16 @@ function DoctorsListContent() {
                 <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <section className="space-y-4">
                         <h1 className="text-5xl font-black text-slate-900 tracking-tight">
-                            Find Your <span className="text-primary italic">Perfect Specialist.</span>
+                            {t("doctors.heroTitle")} <span className="text-primary italic">{t("doctors.heroTitleAccent")}</span>
                         </h1>
                         <p className="text-slate-500 font-medium text-lg max-w-2xl">
-                            Ranked by clinical expertise, patient feedback, and active health contributions.
+                            {t("doctors.heroSubtitle")}
                         </p>
                     </section>
                     <div className="w-80">
                         <Select
-                            label="Filter by Speciality"
-                            placeholder="Select a speciality"
+                            label={t("doctors.filterLabel")}
+                            placeholder={t("doctors.filterPlaceholder")}
                             selectedKeys={specialities.includes(selectedSpeciality) ? [selectedSpeciality] : []}
                             variant="bordered"
                             radius="lg"
@@ -188,8 +194,8 @@ function DoctorsListContent() {
                                 <FaTrophy className="text-sm md:text-xl" />
                             </div>
                             <div>
-                                <h2 className="text-base md:text-2xl font-black text-slate-900 tracking-tight">Top specialists</h2>
-                                <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider md:tracking-widest">Recommended for you</p>
+                                <h2 className="text-base md:text-2xl font-black text-slate-900 tracking-tight">{t("doctors.topSpecialists")}</h2>
+                                <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider md:tracking-widest">{t("doctors.recommendedForYou")}</p>
                             </div>
                         </div>
                     </div>
@@ -233,8 +239,8 @@ function DoctorsListContent() {
                             <FaStar className="text-sm md:text-xl" />
                         </div>
                         <div>
-                            <h2 className="text-base md:text-2xl font-black text-slate-900 tracking-tight">All specialists</h2>
-                            <p className="max-w-[260px] truncate text-[9px] md:max-w-none md:text-xs font-bold text-slate-400 uppercase tracking-wider md:tracking-widest">Verified experts in {selectedSpeciality}</p>
+                            <h2 className="text-base md:text-2xl font-black text-slate-900 tracking-tight">{t("doctors.allSpecialists")}</h2>
+                            <p className="max-w-[260px] truncate text-[9px] md:max-w-none md:text-xs font-bold text-slate-400 uppercase tracking-wider md:tracking-widest">{t("doctors.verifiedIn", { speciality: selectedSpeciality })}</p>
                         </div>
                     </div>
 
