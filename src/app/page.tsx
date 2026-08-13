@@ -5,29 +5,31 @@
 
 import { Button } from "@/components/ui/Button";
 import { Chip, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@nextui-org/react";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
+import { clearNativeSession } from "@/lib/native-session";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
 import {
   FaStethoscope,
   FaUser,
   FaSignOutAlt,
   FaCalendarCheck,
+  FaSearch,
+  FaVideo,
+  FaHeartbeat,
+  FaShieldAlt,
+  FaChevronRight,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // import { playSound } from "@/utils/sound";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { generateGeminiResponse } from "@/services/gemini";
 import { Footer } from "@/components/layout/Footer";
 import { Logo } from "@/components/ui/Logo";
-
-interface Speciality {
-  name: string;
-  description: string;
-}
+import Image from "next/image";
+import { getSpecialityImage } from "@/utils/speciality-images";
+import { fetchSpecialities, getCachedSpecialities, type Speciality } from "@/lib/specialities";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface AIResponse {
@@ -59,10 +61,14 @@ const itemVariants = {
 export default function Home() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // The server cannot read sessionStorage, so the hydration render must always
+  // start from the same empty/loading state. The effect below applies the cache
+  // immediately after hydration without causing an HTML mismatch.
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
   const [navigatingSpeciality, setNavigatingSpeciality] = useState<string | null>(null);
+  const [showAllSpecialities, setShowAllSpecialities] = useState(false);
   /* Commented out AI Assistant state
   const [symptoms, setSymptoms] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
@@ -86,23 +92,24 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const fetchSpecialities = async () => {
-      try {
-        const docRef = doc(db, "Specialities", "available");
-        const docSnap = await getDoc(docRef);
+    let cancelled = false;
+    const cached = getCachedSpecialities();
+    if (cached) {
+      setSpecialities(cached);
+      setLoading(false);
+    }
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setSpecialities(data.specialityName || []);
-        }
-      } catch (error) {
-        console.error("Error fetching specialities:", error);
-      } finally {
-        setLoading(false);
-      }
+    fetchSpecialities()
+      .then((data) => {
+        if (!cancelled) setSpecialities(data);
+      })
+      .catch((error) => console.error("Error fetching specialities:", error))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
-
-    fetchSpecialities();
   }, []);
 
   /* Commented out AI Assistant effects
@@ -133,6 +140,7 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
+      clearNativeSession();
       await signOut(auth);
       router.push("/login");
     } catch (error) {
@@ -184,17 +192,22 @@ export default function Home() {
   */
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#F8FAFC]">
+    <div className="mobile-app-shell min-h-[100dvh] flex flex-col bg-[#F8FAFC]">
 
       {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+        className="md:hidden sticky top-0 z-40 bg-[#F5F7FB]/90 backdrop-blur-2xl"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
-            <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
-            <span className="text-lg font-bold tracking-tight text-slate-900">Soocher</span>
+        <div className="flex items-center justify-between px-5 h-16">
+          <div className="flex items-center gap-3">
+            <Logo size="sm" className="rounded-[10px] shadow-md shadow-primary/10" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Welcome to Soocher</p>
+              <span className="text-base font-extrabold tracking-tight text-slate-900">
+                {isLoggedIn ? `Hello, ${auth.currentUser?.displayName?.split(" ")[0] || "there"}` : "Your health, simplified"}
+              </span>
+            </div>
           </div>
           {isLoggedIn && (
             <Dropdown placement="bottom-end">
@@ -227,12 +240,15 @@ export default function Home() {
 
       {/* ── Desktop Navbar ─────────────────────────────────────────── */}
       <header className="hidden md:block sticky top-0 z-40 w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-[0_8px_32px_0_rgba(46,109,212,0.1)]">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center rounded-[22px] bg-white/[0.78] backdrop-blur-2xl px-5 py-2.5 border border-white/90 shadow-[0_12px_36px_rgba(46,109,212,0.09)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+            <Logo size="md" className="shadow-md shadow-primary/15 rounded-xl" />
+            <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-7">
+            <button onClick={() => document.getElementById("specialities")?.scrollIntoView({ behavior: "smooth" })} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">Specialities</button>
+            <button onClick={() => router.push("/doctors")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">Find doctors</button>
+            <button onClick={() => router.push("/contact")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">Contact</button>
             {isLoggedIn ? (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
@@ -249,111 +265,143 @@ export default function Home() {
                 </DropdownMenu>
               </Dropdown>
             ) : (
-              <Button color="primary" onClick={() => router.push("/login")} size="md" className="rounded-full font-semibold shadow-xl shadow-primary/20 px-8">Sign In</Button>
+              <Button color="primary" onClick={() => router.push("/login")} size="md" className="rounded-xl h-10 font-bold shadow-lg shadow-primary/20 px-6">Sign In</Button>
             )}
           </div>
         </nav>
       </header>
 
       {/* ── Mobile Hero ─────────────────────────────────────────────── */}
-      <section className="md:hidden px-4 pt-5 pb-4">
+      <section className="md:hidden px-4 pt-2 pb-4">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="space-y-4"
+          className="mobile-glass-panel relative overflow-hidden rounded-[28px] px-5 py-6 shadow-[0_22px_50px_rgba(46,109,212,0.12)]"
         >
-          <Chip variant="flat" color="primary" className="px-3 py-1 text-xs font-medium bg-primary/10 text-primary border-none">
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Next Generation Healthcare
-            </span>
-          </Chip>
-          <h1 className="text-3xl font-extrabold text-slate-900 leading-[1.15] tracking-tight">
-            Expert Care,<br />
-            <span className="text-primary">Just a Tap Away.</span>
-          </h1>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            Connect with top-tier specialists and manage your health journey with elegance.
-          </p>
-          <Button
-            size="md"
-            color="primary"
-            className="rounded-full px-6 font-bold shadow-xl shadow-primary/25 h-11 w-full"
-            onClick={() => {
-              const element = document.getElementById("specialities");
-              element?.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            Find Specialists
-          </Button>
+          <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-2xl" />
+          <div className="absolute -bottom-20 -left-12 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
+          <div className="absolute right-5 bottom-5 h-20 w-20 rounded-full border border-primary/10" />
+          <div className="relative z-10 max-w-[78%]">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-primary shadow-sm backdrop-blur-xl">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Doctors available today
+            </div>
+            <h1 className="text-[28px] font-black leading-[1.08] tracking-[-0.035em] text-slate-900">Quality care,<br />wherever you are.</h1>
+            <p className="mt-3 text-xs leading-relaxed text-slate-600">Book a verified specialist and consult securely from home.</p>
+          </div>
+          <button onClick={() => router.push("/doctors")} className="mobile-pressable relative z-10 mt-5 flex h-11 w-full items-center justify-between rounded-2xl border border-white/70 bg-white/75 px-4 text-sm font-extrabold text-slate-900 shadow-lg shadow-primary/10 backdrop-blur-xl">
+            Book a consultation
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white"><FaChevronRight className="text-[10px]" /></span>
+          </button>
         </motion.div>
+
+        <button onClick={() => router.push("/doctors")} className="mobile-pressable mt-4 flex h-13 w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 text-left shadow-sm">
+          <FaSearch className="text-primary" />
+          <span className="flex-1 text-sm font-semibold text-slate-400">Search doctors or specialities</span>
+          <FaChevronRight className="text-[10px] text-slate-300" />
+        </button>
+
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          {[
+            { label: "Video consult", icon: FaVideo, href: "/doctors", tone: "bg-blue-50 text-primary" },
+            { label: "My bookings", icon: FaCalendarCheck, href: "/bookings", tone: "bg-emerald-50 text-emerald-600" },
+            { label: "My profile", icon: FaHeartbeat, href: "/profile", tone: "bg-rose-50 text-rose-500" },
+          ].map(({ label, icon: Icon, href, tone }) => (
+            <button key={label} onClick={() => router.push(href)} className="mobile-pressable mobile-app-card flex min-h-24 flex-col items-start justify-between p-3.5 text-left">
+              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}><Icon className="text-sm" /></span>
+              <span className="mt-3 text-[11px] font-extrabold leading-tight text-slate-700">{label}</span>
+            </button>
+          ))}
+        </div>
       </section>
 
       {/* ── Desktop Hero Section ─────────────────────────────────────── */}
-      <section className="hidden md:block relative pt-12 pb-24 px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
-          <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="z-10 will-change-transform flex flex-col items-center lg:items-start">
-            <Chip variant="flat" color="primary" className="mb-6 px-4 py-1 text-sm font-medium bg-primary/10 text-primary border-none">
+      <section className="hidden md:block relative px-6 pb-16 pt-5 lg:pb-20 lg:pt-8 overflow-hidden">
+        <div className="pointer-events-none absolute left-[-8rem] top-[-5rem] h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute right-[-5rem] bottom-[-8rem] h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
+        <div className="relative max-w-7xl mx-auto overflow-hidden rounded-[38px] border border-white/90 bg-white/55 p-7 lg:p-10 shadow-[0_30px_90px_rgba(46,109,212,0.12)] backdrop-blur-2xl">
+          <div className="grid grid-cols-[0.95fr_1.05fr] gap-8 lg:gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55 }} className="z-10 will-change-transform flex flex-col items-start text-left">
+            <Chip variant="flat" color="primary" className="mb-5 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] bg-primary/10 text-primary border border-primary/10">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                Next Generation Healthcare
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Doctors available today
               </span>
             </Chip>
-            <h1 className="text-5xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8">
-              Expert Care is <br />
-              <span className="text-primary">Just a Click Away.</span>
+            <h1 className="text-[42px] lg:text-[58px] xl:text-[64px] font-black text-slate-900 leading-[1.04] tracking-[-0.045em]">
+              Quality healthcare,<br />
+              <span className="text-primary">built around you.</span>
             </h1>
-            <p className="text-lg text-slate-600 mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              Experience healthcare redefined. Connect with top-tier specialists instantly and manage your health journey with absolute elegance.
+            <p className="mt-5 text-sm lg:text-base text-slate-600 leading-relaxed max-w-lg">
+              Find verified specialists, choose a convenient time, and consult securely from home—all in a few simple steps.
             </p>
-            <Button size="lg" color="primary" className="rounded-full px-8 font-bold shadow-2xl shadow-primary/25 h-14 text-lg" onClick={() => { const element = document.getElementById("specialities"); element?.scrollIntoView({ behavior: "smooth" }); }}>
-              Find Specialists
-            </Button>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="relative will-change-transform">
-            <div className="w-full aspect-square rounded-[48px] mesh-gradient opacity-20 absolute -rotate-6 top-0" />
-            <div className="w-full aspect-square rounded-[48px] border-2 border-primary/10 relative z-10 p-8 glass-effect overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent" />
-              <div className="relative h-full flex flex-col justify-center items-center text-center space-y-6">
-                <div className="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-4">
-                  <Logo size="xl" className="w-full h-full rounded-2xl" />
-                </div>
-                <h2 className="text-3xl font-bold text-slate-800">Verified Doctors</h2>
-                <p className="text-slate-500 max-w-sm">Every specialist on Soocher is manually verified to ensure you receive the highest quality care.</p>
-                <div className="flex -space-x-4">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <Avatar key={i} isBordered size="md" className="ring-4 ring-white" src={`https://i.pravatar.cc/150?u=${i}`} />
-                  ))}
-                </div>
-              </div>
+            <div className="mt-7 flex items-center gap-3">
+              <Button size="lg" color="primary" className="rounded-2xl px-7 font-black shadow-xl shadow-primary/20 h-12 text-sm" onClick={() => router.push("/doctors")}>
+                Book a consultation
+              </Button>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-bold text-slate-500">
+              <span className="flex items-center gap-1.5"><FaShieldAlt className="text-emerald-500" /> Verified specialists</span>
+              <span className="flex items-center gap-1.5"><FaVideo className="text-primary" /> Secure video care</span>
+              <span className="flex items-center gap-1.5"><FaCalendarCheck className="text-violet-500" /> Easy scheduling</span>
             </div>
           </motion.div>
+          <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.65 }} className="relative min-h-[390px] lg:min-h-[455px] will-change-transform">
+            <div className="absolute inset-0 overflow-hidden rounded-[30px] border-[6px] border-white shadow-[0_24px_60px_rgba(46,109,212,0.16)]">
+              <Image src="/specialities/general-physician.jpg" alt="Verified Soocher doctor" fill priority sizes="(max-width: 1024px) 52vw, 600px" className="object-cover object-top" />
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-900/45 to-transparent" />
+            </div>
+            <div className="absolute -left-5 bottom-6 flex items-center gap-3 rounded-2xl border border-white/90 bg-white/[0.88] p-3 shadow-xl backdrop-blur-xl">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><FaShieldAlt /></span>
+              <div><p className="text-xs font-black text-slate-900">100% verified</p><p className="mt-0.5 text-[9px] font-semibold text-slate-500">Trusted medical professionals</p></div>
+            </div>
+            <div className="absolute -right-4 top-6 rounded-2xl border border-white/90 bg-white/[0.88] px-4 py-3 shadow-xl backdrop-blur-xl">
+              <p className="text-xl font-black text-primary">29</p><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Specialities</p>
+            </div>
+            <div className="absolute bottom-5 right-5 flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-3 py-2 shadow-lg backdrop-blur-xl">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /><span className="text-[9px] font-extrabold text-slate-700">Consult online</span>
+            </div>
+          </motion.div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-3 divide-x divide-slate-100 overflow-hidden rounded-2xl border border-white/90 bg-white/[0.62] shadow-sm">
+            {[
+              { icon: FaSearch, title: "Find your specialist", text: "Browse care by speciality" },
+              { icon: FaCalendarCheck, title: "Choose a time", text: "Pick from live availability" },
+              { icon: FaVideo, title: "Consult securely", text: "Meet your doctor online" },
+            ].map(({ icon: Icon, title, text }) => (
+              <button key={title} onClick={() => router.push("/doctors")} className="group flex items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-white/70">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105"><Icon /></span>
+                <span><span className="block text-xs font-black text-slate-800">{title}</span><span className="mt-0.5 block text-[9px] font-semibold text-slate-400">{text}</span></span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ── Specialities Section ─────────────────────────────────────── */}
       <main
         id="specialities"
-        className="flex-1 px-4 md:px-6 bg-white rounded-t-[32px] md:rounded-t-[64px] shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.04)] border-t border-slate-100 pb-safe-nav md:pb-24 pt-6 md:pt-24"
+        className="hidden md:block flex-1 px-4 md:px-6 bg-white/[0.82] rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-20px_60px_-10px_rgba(46,109,212,0.06)] border-t border-white pb-safe-nav md:pb-24 pt-6 md:pt-16"
       >
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-16 gap-3 md:gap-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-10 gap-3 md:gap-6">
             <div className="space-y-1 md:space-y-4">
-              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 tracking-tight">Our Specialities</h2>
-              <p className="text-sm md:text-lg text-slate-500 max-w-xl">
-                Select from our curated network of medical excellence.
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">Explore care</p>
+              <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">Find care by speciality</h2>
+              <p className="text-sm md:text-base text-slate-500 max-w-xl">
+                Choose a category to see verified doctors and their available appointment times.
               </p>
             </div>
+            <Button onClick={() => router.push("/doctors")} variant="flat" color="primary" className="rounded-xl px-5 font-bold">View all doctors <FaChevronRight className="ml-1 text-[9px]" /></Button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
             {loading ? (
               [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <div key={i} className="premium-card p-4 md:p-6 h-36 md:h-48 border-none ring-1 ring-slate-100 flex flex-col items-center gap-3 justify-center">
-                  <Skeleton className="w-11 h-11 md:w-16 md:h-16 rounded-2xl" />
-                  <Skeleton className="w-20 md:w-24 h-4 rounded-lg" />
-                  <Skeleton className="w-14 md:w-16 h-3 rounded-lg" />
+                <div key={i} className="desktop-speciality-card premium-card h-[104px] flex items-center gap-3 p-3">
+                  <Skeleton className="h-20 w-20 shrink-0 rounded-2xl" />
+                  <div className="flex-1 space-y-2"><Skeleton className="h-4 w-full rounded-lg" /><Skeleton className="h-3 w-16 rounded-lg" /></div>
                 </div>
               ))
             ) : (
@@ -364,24 +412,33 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.1 }}
                   transition={{ duration: 0.4, delay: index * 0.04 }}
-                  className="premium-card p-3 md:p-6 flex flex-col items-center text-center gap-2 md:gap-4 cursor-pointer active:scale-95 transition-transform duration-150 hover:border-primary/30"
+                  className="desktop-speciality-card group premium-card flex min-h-[104px] items-center gap-3 p-3 text-left cursor-pointer active:scale-95 transition-transform duration-150"
                   style={{ borderRadius: "20px", WebkitTapHighlightColor: "transparent" }}
                   onClick={() => {
                     setNavigatingSpeciality(speciality.name);
                     router.push(`/doctors?speciality=${encodeURIComponent(speciality.name)}`);
                   }}
                 >
-                  <div className="w-11 h-11 md:w-16 md:h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-primary">
-                    {navigatingSpeciality === speciality.name ? (
-                      <Spinner size="sm" color="primary" />
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-primary/5 ring-1 ring-white shadow-sm">
+                    {getSpecialityImage(speciality.name) ? (
+                      <Image
+                        src={getSpecialityImage(speciality.name)!}
+                        alt={`${speciality.name} specialist`}
+                        fill
+                        sizes="80px"
+                        className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                      />
                     ) : (
-                      <FaStethoscope className="text-lg md:text-2xl" />
+                      <span className="absolute inset-0 flex items-center justify-center text-primary"><FaStethoscope className="text-lg md:text-2xl" /></span>
+                    )}
+                    {navigatingSpeciality === speciality.name && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 backdrop-blur-sm"><Spinner size="sm" color="primary" /></span>
                     )}
                   </div>
-                  <h3 className="font-bold text-slate-800 break-words w-full text-xs md:text-base leading-tight">
-                    {speciality.name}
-                  </h3>
-                  <p className="text-[10px] md:text-xs text-slate-500 font-medium">Available</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="line-clamp-3 text-sm font-extrabold leading-snug text-slate-800">{speciality.name}</h3>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-slate-500"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Available</p>
+                  </div>
                 </motion.div>
               ))
             )}
@@ -390,6 +447,63 @@ export default function Home() {
                 <p className="text-slate-400 font-medium italic">No specialities listed at the moment.</p>
               </div>
             )}
+          </div>
+        </div>
+      </main>
+
+      <main id="mobile-specialities" className="md:hidden flex-1 px-4 pt-2 pb-safe-nav">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">Explore care</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">Specialities</h2>
+          </div>
+          {specialities.length > 8 && (
+            <button onClick={() => setShowAllSpecialities((shown) => !shown)} className="mobile-pressable flex items-center gap-1 text-xs font-bold text-primary">
+              {showAllSpecialities ? "Show less" : "View all"}
+              <FaChevronRight className={`text-[9px] transition-transform ${showAllSpecialities ? "-rotate-90" : "rotate-90"}`} />
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {loading ? [1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="mobile-speciality-card mobile-app-card h-[84px] animate-pulse bg-white" />
+          )) : specialities.slice(0, showAllSpecialities ? specialities.length : 8).map((speciality, index) => (
+            <button
+              key={speciality.name}
+              onClick={() => {
+                setNavigatingSpeciality(speciality.name);
+                router.push(`/doctors?speciality=${encodeURIComponent(speciality.name)}`);
+              }}
+              className="mobile-speciality-card mobile-pressable mobile-app-card group flex min-h-[84px] items-center gap-2.5 overflow-hidden p-2.5 text-left"
+            >
+              <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-[16px] bg-primary/5 ring-1 ring-white shadow-sm">
+                {getSpecialityImage(speciality.name) ? (
+                  <Image
+                    src={getSpecialityImage(speciality.name)!}
+                    alt={`${speciality.name} specialist`}
+                    fill
+                    sizes="64px"
+                    className="object-cover object-top"
+                  />
+                ) : (
+                  <span className={`absolute inset-0 flex items-center justify-center ${index % 3 === 0 ? "bg-blue-50 text-primary" : index % 3 === 1 ? "bg-emerald-50 text-emerald-600" : "bg-violet-50 text-violet-600"}`}><FaStethoscope className="text-sm" /></span>
+                )}
+                {navigatingSpeciality === speciality.name && <span className="absolute inset-0 flex items-center justify-center bg-white/65 backdrop-blur-sm"><Spinner size="sm" /></span>}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-3 text-[11px] font-extrabold leading-snug text-slate-800">{speciality.name}</span>
+                <span className="mt-1.5 flex items-center gap-1 text-[9px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Available</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 flex items-center gap-3 rounded-[22px] border border-emerald-100 bg-emerald-50/80 p-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm"><FaShieldAlt /></span>
+          <div>
+            <p className="text-xs font-extrabold text-slate-800">Your consultations are private</p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">Secure booking and protected health conversations.</p>
           </div>
         </div>
       </main>

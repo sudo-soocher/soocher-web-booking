@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-db";
 import { Button, useDisclosure } from "@nextui-org/react";
 import {
   FaCheckCircle,
@@ -13,15 +13,19 @@ import {
   FaVideo,
   FaUser,
   FaUserMd,
-  FaStethoscope,
   FaComments,
-  FaCopy,
   FaPhoneAlt,
 } from "react-icons/fa";
 // FaStethoscope kept for navbar logo
 import { Consultation } from "@/types/consultation";
 import { motion } from "framer-motion";
-import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import dynamic from "next/dynamic";
+// Loaded on demand: stream-chat-react + its CSS is ~350 kB and the chat is
+// only ever opened after the page is already interactive.
+const ChatSidebar = dynamic(
+  () => import("@/components/chat/ChatSidebar").then((m) => m.ChatSidebar),
+  { ssr: false }
+);
 import { getChatAvailability } from "@/utils/chat/availability";
 import { formatDisplayDate, formatDisplayTime, getTimezoneName } from "@/utils/timezone";
 import { Logo } from "@/components/ui/Logo";

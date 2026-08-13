@@ -4,12 +4,13 @@
 // This removes ~200KB from the global bundle for every page that never uses chat.
 
 import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
+import type { StreamChat } from 'stream-chat';
 
 const sanitizeStreamId = (id: string) => id.replace(/[^a-zA-Z0-9_-]/g, '_');
 
 interface StreamChatContextType {
-    client: any | null;
-    connectUser: (userId: string, userName: string) => Promise<void>;
+    client: StreamChat | null;
+    connectUser: (userId: string, userName: string) => Promise<StreamChat | null>;
     disconnectUser: () => Promise<void>;
     sanitizeId: (id: string) => string;
 }
@@ -23,8 +24,8 @@ export const useStreamChat = () => {
 };
 
 export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [client, setClient] = useState<any>(null);
-    const clientRef = useRef<any>(null);
+    const [client, setClient] = useState<StreamChat | null>(null);
+    const clientRef = useRef<StreamChat | null>(null);
 
     // Lazily create the StreamChat instance — only downloads the SDK when chat is first opened
     const getOrInitClient = useCallback(async () => {
@@ -40,10 +41,10 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const connectUser = useCallback(async (userId: string, userName: string) => {
         const chatClient = await getOrInitClient();
-        if (!chatClient) { console.error('Stream client not initialized'); return; }
+        if (!chatClient) { console.error('Stream client not initialized'); return null; }
 
         const sanitizedUserId = sanitizeStreamId(userId);
-        if (chatClient.userID === sanitizedUserId) return;
+        if (chatClient.userID === sanitizedUserId) return chatClient;
         if (chatClient.userID) await chatClient.disconnectUser();
 
         const tokenApi = process.env.NEXT_PUBLIC_STREAM_TOKEN_API;
@@ -65,6 +66,7 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const { token } = await response.json();
         if (!token) throw new Error('Token API did not return a token');
         await chatClient.connectUser({ id: sanitizedUserId, name: userName }, token);
+        return chatClient;
     }, [getOrInitClient]);
 
     const disconnectUser = useCallback(async () => {

@@ -204,7 +204,7 @@ export const getTimezoneName = (timezone?: string): string => {
             timeZone: tz,
         }).formatToParts(new Date());
         
-        let officialName = parts.find((p) => p.type === "timeZoneName")?.value;
+        const officialName = parts.find((p) => p.type === "timeZoneName")?.value;
 
         // If a valid official name was found and it's not a generic GMT offset, use it.
         if (officialName && !officialName.startsWith("GMT") && !officialName.startsWith("UTC")) {
@@ -222,7 +222,7 @@ export const getTimezoneName = (timezone?: string): string => {
 
         return officialName || tz;
 
-    } catch (e) {
+    } catch {
         // Fallback for weird string errors
         if (tz && tz.includes("/")) {
             const cityName = tz.split("/").pop()?.replace(/_/g, " ");

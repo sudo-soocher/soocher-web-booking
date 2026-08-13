@@ -21,15 +21,14 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pointer-events-none"
       aria-label="Bottom navigation"
     >
       <div
-        className="bg-white/88 backdrop-blur-3xl border-t border-slate-100/70 rounded-t-[28px] shadow-[0_-2px_28px_rgba(0,0,0,0.06)]"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="pointer-events-auto max-w-md mx-auto mb-2 bg-white/72 backdrop-blur-3xl border border-white/80 rounded-[28px] shadow-[0_18px_50px_rgba(46,109,212,0.14)]"
+        style={{ marginBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}
       >
-        {/* Tab bar */}
-        <div className="flex items-center px-3 pt-2 pb-1 gap-0">
+        <div className="flex items-center px-2 py-2 gap-0">
           {tabs.map(({ icon: Icon, label, href }) => {
             const isActive =
               href === "/" ? pathname === href : pathname.startsWith(href);
@@ -45,19 +44,19 @@ export function MobileBottomNav() {
               >
                 {/* Pill indicator behind icon when active */}
                 <div
-                  className={`w-14 h-[34px] rounded-full flex items-center justify-center transition-all duration-200 ${
-                    isActive ? "bg-primary/12" : ""
+                  className={`w-12 h-8 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                    isActive ? "bg-primary/10 shadow-inner" : ""
                   }`}
                 >
                   <Icon
-                    className={`text-[20px] transition-all duration-200 ${
-                      isActive ? "text-primary scale-110" : "text-slate-400"
+                    className={`text-[18px] transition-all duration-200 ${
+                      isActive ? "text-primary scale-105" : "text-slate-500"
                     }`}
                   />
                 </div>
                 <span
                   className={`text-[10px] font-semibold leading-tight transition-colors duration-200 ${
-                    isActive ? "text-primary" : "text-slate-400"
+                    isActive ? "text-primary" : "text-slate-500"
                   }`}
                 >
                   {label}
@@ -67,10 +66,6 @@ export function MobileBottomNav() {
           })}
         </div>
 
-        {/* iOS home indicator */}
-        <div className="flex justify-center pb-1.5 pt-0.5">
-          <div className="w-32 h-[5px] bg-slate-800/[0.12] rounded-full" />
-        </div>
       </div>
     </nav>
   );

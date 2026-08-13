@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input, Divider } from "@nextui-org/react";
+import { Divider } from "@nextui-org/react";
 import { FcGoogle } from "react-icons/fc";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
 import {
   GoogleAuthProvider,
   signInWithPopup,

@@ -1,26 +1,37 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../lib/firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { getAdminFirestore } from '@/lib/firebase-admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+    // This diagnostic exposes private doctor and schedule fields, so it must
+    // never be callable on a production deployment.
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     try {
         const { searchParams } = new URL(request.url);
-        const doctorId = searchParams.get('doctorId') || 'mtlUtszDdJMYof7e6pRyPkSJrb12';
+        const doctorId = searchParams.get('doctorId')?.trim();
+        if (!doctorId) {
+            return NextResponse.json({ error: 'doctorId is required' }, { status: 400 });
+        }
 
-        const docRef = doc(db, 'Users', doctorId);
-        const docSnap = await getDoc(docRef);
-
-        const slotsRef = collection(db, 'Users', doctorId, 'Available Slots');
-        const slotsSnap = await getDocs(slotsRef);
+        const db = getAdminFirestore();
+        const doctorRef = db.collection('Users').doc(doctorId);
+        const [doctorSnap, slotsSnap] = await Promise.all([
+            doctorRef.get(),
+            doctorRef.collection('Available Slots').get(),
+        ]);
 
         const slotsData: Record<string, unknown> = {};
-        slotsSnap.forEach((doc) => {
-            slotsData[doc.id] = doc.data();
+        slotsSnap.forEach((slotDoc) => {
+            slotsData[slotDoc.id] = slotDoc.data();
         });
 
         return NextResponse.json({
             doctorId,
-            doctorData: docSnap.data(),
+            doctorData: doctorSnap.data(),
             slotsData
         });
     } catch (err: unknown) {

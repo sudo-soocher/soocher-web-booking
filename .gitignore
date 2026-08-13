@@ -48,3 +48,6 @@ firebase-debug.log*
 .firebaserc
 firebase.json
 cloud-functions*.md
+
+# verification build output (npm run build:check)
+.next-build

@@ -15,8 +15,8 @@ export const Footer = () => {
                 </p>
                 <div className="flex items-center gap-6">
                     <Link href="/contact" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors">Contact Us</Link>
-                    <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">
-                        Military-grade encryption active
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.16em]">
+                        Secure consultations and protected data
                     </p>
                 </div>
             </div>

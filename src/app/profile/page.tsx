@@ -7,20 +7,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase-auth";
+import { db } from "@/lib/firebase-db";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { FaArrowLeft, FaUser, FaSave, FaStethoscope, FaNotesMedical, FaCamera } from "react-icons/fa";
+import { FaArrowLeft, FaUser, FaSave, FaNotesMedical, FaCamera, FaShieldAlt, FaMapMarkerAlt, FaEnvelope, FaPhoneAlt, FaCalendarAlt, FaVenusMars, FaAllergies, FaCapsules, FaHeartbeat } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { Patient } from "@/types/patient";
 import { Footer } from "@/components/layout/Footer";
-import { storage } from "@/lib/firebase";
+import { storage } from "@/lib/firebase-storage";
 import { Logo } from "@/components/ui/Logo";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
 export default function Profile() {
   const router = useRouter();
+  const { user, ready: authReady } = useAuthUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -38,16 +42,21 @@ export default function Profile() {
     regularMedications: "",
     medicalConditions: "",
   });
+  const profileFields = [formData.name, formData.email, formData.phoneNumber, formData.dob, formData.gender, formData.currentState, formData.currentCity];
+  const profileCompletion = Math.round((profileFields.filter((value) => value.trim()).length / profileFields.length) * 100);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!auth.currentUser) {
-        router.push("/login");
-        return;
-      }
+    // Wait for the persisted session before deciding the user is signed out —
+    // `auth.currentUser` is null on every cold load until Firebase restores it.
+    if (!authReady) return;
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
+    const fetchProfile = async () => {
       try {
-        const docRef = doc(db, "Users", auth.currentUser.uid);
+        const docRef = doc(db, "Users", user.uid);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -55,7 +64,7 @@ export default function Profile() {
           setProfile(data);
           setFormData({
             name: data.name || "",
-            email: data.email || auth.currentUser?.email || "",
+            email: data.email || user.email || "",
             phoneNumber: data.phoneNumber || "",
             dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
             gender: data.gender || "",
@@ -74,8 +83,7 @@ export default function Profile() {
     };
 
     fetchProfile();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authReady, user, router]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,7 +168,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="min-h-[100dvh] bg-[#F8FAFC]">
-        <div className="md:hidden h-14 bg-white/85 border-b border-slate-100/60 animate-pulse" />
+        <div className="md:hidden h-14 bg-white/70 border-b border-white animate-pulse" />
         <header className="hidden md:block px-6 py-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
             <div className="flex items-center gap-2">
@@ -170,14 +178,10 @@ export default function Profile() {
           </div>
         </header>
 
-        <main className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-12">
-          <div className="premium-card p-12 space-y-8 animate-pulse bg-slate-50 border-none">
-            <div className="w-32 h-32 rounded-[40px] bg-slate-200 mx-auto" />
-            <div className="space-y-6">
-              <div className="h-12 bg-slate-200 rounded-2xl w-full" />
-              <div className="h-12 bg-slate-200 rounded-2xl w-full" />
-              <div className="h-32 bg-slate-200 rounded-2xl w-full" />
-            </div>
+        <main className="max-w-6xl mx-auto px-3 md:px-6 py-4 md:py-9">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[280px_minmax(0,1fr)] md:gap-5 animate-pulse">
+            <div className="h-28 md:h-72 rounded-[26px] bg-white/70 border border-white" />
+            <div className="space-y-4"><div className="h-72 rounded-[26px] bg-white/70 border border-white" /><div className="h-48 rounded-[26px] bg-white/70 border border-white" /></div>
           </div>
         </main>
       </div>
@@ -185,56 +189,50 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#F8FAFC]">
+    <div className="mobile-app-shell min-h-[100dvh] bg-[#F5F8FD]">
 
       {/* ── Mobile Top Bar ───────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+        className="mobile-page-header md:hidden sticky top-0 z-40"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
+        <div className="mobile-page-header-inner">
+          <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={() => router.back()}
-              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform mr-1"
+              className="mobile-page-back"
               style={{ WebkitTapHighlightColor: "transparent" }}
+              aria-label="Go back"
             >
-              <FaArrowLeft className="text-slate-600 text-sm" />
+              <FaArrowLeft className="text-[11px]" />
             </button>
-            <span className="text-lg font-bold text-slate-900 tracking-tight">Profile</span>
+            <span className="mobile-page-title">Profile</span>
           </div>
-          <Logo size="sm" className="rounded-xl" />
         </div>
       </header>
 
       {/* ── Desktop Navbar ───────────────────────────────────────────── */}
       <header className="hidden md:block sticky top-0 z-40 w-full px-6 py-4">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center glass-effect rounded-[24px] px-6 py-3 border border-white/40 shadow-sm">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center rounded-[22px] bg-white/[0.78] backdrop-blur-2xl px-5 py-2.5 border border-white/90 shadow-[0_12px_36px_rgba(46,109,212,0.09)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <Logo size="md" className="shadow-lg shadow-primary/20 rounded-xl" />
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Soocher</h1>
+            <Logo size="md" className="shadow-md shadow-primary/15 rounded-xl" />
+            <div><h1 className="text-xl font-black leading-none tracking-tight text-slate-900">Soocher</h1><p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
           </div>
-          <Button variant="flat" size="sm" className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>Back</Button>
+          <Button variant="flat" size="sm" className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold" startContent={<FaArrowLeft className="text-xs" />} onPress={() => router.back()}>Back</Button>
         </nav>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-12 pb-safe-nav md:pb-24">
-        <div className="space-y-6 md:space-y-12">
-          {/* Page Heading - desktop only */}
-          <div className="hidden md:block text-center space-y-2">
-            <h1 className="text-5xl font-black text-slate-900 tracking-tight">
-              Personal <span className="text-primary italic">Profile</span>
-            </h1>
-            <p className="text-base text-slate-500 font-medium tracking-tight">Manage your medical identity and preferences.</p>
-          </div>
+      <main className="max-w-6xl mx-auto px-3 md:px-6 py-3 md:py-6 pb-safe-nav md:pb-20">
+        <div className="hidden md:block mb-5">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">Account settings</p>
+          <h1 className="mt-1 text-3xl font-black text-slate-900 tracking-tight">Your profile</h1>
+          <p className="mt-1.5 text-xs text-slate-500 font-medium">Keep your personal and medical information up to date.</p>
+        </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="premium-card p-6 sm:p-8 md:p-12 border-none ring-1 ring-slate-100"
-          >
-            {/* Profile Header */}
-            <div className="flex flex-col items-center mb-8 md:mb-12 space-y-4">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
+          <aside className="mobile-app-card relative overflow-hidden rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_18px_50px_rgba(46,109,212,0.09)] backdrop-blur-xl md:p-4 lg:sticky lg:top-28 lg:self-start lg:p-5">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+            <div className="relative flex items-center gap-3.5 lg:flex-col lg:text-center">
               <div className="relative group">
                 <input
                   type="file"
@@ -246,16 +244,27 @@ export default function Profile() {
                 />
                 <label
                   htmlFor="profile-image-input"
-                  className={`relative block transition-all duration-300 ${uploading ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:scale-105 active:scale-95'}`}
+                  className={`relative block transition-all duration-300 ${uploading ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:scale-[1.03] active:scale-95'}`}
                 >
-                  <Avatar
-                    className="w-32 h-32 md:w-40 md:h-40 text-large rounded-[48px] shadow-2xl shadow-primary/10 border-4 border-white"
-                    src={profile?.profileImage}
-                    name={profile?.name}
-                    showFallback
-                    fallback={<FaUser className="text-4xl text-slate-300" />}
-                  />
-                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white">
+                  {/* Uploads are capped at 2MB but render at 72–96px, so the
+                      original was being downloaded at ~25x the needed size. */}
+                  {profile?.profileImage ? (
+                    <div className="relative w-[72px] h-[72px] md:w-20 md:h-20 lg:w-24 lg:h-24 overflow-hidden rounded-[20px] md:rounded-[22px] lg:rounded-[26px] shadow-xl shadow-primary/10 border-4 border-white bg-primary/10">
+                      <RemoteImage
+                        src={profile.profileImage}
+                        alt={profile?.name || formData.name || "Profile photo"}
+                        sizes="96px"
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <Avatar
+                      className="w-[72px] h-[72px] md:w-20 md:h-20 lg:w-24 lg:h-24 text-large rounded-[20px] md:rounded-[22px] lg:rounded-[26px] shadow-xl shadow-primary/10 border-4 border-white"
+                      name={(profile?.name || formData.name || "U").trim().charAt(0).toUpperCase()}
+                      showFallback
+                    />
+                  )}
+                  <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg border-[3px] border-white">
                     {uploading ? (
                       <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     ) : (
@@ -264,51 +273,60 @@ export default function Profile() {
                   </div>
                 </label>
               </div>
-              <div className="text-center">
-                <h2 className="text-2xl font-black text-slate-900">{profile?.name || "Patient Name"}</h2>
+              <div className="min-w-0 flex-1 lg:w-full">
+                <h2 className="truncate text-base md:text-lg font-black text-slate-900">{profile?.name || "Patient Name"}</h2>
+                <p className="mt-1 truncate text-[10px] font-semibold text-slate-500">{formData.email || "Add your email"}</p>
                 {uploading && (
-                  <p className="text-primary font-bold text-[10px] uppercase tracking-widest mt-2 animate-pulse">
-                    Uploading your new look...
+                  <p className="text-primary font-bold text-[9px] mt-1 animate-pulse">
+                    Uploading photo…
                   </p>
                 )}
                 {!uploading && (
-                  <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest mt-1">
-                    ID: {auth.currentUser?.uid.slice(0, 8)}
+                  <p className="text-slate-400 font-bold uppercase text-[8px] tracking-wider mt-1.5">
+                    Patient ID · {auth.currentUser?.uid.slice(0, 8)}
                   </p>
                 )}
               </div>
             </div>
+            <div className="relative mt-3 rounded-2xl border border-white bg-white/55 p-3 shadow-sm">
+              <div className="flex items-center justify-between"><span className="text-[9px] font-extrabold text-slate-600">Profile completeness</span><span className="text-[10px] font-black text-primary">{profileCompletion}%</span></div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><motion.div initial={{ width: 0 }} animate={{ width: `${profileCompletion}%` }} className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400" /></div>
+            </div>
+            <div className="relative mt-3 hidden space-y-2 border-t border-slate-100 pt-3 lg:block">
+              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50/80 p-3 text-left"><FaMapMarkerAlt className="shrink-0 text-primary" /><div className="min-w-0"><p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Location</p><p className="truncate text-[10px] font-extrabold text-slate-700">{formData.currentCity || "City"}, {formData.currentState || "State"}</p></div></div>
+              <p className="flex items-start gap-2 px-1 pt-1 text-[9px] leading-relaxed text-slate-400"><FaShieldAlt className="mt-0.5 shrink-0 text-emerald-500" />Your health details are private and shared only during care.</p>
+            </div>
+          </aside>
 
-            {/* Form Sections */}
-            <div className="space-y-12">
-              <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm">
-                    <FaUser />
-                  </span>
-                  Basic Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3 md:space-y-4">
+              <section className="mobile-app-card rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_14px_40px_rgba(46,109,212,0.07)] backdrop-blur-xl md:p-4 xl:p-5">
+                <div className="mb-3 flex items-center gap-2.5 md:mb-4">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm text-primary"><FaUser /></span>
+                  <div><h3 className="text-sm md:text-base font-black text-slate-900">Personal information</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">Your contact and identity details</p></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
                   <Input
                     label="Full Name"
+                    startContent={<FaUser className="text-xs text-primary/60" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Input
                     label="Email Address"
+                    startContent={<FaEnvelope className="text-xs text-primary/60" />}
                     type="email"
                     variant="bordered"
                     radius="lg"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <div className="flex flex-col gap-1.5 justify-center">
-                    <label className="text-[0.75rem] font-bold text-slate-400">Mobile Number</label>
-                    <div className="border-2 border-slate-200 rounded-lg bg-slate-50 opacity-70 cursor-not-allowed">
+                    <label className="flex items-center gap-1.5 text-[0.7rem] font-bold text-slate-400"><FaPhoneAlt className="text-[9px] text-primary/60" /> Mobile Number</label>
+                    <div className="overflow-hidden border border-white rounded-xl bg-slate-50/80 opacity-75 cursor-not-allowed shadow-sm">
                       <PhoneInput
                         defaultCountry="in"
                         value={formData.phoneNumber}
@@ -344,113 +362,117 @@ export default function Profile() {
                   </div>
                   <Input
                     label="Date of Birth"
+                    startContent={<FaCalendarAlt className="text-xs text-primary/60" />}
                     type="date"
                     variant="bordered"
                     radius="lg"
                     value={formData.dob}
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Select
                     label="Gender"
+                    startContent={<FaVenusMars className="text-xs text-primary/60" />}
                     variant="bordered"
                     radius="lg"
                     selectedKeys={[formData.gender]}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    classNames={{ trigger: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ trigger: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   >
                     <SelectItem key="Male" value="Male">Male</SelectItem>
                     <SelectItem key="Female" value="Female">Female</SelectItem>
                     <SelectItem key="Other" value="Other">Other</SelectItem>
                   </Select>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 md:gap-4">
                     <Input
                       label="State"
+                      startContent={<FaMapMarkerAlt className="text-xs text-primary/60" />}
                       variant="bordered"
                       radius="lg"
                       value={formData.currentState}
                       onChange={(e) => setFormData({ ...formData, currentState: e.target.value })}
-                      classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                      classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                     />
                     <Input
                       label="City"
+                      startContent={<FaMapMarkerAlt className="text-xs text-primary/60" />}
                       variant="bordered"
                       radius="lg"
                       value={formData.currentCity}
                       onChange={(e) => setFormData({ ...formData, currentCity: e.target.value })}
-                      classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                      classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                     />
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-success/10 text-success flex items-center justify-center text-sm">
-                    <FaNotesMedical />
-                  </span>
-                  Medical Profile
-                </h3>
-                <div className="grid grid-cols-1 gap-6">
+              <section className="mobile-app-card rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_14px_40px_rgba(46,109,212,0.07)] backdrop-blur-xl md:p-4 xl:p-5">
+                <div className="mb-3 flex items-center gap-2.5 md:mb-4">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-sm text-emerald-600"><FaNotesMedical /></span>
+                  <div><h3 className="text-sm md:text-base font-black text-slate-900">Medical profile</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">Optional information shared during care</p></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
                   <Input
                     label="Known Allergies"
+                    startContent={<FaAllergies className="text-xs text-amber-500" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.allergies}
                     placeholder="e.g. Peanuts, Penicillin..."
                     onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Input
                     label="Regular Medications"
+                    startContent={<FaCapsules className="text-xs text-emerald-500" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.regularMedications}
                     placeholder="e.g. Insulin, Aspirin..."
                     onChange={(e) => setFormData({ ...formData, regularMedications: e.target.value })}
-                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                   <Input
                     label="Medical Conditions"
+                    startContent={<FaHeartbeat className="text-xs text-rose-500" />}
                     variant="bordered"
                     radius="lg"
                     value={formData.medicalConditions}
                     placeholder="e.g. Diabetes, Hypertension..."
-                    className="md:col-span-2"
+                    className="sm:col-span-2"
                     onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
-                    classNames={{ inputWrapper: "border-slate-200 hover:border-primary/50", label: "font-bold text-slate-400" }}
+                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
                   />
                 </div>
-              </div>
+              </section>
 
-              <div className="pt-8">
+              <div>
                 <AnimatePresence>
                   {showSuccess && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success text-center font-bold flex justify-center items-center gap-2"
+                      className="mb-3 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-center text-xs font-bold flex justify-center items-center gap-2"
                     >
                       <FaSave className="text-lg" />
-                      Profile Enshrined Successfully!
+                      Profile updated successfully
                     </motion.div>
                   )}
                 </AnimatePresence>
                 <Button
                   color="primary"
                   size="lg"
-                  className="w-full h-16 rounded-2xl text-lg font-black shadow-xl shadow-primary/20"
+                  className="w-full h-12 md:h-14 rounded-2xl text-sm md:text-base font-black shadow-xl shadow-primary/20"
                   startContent={!saving && <FaSave className="opacity-60 text-sm" />}
                   isLoading={saving}
                   onPress={handleSave}
                 >
-                  {saving ? "Synthesizing Changes..." : "Enshrine Profile"}
+                  {saving ? "Saving changes…" : "Save profile"}
                 </Button>
               </div>
-            </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </main>
 
       <Footer />

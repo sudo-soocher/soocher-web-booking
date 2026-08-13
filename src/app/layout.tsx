@@ -9,8 +9,8 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#f5f7fb",
 };
 
 export const metadata: Metadata = {
@@ -19,6 +19,14 @@ export const metadata: Metadata = {
   icons: {
     icon: "/soocherlogo.jpg",
     apple: "/soocherlogo.jpg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Soocher",
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 

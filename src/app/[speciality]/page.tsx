@@ -6,9 +6,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Image } from "@nextui-org/react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import {
   FaStar,
   FaMapMarkerAlt,
@@ -22,6 +19,7 @@ import { Logo } from "@/components/ui/Logo";
 
 import { Doctor } from "@/types/doctor";
 import { DoctorCard } from "@/components/doctor/DoctorCard";
+import { fetchDoctorsBySpeciality } from "@/lib/doctors";
 
 export default function SpecialityPage() {
   const params = useParams();
@@ -44,25 +42,8 @@ export default function SpecialityPage() {
     const fetchDoctors = async () => {
       setLoading(true);
       try {
-        const doctorsRef = collection(db, "Users");
         const decodedSpeciality = getDecodedSpeciality();
-
-        const baseQuery = query(
-          doctorsRef,
-          where("specialization", "==", decodedSpeciality),
-          where("isAccountVerified", "==", true)
-        );
-
-        const querySnapshot = await getDocs(baseQuery);
-        const doctorsList: Doctor[] = [];
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as Omit<Doctor, "id">;
-          doctorsList.push({
-            id: doc.id,
-            ...data,
-          });
-        });
+        const doctorsList = await fetchDoctorsBySpeciality(decodedSpeciality);
 
         if (stateParam && cityParam) {
           const local = doctorsList.filter(
@@ -125,23 +106,23 @@ export default function SpecialityPage() {
 
       {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-40 bg-white/85 backdrop-blur-2xl border-b border-slate-100/60"
+        className="mobile-page-header md:hidden sticky top-0 z-40"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
+        <div className="mobile-page-header-inner">
+          <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={() => router.push("/")}
-              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center active:scale-90 transition-transform mr-1"
+              className="mobile-page-back"
               style={{ WebkitTapHighlightColor: "transparent" }}
+              aria-label="Go back"
             >
-              <FaArrowLeft className="text-slate-600 text-sm" />
+              <FaArrowLeft className="text-[11px]" />
             </button>
-            <span className="text-lg font-bold text-slate-900 tracking-tight truncate">
+            <span className="mobile-page-title">
               {decodeURIComponent(params.speciality as string)}
             </span>
           </div>
-          <Logo size="sm" className="rounded-xl shrink-0" />
         </div>
       </header>
 
@@ -231,4 +212,3 @@ export default function SpecialityPage() {
     </div>
   );
 }
-

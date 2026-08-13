@@ -6,6 +6,10 @@ export interface Doctor {
     aboutMe: string;
     worksAt: string;
     numExp: number;
+    numOnline?: number;
+    numOffline?: number;
+    consultCount?: number;
+    score?: number;
     currentState: string;
     currentCity: string;
     consultationFees: number;
