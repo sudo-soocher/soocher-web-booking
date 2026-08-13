@@ -326,7 +326,7 @@ export default function Login() {
   }
 
   return (
-    <main className="relative min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#F4F8FF] px-3 pb-6 pt-20 md:px-8 md:pb-8 md:pt-24">
+    <main className="login-page relative h-[100dvh] min-h-0 w-full max-w-full overflow-hidden bg-[#F4F8FF] px-3 pb-3 pt-16 md:px-8 md:pb-8 md:pt-24">
       <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
 
@@ -341,7 +341,7 @@ export default function Login() {
         Back to home
       </button>
 
-      <div className="relative z-10 mx-auto grid min-h-[calc(100dvh-7rem)] w-full max-w-6xl items-stretch overflow-hidden rounded-[32px] border border-white/90 bg-white/50 shadow-[0_30px_90px_rgba(46,109,212,0.14)] backdrop-blur-2xl lg:grid-cols-[0.92fr_1.08fr]">
+      <div className="login-shell relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl items-stretch overflow-hidden rounded-[28px] border border-white/90 bg-white/50 shadow-[0_30px_90px_rgba(46,109,212,0.14)] backdrop-blur-2xl lg:grid-cols-[0.92fr_1.08fr] md:rounded-[32px]">
       {/* Visual Side */}
       <div className="relative hidden overflow-hidden border-r border-white/80 bg-gradient-to-br from-blue-50 via-white to-cyan-50 lg:flex lg:items-center lg:justify-center">
         <div className="pointer-events-none absolute -left-20 top-1/3 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
@@ -395,17 +395,17 @@ export default function Login() {
       </div>
 
       {/* Form Side */}
-      <div className="flex min-w-0 w-full items-center justify-center p-3 md:p-8 lg:p-10">
+      <div className="flex h-full min-h-0 min-w-0 w-full items-center justify-center p-2 md:p-6 lg:p-8">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="min-w-0 w-full max-w-md space-y-6 overflow-hidden rounded-[28px] border border-white/90 bg-white/72 p-5 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:p-8"
+          className="login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 overflow-hidden rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7"
         >
-          <div className="flex items-center gap-3 lg:hidden">
+          <div className="login-brand flex items-center gap-3 lg:hidden">
             <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
             <div><p className="text-base font-black tracking-tight text-slate-900">Soocher</p><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-primary">Healthcare, simplified</p></div>
           </div>
-          <div className="space-y-2">
+          <div className="login-intro space-y-1.5 md:space-y-2">
             <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
               {needsPhoneLink
                 ? "Verify Your Phone"
@@ -413,7 +413,7 @@ export default function Login() {
                 ? "Complete Your Profile"
                 : "Welcome back"}
             </h2>
-            <p className="text-slate-500 font-medium tracking-tight italic text-base md:text-lg">
+            <p className="login-subtitle text-sm font-medium italic tracking-tight text-slate-500 md:text-lg">
               {needsPhoneLink
                 ? "We need a verified mobile number to continue."
                 : needsRegistration
@@ -425,7 +425,7 @@ export default function Login() {
           {needsPhoneLink ? (
             <form
               onSubmit={linkPhoneStage === "input" ? sendLinkPhoneCode : verifyLinkPhoneCode}
-              className="space-y-6"
+              className="space-y-4 md:space-y-6"
             >
               {linkPhoneStage === "input" ? (
                 <div className="space-y-2">
@@ -486,7 +486,7 @@ export default function Login() {
                 type="submit"
                 isLoading={isLoading}
                 spinnerPlacement="start"
-                className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
+                className="w-full h-12 md:h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-base md:text-lg"
               >
                 {linkPhoneStage === "input"
                   ? isLoading
@@ -498,7 +498,7 @@ export default function Login() {
               </Button>
             </form>
           ) : needsRegistration ? (
-            <form onSubmit={submitRegistration} className="space-y-6">
+            <form onSubmit={submitRegistration} className="login-registration-form space-y-3 md:space-y-4">
               <Input
                 label="Full Name"
                 variant="bordered"
@@ -509,7 +509,7 @@ export default function Login() {
                   setRegistrationData({ ...registrationData, name: e.target.value })
                 }
                 classNames={{
-                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
                   label: "font-bold text-slate-400",
                 }}
               />
@@ -524,7 +524,7 @@ export default function Login() {
                   setRegistrationData({ ...registrationData, email: e.target.value })
                 }
                 classNames={{
-                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
                   label: "font-bold text-slate-400",
                 }}
               />
@@ -539,7 +539,7 @@ export default function Login() {
                   setRegistrationData({ ...registrationData, dob: e.target.value })
                 }
                 classNames={{
-                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
                   label: "font-bold text-slate-400",
                 }}
               />
@@ -555,7 +555,7 @@ export default function Login() {
                   })
                 }
                 classNames={{
-                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
                   label: "font-bold text-slate-400",
                 }}
               />
@@ -571,7 +571,7 @@ export default function Login() {
                   })
                 }
                 classNames={{
-                  inputWrapper: "h-14 border-slate-200 hover:border-primary/50",
+                  inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50",
                   label: "font-bold text-slate-400",
                 }}
               />
@@ -591,15 +591,15 @@ export default function Login() {
                 type="submit"
                 isLoading={isLoading}
                 spinnerPlacement="start"
-                className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
+                className="w-full h-12 md:h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-base md:text-lg"
               >
                 {isLoading ? "Saving..." : "Complete Registration"}
               </Button>
             </form>
           ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Phone Login */}
-            <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="space-y-6">
+            <form onSubmit={showOTPInput ? verifyCode : handlePhoneLogin} className="space-y-4 md:space-y-6">
               {!showOTPInput ? (
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
@@ -639,7 +639,7 @@ export default function Login() {
                 type="submit"
                 isLoading={isLoading}
                 spinnerPlacement="start"
-                className="w-full h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-lg"
+                className="w-full h-12 md:h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-base md:text-lg"
               >
                 {showOTPInput
                   ? isLoading
@@ -662,7 +662,7 @@ export default function Login() {
               <Button
                 variant="bordered"
                 radius="lg"
-                className="w-full h-14 font-bold border-slate-200 hover:bg-white"
+                className="w-full h-12 md:h-14 font-bold border-slate-200 hover:bg-white"
                 onClick={handleGoogleLogin}
                 startContent={<FcGoogle className="text-2xl" />}
               >
@@ -672,7 +672,7 @@ export default function Login() {
           </div>
           )}
 
-          <div className="flex items-center justify-center gap-2 border-t border-slate-100 pt-4 text-slate-400">
+          <div className="login-security flex items-center justify-center gap-2 border-t border-slate-100 pt-3 text-slate-400 md:pt-4">
             <FaShieldAlt className="text-success" />
             <p className="text-[10px] font-bold tracking-wide leading-loose">
               Secure sign-in and protected account data

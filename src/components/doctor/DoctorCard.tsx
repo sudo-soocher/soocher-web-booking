@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Doctor } from "@/types/doctor";
 import { preloadRemoteImage, RemoteImage } from "@/components/ui/RemoteImage";
+import { formatCountWithPlus } from "@/utils/format-count";
 
 interface DoctorCardProps {
     doctor: Doctor;
@@ -84,7 +85,7 @@ const DoctorCardInner = ({ doctor }: DoctorCardProps) => {
                                     <span className="text-[10px] font-black text-amber-700">{(doctor.averageRating || 0).toFixed(1)}</span>
                                 </div>
                                 <span className="truncate text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-wide md:tracking-widest leading-loose">
-                                    {doctor.numExp || 0} yrs exp.
+                                    {formatCountWithPlus(doctor.numExp)} yrs exp.
                                 </span>
                             </div>
                         </div>

@@ -314,6 +314,37 @@ body {
   border-color: #2e6dd4 !important;
   outline: none !important;
 }
+
+@media (max-width: 767px) {
+  .login-page .react-international-phone-input,
+  .login-page .react-international-phone-country-selector-button {
+    height: 48px !important;
+  }
+}
+
+/* Short phones still get a complete, non-scrolling login form. Secondary
+   branding is removed before any interactive field is allowed to clip. */
+@media (max-width: 1023px) and (max-height: 640px) {
+  .login-page {
+    padding-top: 56px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .login-panel {
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .login-brand,
+  .login-subtitle,
+  .login-security {
+    display: none !important;
+  }
+
+  .login-registration-form {
+    gap: 7px !important;
+  }
+}
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
