@@ -4,7 +4,7 @@
 "use client";
 
 import { FaStethoscope, FaEnvelope, FaPhone, FaMapMarkerAlt, FaTwitter, FaInstagram, FaLinkedin } from "react-icons/fa";
-import { Link } from "@nextui-org/react";
+import { Link } from "@heroui/react";
 
 export const Footer = () => {
     return (

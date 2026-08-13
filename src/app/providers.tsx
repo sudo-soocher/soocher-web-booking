@@ -1,17 +1,19 @@
 "use client";
 
 import React from "react";
-import { NextUIProvider } from "@nextui-org/react";
+import { HeroUIProvider } from "@heroui/react";
 import { StreamChatProvider } from "@/components/chat/StreamChatContext";
 import { LanguageProvider } from "@/i18n/LanguageProvider";
+// Side-effect import: starts App Check once for the whole app (patient + doctor).
+import "@/lib/firebase-appcheck";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
       <StreamChatProvider>
-        <NextUIProvider>
+        <HeroUIProvider>
           {children}
-        </NextUIProvider>
+        </HeroUIProvider>
       </StreamChatProvider>
     </LanguageProvider>
   );

@@ -85,22 +85,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // All three are independent reads with no side effects, so they run
-        // concurrently instead of as three sequential round trips. The error
-        // precedence below is unchanged.
-        const [doctorSnap, existingUserSnap, existingAuthUser] = await Promise.all([
-            db.collection("Doctors").where("whatsappNumber", "==", e164).limit(1).get(),
+        // Login is unified: doctors link phones through this same route, so the
+        // previous "this number is a doctor account" rejection is gone. Both
+        // remaining reads are independent and issue concurrently.
+        const [existingUserSnap, existingAuthUser] = await Promise.all([
             db.collection("Users").where("phoneNumber", "==", e164).limit(1).get(),
             adminAuth.getUserByPhoneNumber(e164).catch(() => null),
         ]);
-
-        // Block if this number belongs to a doctor account
-        if (!doctorSnap.empty) {
-            return NextResponse.json(
-                { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
-                { status: 409 }
-            );
-        }
 
         // Block if the phone is already saved under a different patient UID
         if (!existingUserSnap.empty && existingUserSnap.docs[0].id !== decoded.uid) {

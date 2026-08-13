@@ -13,7 +13,7 @@ import {
 } from 'stream-chat-react';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import 'stream-chat-react/dist/css/v2/index.css';
-import { Button } from '@nextui-org/react';
+import { Button } from '@heroui/react';
 import { useStreamChat } from './StreamChatContext';
 import { Consultation } from '@/types/consultation';
 import { auth } from '@/lib/firebase-auth';

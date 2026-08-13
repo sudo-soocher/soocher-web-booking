@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { FaHome, FaStethoscope, FaCalendarCheck, FaUser } from "react-icons/fa";
 import { useTranslation } from "@/i18n/LanguageProvider";
 
@@ -12,70 +13,80 @@ const tabs = [
   { icon: FaUser, labelKey: "nav.profile", href: "/profile" },
 ];
 
-const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth"];
+/**
+ * `/doc` is the whole doctor app. It ships its own chrome — DoctorSidebar and
+ * its own BottomNav, mounted in src/app/doc/(app)/layout.tsx — so the patient
+ * tabs must never render there.
+ *
+ * This component lives in the ROOT layout, which means it paints over every
+ * route unless excluded here. Without `/doc`: onboarding showed the patient tabs
+ * (Home / Find / Bookings / Profile) on a doctor screen, and the authenticated
+ * doctor pages stacked two bottom navs on top of each other.
+ */
+const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth", "/doc"];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { t } = useTranslation();
 
-  const isHidden = HIDDEN_ROUTES.some((r) => pathname.startsWith(r));
+  // Match whole path segments, not raw prefixes. A plain `startsWith("/doc")`
+  // would also swallow the patient routes `/doctors` and `/doctor/[id]` and
+  // strip the tabs off pages that need them.
+  const isHidden = HIDDEN_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
   if (isHidden) return null;
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pointer-events-none"
+      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 md:hidden"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
       aria-label={t("nav.bottomNav")}
     >
-      <div
-        className="pointer-events-auto max-w-md mx-auto mb-2 bg-white/72 backdrop-blur-3xl border border-white/80 rounded-[28px] shadow-[0_18px_50px_rgba(46,109,212,0.14)]"
-        style={{ marginBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}
+      <ul
+        className="flex w-full max-w-sm items-center justify-around rounded-[28px] border border-white/40 bg-white/60 px-2 py-1.5 shadow-xl shadow-black/10 backdrop-blur-2xl"
       >
-        <div className="flex items-center px-2 py-2 gap-0">
-          {tabs.map(({ icon: Icon, labelKey, href }) => {
-            const label = t(labelKey);
-            const isActive =
-              href === "/" ? pathname === href : pathname.startsWith(href);
+        {tabs.map(({ icon: Icon, labelKey, href }) => {
+          const label = t(labelKey);
+          const isActive =
+            href === "/" ? pathname === href : pathname.startsWith(href);
 
-            return (
-              // <Link prefetch> instead of router.push: the nav is on screen at
-              // all times, so Next downloads all four route chunks in the
-              // background. Tapping then swaps to a chunk that is already local
-              // rather than starting a ~350 kB download at tap time — that
-              // download was the multi-second wait before anything appeared.
+          return (
+            <li key={href} className="relative flex-1">
               <Link
-                key={href}
                 href={href}
                 prefetch
-                className="flex-1 flex flex-col items-center gap-0.5 py-1 rounded-2xl transition-all duration-150 active:scale-90 active:opacity-60 select-none"
+                className="flex min-w-0 select-none flex-col items-center justify-center gap-0.5 overflow-hidden py-2 transition-transform active:scale-95"
                 style={{ WebkitTapHighlightColor: "transparent" }}
                 aria-label={label}
                 aria-current={isActive ? "page" : undefined}
               >
-                {/* Pill indicator behind icon when active */}
-                <div
-                  className={`w-12 h-8 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                    isActive ? "bg-primary/10 shadow-inner" : ""
-                  }`}
-                >
+                {isActive && (
+                  <motion.span
+                    layoutId="patient-bottomnav-active"
+                    className="absolute inset-x-1 inset-y-0 rounded-2xl bg-primary/10"
+                    transition={{ type: "spring", damping: 24, stiffness: 300 }}
+                  />
+                )}
+                <span className="relative">
                   <Icon
-                    className={`text-[18px] transition-all duration-200 ${
-                      isActive ? "text-primary scale-105" : "text-slate-500"
+                    className={`text-[22px] transition-colors ${
+                      isActive ? "text-primary" : "text-slate-400"
                     }`}
                   />
-                </div>
+                </span>
                 <span
-                  className={`text-[10px] font-semibold leading-tight transition-colors duration-200 ${
-                    isActive ? "text-primary" : "text-slate-500"
+                  className={`relative block h-3 w-full max-w-full truncate px-0.5 text-center text-[9px] font-bold leading-3 tracking-wide transition-colors ${
+                    isActive ? "text-primary" : "text-slate-400"
                   }`}
                 >
                   {label}
                 </span>
               </Link>
-            );
-          })}
-        </div>
-
-      </div>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

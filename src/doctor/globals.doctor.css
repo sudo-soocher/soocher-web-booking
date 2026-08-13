@@ -1,0 +1,426 @@
+/* Doctor-app styles, loaded by src/app/doc/layout.tsx.
+ *
+ * Two changes from the standalone app:
+ *   1. @tailwind directives removed — the root globals.css already emits them,
+ *      and a second copy would duplicate the whole framework.
+ *   2. Every html/body rule is scoped to `html.doc-app`, a class the doc layout
+ *      adds on mount and removes on unmount. Unscoped, the mobile scroll-lock
+ *      below (position:fixed, overflow:hidden) would leak onto the patient
+ *      pages and make them impossible to scroll.
+ */
+
+
+html.doc-app, html.doc-app body { background-color: #ffffff; }
+
+/* ────────────────────────────────────────────────────────────────────────
+   Mobile app shell — kill document scroll on every page below `lg`.
+   On iOS Safari, `overscroll-behavior` alone does NOT stop the document's
+   elastic rubber-band. The only reliable cure is to make the document itself
+   non-scrollable: `html` and `body` lock to the dynamic viewport height and
+   forbid overflow. Each layout (onboarding, (app)/*, login, …) then owns its
+   own internal scroll container.
+   On `lg+` we revert so the desktop sidebar can stick and pages can scroll
+   the document normally. */
+html.doc-app, html.doc-app body { overscroll-behavior-y: none; }
+
+/* Onboarding mobile chrome. Keep the fixed action clear of iOS/Android home
+   indicators even when a desktop device emulator reports a zero safe-area,
+   and reserve the same space in the scrollable form so no field is covered. */
+.doctor-onboarding-cta {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.doctor-onboarding-content {
+  padding-bottom: calc(6rem + max(1.25rem, env(safe-area-inset-bottom)));
+}
+
+@media (min-width: 768px) {
+  .doctor-onboarding-cta {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 1023px) {
+  html.doc-app {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  html.doc-app body {
+    height: 100dvh;
+    overflow: hidden;
+    /* `position: fixed` on body is the iOS-web-app trick — without it, some
+       iOS versions still let the body translate during pinch/scroll-up. */
+    position: fixed;
+    inset: 0;
+    width: 100%;
+  }
+}
+
+/* Kill the browser's native focus ring on every form field — HeroUI styles the
+   wrapper, so the inner element's default outline shows as an extra orange/yellow
+   box on top of our blue focus border. */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+button:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+
+/* Stop Chrome from painting the yellow autofill background over our inputs. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: rgb(30 41 59) !important; /* slate-800 */
+  caret-color: rgb(30 41 59);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.mesh-gradient {
+  background-color: #2e6dd4;
+  background-image:
+    radial-gradient(at 40% 20%, #5a94ff 0px, transparent 50%),
+    radial-gradient(at 80% 0%, #8fb8ff 0px, transparent 50%),
+    radial-gradient(at 0% 50%, #2559b3 0px, transparent 50%),
+    radial-gradient(at 80% 50%, #bcd4ff 0px, transparent 50%),
+    radial-gradient(at 0% 100%, #2e6dd4 0px, transparent 50%),
+    radial-gradient(at 80% 100%, #5a94ff 0px, transparent 50%),
+    radial-gradient(at 0% 0%, #8fb8ff 0px, transparent 50%);
+  animation: mesh-animation 15s ease infinite;
+  background-size: 200% 200%;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(46, 109, 212, 0.1);
+}
+
+.premium-card {
+  background: white;
+  border-radius: 40px;
+  border: 1px solid rgba(46, 109, 212, 0.05);
+  box-shadow: 0 20px 60px -15px rgba(46, 109, 212, 0.05);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 40px 80px -20px rgba(46, 109, 212, 0.1);
+  border-color: rgba(46, 109, 212, 0.2);
+}
+
+@keyframes mesh-animation {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* react-international-phone overrides */
+.react-international-phone-input-container {
+  width: 100% !important;
+}
+
+.react-international-phone-input {
+  width: 100% !important;
+  height: 56px !important;
+  border-radius: 0 16px 16px 0 !important;
+  border: 2px solid #e2e8f0 !important;
+  background-color: transparent !important;
+  font-family: inherit !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  padding-left: 12px !important;
+}
+
+.react-international-phone-input:focus {
+  border-color: #2e6dd4 !important;
+  outline: none !important;
+}
+
+.react-international-phone-country-selector-button {
+  height: 56px !important;
+  border-radius: 16px 0 0 16px !important;
+  border: 2px solid #e2e8f0 !important;
+  border-right: none !important;
+  background-color: #f8fafc !important;
+  padding: 0 12px !important;
+}
+
+.react-international-phone-country-selector-button:focus {
+  border-color: #2e6dd4 !important;
+  outline: none !important;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(46, 109, 212, 0.08);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(46, 109, 212, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(46, 109, 212, 0.25);
+}
+
+/* ── Stream.io video call — Soocher brand overrides ─────────────── */
+/*
+ * Only override the brand accent colour — let Stream's own dark theme
+ * handle everything else. Targeting wrong class names was causing buttons
+ * to disappear.
+ */
+.soocher-call {
+  --str-video__brand-color1: #2e6dd4;
+  --str-video__button-primary-active: #2e6dd4;
+  --str-video__button-primary-hover: #5a94ff;
+  --str-video__avatar--background-color: rgba(46, 109, 212, 0.3);
+  --str-video__avatar--color: #bcd4ff;
+  height: 100%;
+  width: 100%;
+}
+
+/* Rounded video tiles */
+.soocher-call .str-video__speaker-layout__spotlight {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+.soocher-call .str-video__participant-view {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+/* Hide navigation chrome when printing */
+@media print {
+  nav, aside { display: none !important; }
+  main { padding: 0 !important; }
+}
+
+/* ── Stream Chat — Soocher brand theme ──────────────────────────── */
+.soocher-chat {
+  /* Primary accent — used for sent bubbles, send button, link colors. */
+  --str-chat__primary-color: #2e6dd4;
+  --str-chat__primary-color-low-emphasis: rgba(46, 109, 212, 0.08);
+  --str-chat__on-primary-color: #ffffff;
+  --str-chat__active-primary-color: #2559b3;
+  --str-chat__primary-surface-color: rgba(46, 109, 212, 0.08);
+  --str-chat__primary-surface-color-low-emphasis: rgba(46, 109, 212, 0.04);
+
+  /* Surfaces */
+  --str-chat__background-color: transparent;
+  --str-chat__secondary-background-color: #ffffff;
+  --str-chat__tertiary-background-color: #f8fafc;
+  --str-chat__surface-color: #ffffff;
+
+  /* Bubbles */
+  --str-chat__own-message-bubble-color: #ffffff;
+  --str-chat__own-message-bubble-background-color: #2e6dd4;
+  --str-chat__own-message-reply-background-color: rgba(46, 109, 212, 0.85);
+  --str-chat__message-bubble-color: #0f172a;
+  --str-chat__message-bubble-background-color: #ffffff;
+  --str-chat__message-secondary-text-color: #64748b;
+
+  /* Radii */
+  --str-chat__border-radius-circle: 999px;
+  --str-chat__message-bubble-border-radius: 20px;
+  --str-chat__message-bubble-border-block-end-radius: 6px;
+
+  /* Typography */
+  --str-chat__font-family: inherit;
+  --str-chat__caption-text: 12px;
+}
+
+/* Sent-message bubble: soft brand gradient + tint */
+.soocher-chat .str-chat__message--me .str-chat__message-bubble,
+.soocher-chat .str-chat__message-simple--me .str-chat__message-bubble {
+  background: linear-gradient(135deg, #2e6dd4 0%, #2559b3 100%) !important;
+  color: white !important;
+  box-shadow: 0 6px 18px -10px rgba(46, 109, 212, 0.55);
+}
+
+/* Received bubble: white card with hairline border */
+.soocher-chat .str-chat__message:not(.str-chat__message--me) .str-chat__message-bubble,
+.soocher-chat .str-chat__message-simple:not(.str-chat__message-simple--me) .str-chat__message-bubble {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px -6px rgba(15, 23, 42, 0.08);
+}
+
+/* Hide Stream's default ChannelHeader since we render our own */
+.soocher-chat .str-chat__channel-header {
+  display: none !important;
+}
+
+/* Message list backdrop — subtle soocher gradient mesh */
+.soocher-chat .str-chat__list,
+.soocher-chat .str-chat__message-list {
+  background:
+    radial-gradient(at 10% 0%, rgba(46, 109, 212, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(143, 184, 255, 0.07) 0px, transparent 55%),
+    #f8fafc !important;
+}
+
+/* Input bar: tighter, rounded, brand send button */
+.soocher-chat .str-chat__message-input {
+  background: white !important;
+  padding: 12px !important;
+}
+.soocher-chat .str-chat__message-input-inner {
+  background: #f8fafc !important;
+  border-radius: 999px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 6px 8px !important;
+}
+.soocher-chat .str-chat__message-input-inner:focus-within {
+  border-color: rgba(46, 109, 212, 0.4) !important;
+  background: white !important;
+  box-shadow: 0 0 0 4px rgba(46, 109, 212, 0.06);
+}
+.soocher-chat .str-chat__send-button {
+  background: #2e6dd4 !important;
+  color: white !important;
+  border-radius: 999px !important;
+  width: 38px !important;
+  height: 38px !important;
+  box-shadow: 0 6px 16px -8px rgba(46, 109, 212, 0.6) !important;
+}
+.soocher-chat .str-chat__send-button:hover {
+  background: #2559b3 !important;
+}
+.soocher-chat .str-chat__send-button svg {
+  color: white !important;
+}
+
+/* Timestamps + meta */
+.soocher-chat .str-chat__message-simple-timestamp,
+.soocher-chat .str-chat__message-data,
+.soocher-chat .str-chat__message-simple-name {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  color: #94a3b8 !important;
+}
+
+/* Date separators */
+.soocher-chat .str-chat__date-separator {
+  padding: 16px 0 !important;
+}
+.soocher-chat .str-chat__date-separator-line {
+  background: #e2e8f0 !important;
+  height: 1px !important;
+}
+.soocher-chat .str-chat__date-separator-date {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 999px !important;
+  padding: 4px 12px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: #64748b !important;
+}
+
+/* Avatars in messages: rounded square + subtle ring */
+.soocher-chat .str-chat__avatar {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 0 2px rgba(46, 109, 212, 0.08);
+}
+
+/* ── Stream Chat — mobile responsive overrides ──────────────────── */
+@media (max-width: 768px) {
+  .str-chat {
+    height: 100% !important;
+  }
+  .str-chat__main-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .str-chat__main-panel-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+  .str-chat-channel {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .str-chat__message-input-root {
+    flex-shrink: 0 !important;
+    background: white !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+  .str-chat__message-list {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+}
+
+/* Force white text on all solid primary HeroUI buttons */
+[data-slot="button"][data-color="primary"]:not([data-variant="bordered"]):not([data-variant="light"]):not([data-variant="ghost"]):not([data-variant="flat"]) {
+  color: #ffffff !important;
+}
+
+/* ── Doctor-side: sidebar layout helpers ─────────────────────────── */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border-radius: 16px;
+  color: #475569;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-item:hover {
+  background: rgba(46, 109, 212, 0.06);
+  color: #2e6dd4;
+}
+
+.sidebar-item.active {
+  background: linear-gradient(135deg, #2e6dd4 0%, #2559b3 100%);
+  color: white;
+  box-shadow: 0 8px 24px -8px rgba(46, 109, 212, 0.5);
+}

@@ -3,10 +3,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
+import { Avatar } from "@heroui/react";
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
 import { signOut } from "firebase/auth";
@@ -27,6 +27,31 @@ import { clearNativeSession } from "@/lib/native-session";
 import { clearCachedBookings } from "@/lib/bookings-cache";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
+
+function ProfileFormField({
+  label,
+  icon,
+  children,
+  className = "",
+}: {
+  label: string;
+  icon: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`min-w-0 space-y-1.5 ${className}`}>
+      <div className="flex min-w-0 items-start gap-2 px-1 text-[11px] font-bold leading-4 text-slate-500">
+        <span className="mt-0.5 inline-flex h-4 w-4 flex-none items-center justify-center text-primary/60">{icon}</span>
+        <span className="min-w-0 break-words">{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const profileControlClass =
+  "block h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10";
 
 export default function Profile() {
   const router = useRouter();
@@ -270,7 +295,7 @@ export default function Profile() {
                   )}
                   <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg border-[3px] border-white">
                     {uploading ? (
-                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <div className="app-shimmer h-4 w-4 rounded-full bg-white/45" />
                     ) : (
                       <FaCamera className="text-sm" />
                     )}
@@ -281,8 +306,8 @@ export default function Profile() {
                 <h2 className="truncate text-base md:text-lg font-black text-slate-900">{profile?.name || "Patient Name"}</h2>
                 <p className="mt-1 truncate text-[10px] font-semibold text-slate-500">{formData.email || "Add your email"}</p>
                 {uploading && (
-                  <p className="text-primary font-bold text-[9px] mt-1 animate-pulse">
-                    Uploading photo…
+                  <p className="mt-1 text-[9px] font-bold text-primary">
+                    {t("profile.uploading")}
                   </p>
                 )}
                 {!uploading && (
@@ -293,7 +318,7 @@ export default function Profile() {
               </div>
             </div>
             <div className="relative mt-3 rounded-2xl border border-white bg-white/55 p-3 shadow-sm">
-              <div className="flex items-center justify-between"><span className="text-[9px] font-extrabold text-slate-600">{t("profile.completeness")}</span><span className="text-[10px] font-black text-primary">{profileCompletion}%</span></div>
+              <div className="flex min-w-0 items-start justify-between gap-3"><span className="min-w-0 break-words text-[9px] font-extrabold leading-4 text-slate-600">{t("profile.completeness")}</span><span className="shrink-0 text-[10px] font-black text-primary">{profileCompletion}%</span></div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><motion.div initial={{ width: 0 }} animate={{ width: `${profileCompletion}%` }} className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400" /></div>
             </div>
             <div className="relative mt-3 border-t border-slate-100 pt-3">
@@ -309,31 +334,29 @@ export default function Profile() {
               <section className="mobile-app-card rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_14px_40px_rgba(46,109,212,0.07)] backdrop-blur-xl md:p-4 xl:p-5">
                 <div className="mb-3 flex items-center gap-2.5 md:mb-4">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm text-primary"><FaUser /></span>
-                  <div><h3 className="text-sm md:text-base font-black text-slate-900">{t("profile.personalInfo")}</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">{t("profile.personalBlurb")}</p></div>
+                  <div className="min-w-0"><h3 className="break-words text-sm font-black leading-5 text-slate-900 md:text-base">{t("profile.personalInfo")}</h3><p className="break-words text-[9px] font-medium leading-4 text-slate-400 md:text-[10px]">{t("profile.personalBlurb")}</p></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
-                  <Input
-                    label={t("profile.name")}
-                    startContent={<FaUser className="text-xs text-primary/60" />}
-                    variant="bordered"
-                    radius="lg"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  />
-                  <Input
-                    label={t("profile.email")}
-                    startContent={<FaEnvelope className="text-xs text-primary/60" />}
-                    type="email"
-                    variant="bordered"
-                    radius="lg"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  />
+                  <ProfileFormField label={t("profile.name")} icon={<FaUser className="text-[10px]" />}>
+                    <input
+                      aria-label={t("profile.name")}
+                      className={profileControlClass}
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                  </ProfileFormField>
+                  <ProfileFormField label={t("profile.email")} icon={<FaEnvelope className="text-[10px]" />}>
+                    <input
+                      aria-label={t("profile.email")}
+                      type="email"
+                      className={profileControlClass}
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </ProfileFormField>
                   <div className="flex flex-col gap-1.5 justify-center">
-                    <label className="flex items-center gap-1.5 text-[0.7rem] font-bold text-slate-400"><FaPhoneAlt className="text-[9px] text-primary/60" /> Mobile Number</label>
-                    <div className="overflow-hidden border border-white rounded-xl bg-slate-50/80 opacity-75 cursor-not-allowed shadow-sm">
+                    <label className="flex min-w-0 items-start gap-1.5 px-1 text-[11px] font-bold leading-4 text-slate-500"><FaPhoneAlt className="mt-0.5 shrink-0 text-[9px] text-primary/60" /><span className="min-w-0 break-words">{t("profile.phone")}</span></label>
+                    <div className="profile-phone overflow-hidden border border-slate-200 rounded-2xl bg-slate-50/80 opacity-75 cursor-not-allowed shadow-sm">
                       <PhoneInput
                         defaultCountry="in"
                         value={formData.phoneNumber}
@@ -367,48 +390,35 @@ export default function Profile() {
                       />
                     </div>
                   </div>
-                  <Input
-                    label={t("profile.dob")}
-                    startContent={<FaCalendarAlt className="text-xs text-primary/60" />}
-                    type="date"
-                    variant="bordered"
-                    radius="lg"
-                    value={formData.dob}
-                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  />
-                  <Select
-                    label={t("profile.gender")}
-                    startContent={<FaVenusMars className="text-xs text-primary/60" />}
-                    variant="bordered"
-                    radius="lg"
-                    selectedKeys={[formData.gender]}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    classNames={{ trigger: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  >
-                    <SelectItem key="Male" value="Male">{t("profile.genderMale")}</SelectItem>
-                    <SelectItem key="Female" value="Female">{t("profile.genderFemale")}</SelectItem>
-                    <SelectItem key="Other" value="Other">{t("profile.genderOther")}</SelectItem>
-                  </Select>
-                  <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 md:gap-4">
-                    <Input
-                      label={t("profile.state")}
-                      startContent={<FaMapMarkerAlt className="text-xs text-primary/60" />}
-                      variant="bordered"
-                      radius="lg"
-                      value={formData.currentState}
-                      onChange={(e) => setFormData({ ...formData, currentState: e.target.value })}
-                      classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
+                  <ProfileFormField label={t("profile.dob")} icon={<FaCalendarAlt className="text-[10px]" />}>
+                    <input
+                      aria-label={t("profile.dob")}
+                      type="date"
+                      className={profileControlClass}
+                      value={formData.dob}
+                      onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
                     />
-                    <Input
-                      label={t("profile.city")}
-                      startContent={<FaMapMarkerAlt className="text-xs text-primary/60" />}
-                      variant="bordered"
-                      radius="lg"
-                      value={formData.currentCity}
-                      onChange={(e) => setFormData({ ...formData, currentCity: e.target.value })}
-                      classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                    />
+                  </ProfileFormField>
+                  <ProfileFormField label={t("profile.gender")} icon={<FaVenusMars className="text-[10px]" />}>
+                    <select
+                      aria-label={t("profile.gender")}
+                      className={`${profileControlClass} appearance-none bg-[linear-gradient(45deg,transparent_50%,#94a3b8_50%),linear-gradient(135deg,#94a3b8_50%,transparent_50%)] bg-[position:calc(100%-18px)_21px,calc(100%-13px)_21px] bg-[size:5px_5px,5px_5px] bg-no-repeat pr-10`}
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    >
+                      <option value="">—</option>
+                      <option value="Male">{t("profile.genderMale")}</option>
+                      <option value="Female">{t("profile.genderFemale")}</option>
+                      <option value="Other">{t("profile.genderOther")}</option>
+                    </select>
+                  </ProfileFormField>
+                  <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:col-span-2 md:gap-4">
+                    <ProfileFormField label={t("profile.state")} icon={<FaMapMarkerAlt className="text-[10px]" />}>
+                      <input aria-label={t("profile.state")} className={profileControlClass} value={formData.currentState} onChange={(e) => setFormData({ ...formData, currentState: e.target.value })} />
+                    </ProfileFormField>
+                    <ProfileFormField label={t("profile.city")} icon={<FaMapMarkerAlt className="text-[10px]" />}>
+                      <input aria-label={t("profile.city")} className={profileControlClass} value={formData.currentCity} onChange={(e) => setFormData({ ...formData, currentCity: e.target.value })} />
+                    </ProfileFormField>
                   </div>
                 </div>
               </section>
@@ -416,40 +426,18 @@ export default function Profile() {
               <section className="mobile-app-card rounded-[24px] border border-white/90 bg-white/[0.72] p-3.5 shadow-[0_14px_40px_rgba(46,109,212,0.07)] backdrop-blur-xl md:p-4 xl:p-5">
                 <div className="mb-3 flex items-center gap-2.5 md:mb-4">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-sm text-emerald-600"><FaNotesMedical /></span>
-                  <div><h3 className="text-sm md:text-base font-black text-slate-900">{t("profile.medicalInfo")}</h3><p className="text-[9px] md:text-[10px] font-medium text-slate-400">{t("profile.medicalBlurb")}</p></div>
+                  <div className="min-w-0"><h3 className="break-words text-sm font-black leading-5 text-slate-900 md:text-base">{t("profile.medicalInfo")}</h3><p className="break-words text-[9px] font-medium leading-4 text-slate-400 md:text-[10px]">{t("profile.medicalBlurb")}</p></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
-                  <Input
-                    label={t("profile.allergies")}
-                    startContent={<FaAllergies className="text-xs text-amber-500" />}
-                    variant="bordered"
-                    radius="lg"
-                    value={formData.allergies}
-                    placeholder={t("profile.allergiesPlaceholder")}
-                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  />
-                  <Input
-                    label={t("profile.medications")}
-                    startContent={<FaCapsules className="text-xs text-emerald-500" />}
-                    variant="bordered"
-                    radius="lg"
-                    value={formData.regularMedications}
-                    placeholder={t("profile.medicationsPlaceholder")}
-                    onChange={(e) => setFormData({ ...formData, regularMedications: e.target.value })}
-                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  />
-                  <Input
-                    label={t("profile.conditions")}
-                    startContent={<FaHeartbeat className="text-xs text-rose-500" />}
-                    variant="bordered"
-                    radius="lg"
-                    value={formData.medicalConditions}
-                    placeholder={t("profile.conditionsPlaceholder")}
-                    className="sm:col-span-2"
-                    onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
-                    classNames={{ inputWrapper: "h-12 border-white bg-white/60 shadow-sm hover:border-primary/30", label: "font-bold text-slate-400" }}
-                  />
+                  <ProfileFormField label={t("profile.allergies")} icon={<FaAllergies className="text-[10px] text-amber-500" />}>
+                    <input aria-label={t("profile.allergies")} className={profileControlClass} value={formData.allergies} placeholder={t("profile.allergiesPlaceholder")} onChange={(e) => setFormData({ ...formData, allergies: e.target.value })} />
+                  </ProfileFormField>
+                  <ProfileFormField label={t("profile.medications")} icon={<FaCapsules className="text-[10px] text-emerald-500" />}>
+                    <input aria-label={t("profile.medications")} className={profileControlClass} value={formData.regularMedications} placeholder={t("profile.medicationsPlaceholder")} onChange={(e) => setFormData({ ...formData, regularMedications: e.target.value })} />
+                  </ProfileFormField>
+                  <ProfileFormField className="sm:col-span-2" label={t("profile.conditions")} icon={<FaHeartbeat className="text-[10px] text-rose-500" />}>
+                    <input aria-label={t("profile.conditions")} className={profileControlClass} value={formData.medicalConditions} placeholder={t("profile.conditionsPlaceholder")} onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })} />
+                  </ProfileFormField>
                 </div>
               </section>
 
@@ -463,7 +451,7 @@ export default function Profile() {
                       className="mb-3 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-center text-xs font-bold flex justify-center items-center gap-2"
                     >
                       <FaSave className="text-lg" />
-                      Profile updated successfully
+                      {t("profile.saved")}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -475,7 +463,7 @@ export default function Profile() {
                   isLoading={saving}
                   onPress={handleSave}
                 >
-                  {saving ? "Saving changes…" : "Save profile"}
+                  {saving ? t("profile.saving") : t("profile.save")}
                 </Button>
                 <Button
                   color="danger"

@@ -2,12 +2,20 @@
 "use client";
 
 import React, { useState, forwardRef } from "react";
-import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@nextui-org/react";
+import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@heroui/react";
 
 export type ButtonProps = NextUIButtonProps;
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-    const { onPress, onClick, isLoading: externalIsLoading, ...rest } = props;
+    const {
+        onPress,
+        onClick,
+        isLoading: externalIsLoading,
+        children,
+        startContent,
+        endContent,
+        ...rest
+    } = props;
     const [internalIsLoading, setInternalIsLoading] = useState(false);
 
     const handlePress = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement> | any) => {
@@ -29,35 +37,60 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
         }
     };
 
-    const handleClick = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    // Typed from the prop itself rather than spelled out: HeroUI types onClick as
+    // an intersection that also accepts a bare FocusableElement, which a
+    // hand-written MouseEvent<HTMLButtonElement> signature does not satisfy.
+    //
+    // The body is void-returning because HeroUI expects that, but it still awaits
+    // an async handler to drive the loading state — the promise is consumed here,
+    // so nothing is left floating.
+    const handleClick: NonNullable<ButtonProps["onClick"]> = (e) => {
         if (externalIsLoading !== undefined) {
             if (onClick) onClick(e);
             return;
         }
 
-        setInternalIsLoading(true);
-        try {
-            if (onClick) {
-                const result = onClick(e) as any;
-                if (result && typeof (result as any).then === 'function') {
-                    await result;
+        void (async () => {
+            setInternalIsLoading(true);
+            try {
+                if (onClick) {
+                    const result = onClick(e) as any;
+                    if (result && typeof (result as any).then === "function") {
+                        await result;
+                    }
                 }
+            } finally {
+                setTimeout(() => setInternalIsLoading(false), 300);
             }
-        } finally {
-            setTimeout(() => setInternalIsLoading(false), 300);
-        }
+        })();
     };
 
     const isLoading = externalIsLoading !== undefined ? externalIsLoading : internalIsLoading;
+    const isPrimarySolid =
+        rest.color === "primary" && (!rest.variant || rest.variant === "solid");
 
     return (
         <NextUIButton
+            {...rest}
             ref={ref}
             onPress={onPress ? handlePress : undefined}
             onClick={!onPress && onClick ? handleClick : onClick}
-            isLoading={isLoading}
-            {...rest}
-        />
+            isLoading={false}
+            isDisabled={isLoading || rest.isDisabled}
+            aria-busy={isLoading}
+            startContent={isLoading ? undefined : startContent}
+            endContent={isLoading ? undefined : endContent}
+            className={isPrimarySolid ? `!text-white ${rest.className ?? ""}` : rest.className}
+        >
+            {isLoading ? (
+                <span className="flex h-6 w-full items-center justify-center" role="status" aria-label="Loading">
+                    <span
+                        aria-hidden="true"
+                        className={`app-shimmer h-4 w-28 rounded-full ${isPrimarySolid ? "bg-white/35" : "bg-primary/20"}`}
+                    />
+                </span>
+            ) : children}
+        </NextUIButton>
     );
 });
 

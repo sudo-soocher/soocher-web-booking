@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } from "@nextui-org/react";
+import { Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } from "@heroui/react";
 import { db } from "@/lib/firebase-db";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { collection, query, where, onSnapshot, orderBy, limit, getDocsFromCache } from "firebase/firestore";
