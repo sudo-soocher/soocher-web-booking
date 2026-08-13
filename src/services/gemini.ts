@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from "@/lib/firebase-db";
-import { doc, getDoc } from "firebase/firestore";
+import { fetchSpecialities } from "@/lib/specialities";
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
@@ -8,14 +7,12 @@ const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 // Function to get available specialities
 const getAvailableSpecialities = async (): Promise<string[]> => {
   try {
-    const docRef = doc(db, "Specialities", "available");
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      return data.specialityName.map((s: { name: string }) => s.name) || [];
-    }
-    return [];
+    // Shared cache rather than a second read of `Specialities/available` — this
+    // module is currently unreferenced, but re-enabling the AI assistant would
+    // otherwise reintroduce a duplicate billed read of a document the home page
+    // has already fetched.
+    const specialities = await fetchSpecialities();
+    return specialities.map((s) => s.name);
   } catch (error) {
     console.error("Error fetching specialities:", error);
     return [];

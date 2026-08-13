@@ -35,39 +35,66 @@ export async function POST(request: Request) {
         const db = getAdminFirestore();
         const docId = e164.replace(/\+/g, "");
         const ref = db.collection("phoneOtps").doc(docId);
-        const snap = await ref.get();
 
-        if (!snap.exists) {
+        // Atomic check-and-burn: see the matching comment in verify-otp. Without
+        // the transaction, parallel guesses all read the same `attempts` value and
+        // the five-attempt limit could be bypassed.
+        const verdict = await db.runTransaction(async (tx) => {
+            const fresh = await tx.get(ref);
+            if (!fresh.exists) return { kind: "missing" } as const;
+
+            const data = fresh.data() as {
+                code: string;
+                expiresAt: number;
+                attempts: number;
+            };
+
+            if (Date.now() > data.expiresAt) {
+                tx.delete(ref);
+                return { kind: "expired" } as const;
+            }
+            if (data.attempts >= MAX_ATTEMPTS) {
+                tx.delete(ref);
+                return { kind: "locked" } as const;
+            }
+            if (data.code !== normalizedCode) {
+                const attempts = data.attempts + 1;
+                tx.update(ref, { attempts });
+                return { kind: "mismatch", remaining: MAX_ATTEMPTS - attempts } as const;
+            }
+            return { kind: "ok" } as const;
+        });
+
+        if (verdict.kind === "missing") {
             return NextResponse.json(
                 { error: "No code requested for this number. Please request a new one." },
                 { status: 400 }
             );
         }
-
-        const data = snap.data() as { code: string; expiresAt: number; attempts: number };
-
-        if (Date.now() > data.expiresAt) {
-            await ref.delete().catch(() => {});
+        if (verdict.kind === "expired") {
             return NextResponse.json({ error: "Code expired. Please request a new one." }, { status: 400 });
         }
-        if (data.attempts >= MAX_ATTEMPTS) {
-            await ref.delete().catch(() => {});
+        if (verdict.kind === "locked") {
             return NextResponse.json({ error: "Too many attempts. Please request a new code." }, { status: 429 });
         }
-        if (data.code !== normalizedCode) {
-            await ref.update({ attempts: data.attempts + 1 });
-            const remaining = MAX_ATTEMPTS - (data.attempts + 1);
+        if (verdict.kind === "mismatch") {
+            const { remaining } = verdict;
             return NextResponse.json(
                 { error: `Incorrect code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.` },
                 { status: 400 }
             );
         }
 
+        // All three are independent reads with no side effects, so they run
+        // concurrently instead of as three sequential round trips. The error
+        // precedence below is unchanged.
+        const [doctorSnap, existingUserSnap, existingAuthUser] = await Promise.all([
+            db.collection("Doctors").where("whatsappNumber", "==", e164).limit(1).get(),
+            db.collection("Users").where("phoneNumber", "==", e164).limit(1).get(),
+            adminAuth.getUserByPhoneNumber(e164).catch(() => null),
+        ]);
+
         // Block if this number belongs to a doctor account
-        const doctorSnap = await db.collection("Doctors")
-            .where("whatsappNumber", "==", e164)
-            .limit(1)
-            .get();
         if (!doctorSnap.empty) {
             return NextResponse.json(
                 { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
@@ -76,10 +103,6 @@ export async function POST(request: Request) {
         }
 
         // Block if the phone is already saved under a different patient UID
-        const existingUserSnap = await db.collection("Users")
-            .where("phoneNumber", "==", e164)
-            .limit(1)
-            .get();
         if (!existingUserSnap.empty && existingUserSnap.docs[0].id !== decoded.uid) {
             return NextResponse.json(
                 { error: "This number is already registered to another account." },
@@ -88,16 +111,11 @@ export async function POST(request: Request) {
         }
 
         // Block if another Firebase Auth user already has this phone
-        try {
-            const existing = await adminAuth.getUserByPhoneNumber(e164);
-            if (existing.uid !== decoded.uid) {
-                return NextResponse.json(
-                    { error: "This number is already linked to another account." },
-                    { status: 409 }
-                );
-            }
-        } catch {
-            // Not found in Firebase Auth = available, proceed
+        if (existingAuthUser && existingAuthUser.uid !== decoded.uid) {
+            return NextResponse.json(
+                { error: "This number is already linked to another account." },
+                { status: 409 }
+            );
         }
 
         await adminAuth.updateUser(decoded.uid, { phoneNumber: e164 });

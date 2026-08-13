@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   doc,
+  documentId,
   getDoc,
   collection,
   getDocs,
@@ -11,6 +12,8 @@ import {
   query,
   where,
   getCountFromServer,
+  type DocumentData,
+  type QuerySnapshot,
 } from "firebase/firestore";
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
@@ -98,14 +101,13 @@ interface Slot {
 /**
  * Which of these slot times are already taken.
  *
- * Two things this fixes:
- *  - the chunked "in" queries are issued in parallel rather than awaited in a
- *    loop, so a day with 40 slots costs one round trip instead of four;
- *  - results are cached by (doctor, exact slot times). The slot list is
- *    recomputed whenever the visitor's timezone resolves from geolocation, a
- *    second or two after load — but timezone only changes the *labels*, not the
- *    underlying epoch timestamps, so without this the page silently re-ran every
- *    availability query for an identical answer.
+ * Results are cached by (doctor, exact slot times). The slot list is recomputed
+ * whenever the visitor's timezone resolves from geolocation, a second or two
+ * after load — but timezone only changes the *labels*, not the underlying epoch
+ * timestamps, so without this the page silently re-ran every availability query
+ * for an identical answer.
+ *
+ * The query itself is a single range scan; see `rangeQuery` below.
  */
 const bookedTimestampCache = new Map<string, Promise<Set<number>>>();
 
@@ -121,33 +123,68 @@ function fetchBookedTimestamps(
   const cached = bookedTimestampCache.get(cacheKey);
   if (cached) return cached;
 
-  const chunkSize = 30; // Firestore "in" limit
-  const chunks: number[][] = [];
-  for (let i = 0; i < sorted.length; i += chunkSize) {
-    chunks.push(sorted.slice(i, i + chunkSize));
-  }
+  const collect = (snaps: QuerySnapshot<DocumentData>[]) => {
+    const booked = new Set<number>();
+    snaps.forEach((snap) =>
+      snap.docs.forEach((d) => {
+        if (!d.data().cancelledByDoctor) {
+          booked.add(d.data().consultationTime as number);
+        }
+      })
+    );
+    return booked;
+  };
 
-  const pending = Promise.all(
-    chunks.map((chunk) =>
-      getDocs(
-        query(
-          collection(db, "Consultations"),
-          where("participants", "array-contains", doctorId),
-          where("consultationTime", "in", chunk)
+  /**
+   * One range scan over the day's window instead of ceil(N/30) `in` queries.
+   * The slots being checked are always a contiguous span of one day, so
+   * [first, last] covers them in a single round trip no matter how many slots
+   * the doctor offers. It may return a few consultations at times we did not
+   * ask about; membership is resolved against the Set either way.
+   */
+  const rangeQuery = () =>
+    getDocs(
+      query(
+        collection(db, "Consultations"),
+        where("participants", "array-contains", doctorId),
+        where("consultationTime", ">=", sorted[0]),
+        where("consultationTime", "<=", sorted[sorted.length - 1])
+      )
+    ).then((snap) => collect([snap]));
+
+  /**
+   * Fallback for projects whose composite index only covers the equality form.
+   * A missing index surfaces as `failed-precondition`, and slot availability is
+   * too important to break on it — so we retry with the original chunked `in`
+   * queries, which use the index that is already in place.
+   */
+  const chunkedQuery = () => {
+    const chunkSize = 30; // Firestore "in" limit
+    const chunks: number[][] = [];
+    for (let i = 0; i < sorted.length; i += chunkSize) {
+      chunks.push(sorted.slice(i, i + chunkSize));
+    }
+    return Promise.all(
+      chunks.map((chunk) =>
+        getDocs(
+          query(
+            collection(db, "Consultations"),
+            where("participants", "array-contains", doctorId),
+            where("consultationTime", "in", chunk)
+          )
         )
       )
-    )
-  )
-    .then((snaps) => {
-      const booked = new Set<number>();
-      snaps.forEach((snap) =>
-        snap.docs.forEach((d) => {
-          if (!d.data().cancelledByDoctor) {
-            booked.add(d.data().consultationTime as number);
-          }
-        })
+    ).then(collect);
+  };
+
+  const pending = rangeQuery()
+    .catch((err: { code?: string }) => {
+      if (err?.code !== "failed-precondition") throw err;
+      console.warn(
+        "[slots] range index missing, falling back to chunked queries. " +
+          "Deploy firestore.indexes.json to halve the read count."
       );
-      return booked;
+      return chunkedQuery();
     })
     .catch((err) => {
       // Don't cache a failure — the next attempt should hit the network again.
@@ -473,9 +510,19 @@ function DoctorDetailsContent() {
           fetchConsultationCount(),
         ]);
 
+        // The day selector only ever offers the next three days, so reading the
+        // whole seven-document subcollection billed four reads per page view
+        // that nothing could display. Document IDs are the day keys ("Mon"…).
+        const visibleDays = getAvailableDays();
+
         const [docSnap, slotsSnap] = await Promise.all([
           getDoc(doc(db, "Users", doctorId)),
-          getDocs(collection(db, "Users", doctorId, "Available Slots")),
+          getDocs(
+            query(
+              collection(db, "Users", doctorId, "Available Slots"),
+              where(documentId(), "in", visibleDays)
+            )
+          ),
         ]);
 
         if (docSnap.exists()) {

@@ -27,29 +27,56 @@ export async function POST(request: Request) {
         const db = getAdminFirestore();
         const docId = e164.replace(/\+/g, "");
         const ref = db.collection("phoneOtps").doc(docId);
-        const snap = await ref.get();
 
-        if (!snap.exists) {
+        // Read the code, check it, and burn an attempt as one atomic unit.
+        //
+        // This was previously read → compare → `update({ attempts: n + 1 })`. Any
+        // number of concurrent guesses all read the same `attempts`, all passed
+        // the MAX_ATTEMPTS gate, and all wrote back the same incremented value —
+        // so firing guesses in parallel bypassed the five-attempt limit almost
+        // entirely. Inside a transaction the reads serialise and the counter is
+        // accurate.
+        const verdict = await db.runTransaction(async (tx) => {
+            const fresh = await tx.get(ref);
+            if (!fresh.exists) return { kind: "missing" } as const;
+
+            const data = fresh.data() as {
+                code: string;
+                expiresAt: number;
+                attempts: number;
+            };
+
+            if (Date.now() > data.expiresAt) {
+                tx.delete(ref);
+                return { kind: "expired" } as const;
+            }
+            if (data.attempts >= MAX_ATTEMPTS) {
+                tx.delete(ref);
+                return { kind: "locked" } as const;
+            }
+            if (data.code !== normalizedCode) {
+                const attempts = data.attempts + 1;
+                tx.update(ref, { attempts });
+                return { kind: "mismatch", remaining: MAX_ATTEMPTS - attempts } as const;
+            }
+            return { kind: "ok" } as const;
+        });
+
+        if (verdict.kind === "missing") {
             console.warn(">>> [VERIFY-OTP] No OTP doc for", e164);
             return NextResponse.json(
                 { error: "No code requested for this number. Please request a new one." },
                 { status: 400 }
             );
         }
-
-        const data = snap.data() as { code: string; expiresAt: number; attempts: number };
-
-        if (Date.now() > data.expiresAt) {
-            await ref.delete().catch(() => {});
+        if (verdict.kind === "expired") {
             return NextResponse.json({ error: "Code expired. Please request a new one." }, { status: 400 });
         }
-        if (data.attempts >= MAX_ATTEMPTS) {
-            await ref.delete().catch(() => {});
+        if (verdict.kind === "locked") {
             return NextResponse.json({ error: "Too many attempts. Please request a new code." }, { status: 429 });
         }
-        if (data.code !== normalizedCode) {
-            await ref.update({ attempts: data.attempts + 1 });
-            const remaining = MAX_ATTEMPTS - (data.attempts + 1);
+        if (verdict.kind === "mismatch") {
+            const { remaining } = verdict;
             console.warn(">>> [VERIFY-OTP] Code mismatch for", e164, "remaining:", remaining);
             return NextResponse.json(
                 { error: `Incorrect code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.` },
@@ -57,11 +84,15 @@ export async function POST(request: Request) {
             );
         }
 
-        // Block if this number belongs to a doctor account
-        const doctorSnap = await db.collection("Doctors")
-            .where("whatsappNumber", "==", e164)
-            .limit(1)
-            .get();
+        // Both lookups are independent reads, so they go out together rather than
+        // as two sequential round trips on the login critical path. The Firebase
+        // Auth lookup stays *after* the doctor check because its fallback creates
+        // a user, which must not happen for a doctor's number.
+        const [doctorSnap, existingUserSnap] = await Promise.all([
+            db.collection("Doctors").where("whatsappNumber", "==", e164).limit(1).get(),
+            db.collection("Users").where("phoneNumber", "==", e164).limit(1).get(),
+        ]);
+
         if (!doctorSnap.empty) {
             return NextResponse.json(
                 { error: "This number is registered as a doctor account. Please use the Soocher Doctor app." },
@@ -78,10 +109,6 @@ export async function POST(request: Request) {
         }
 
         // Block if the phone is already saved under a different patient UID
-        const existingUserSnap = await db.collection("Users")
-            .where("phoneNumber", "==", e164)
-            .limit(1)
-            .get();
         if (!existingUserSnap.empty && existingUserSnap.docs[0].id !== userRecord.uid) {
             return NextResponse.json(
                 { error: "This number is already registered to another account." },
