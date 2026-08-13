@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, SelectItem, Avatar } from "@nextui-org/react";
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
+import { signOut } from "firebase/auth";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { FaArrowLeft, FaUser, FaSave, FaNotesMedical, FaCamera, FaShieldAlt, FaMapMarkerAlt, FaEnvelope, FaPhoneAlt, FaCalendarAlt, FaVenusMars, FaAllergies, FaCapsules, FaHeartbeat } from "react-icons/fa";
+import { FaArrowLeft, FaUser, FaSave, FaNotesMedical, FaCamera, FaShieldAlt, FaMapMarkerAlt, FaEnvelope, FaPhoneAlt, FaCalendarAlt, FaVenusMars, FaAllergies, FaCapsules, FaHeartbeat, FaSignOutAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { Patient } from "@/types/patient";
 import { Footer } from "@/components/layout/Footer";
@@ -22,6 +23,8 @@ import { RemoteImage } from "@/components/ui/RemoteImage";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useTranslation } from "@/i18n/LanguageProvider";
 import { ProfileShimmer } from "@/components/loading/ProfileShimmer";
+import { clearNativeSession } from "@/lib/native-session";
+import { clearCachedBookings } from "@/lib/bookings-cache";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
@@ -31,6 +34,7 @@ export default function Profile() {
   const { user, ready: authReady } = useAuthUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState<Patient | null>(null);
@@ -166,6 +170,19 @@ export default function Profile() {
       alert(t("profile.saveFailed"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      clearNativeSession();
+      clearCachedBookings(auth.currentUser?.uid);
+      await signOut(auth);
+      router.replace("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      setLoggingOut(false);
     }
   };
 
@@ -459,6 +476,17 @@ export default function Profile() {
                   onPress={handleSave}
                 >
                   {saving ? "Saving changes…" : "Save profile"}
+                </Button>
+                <Button
+                  color="danger"
+                  variant="flat"
+                  size="lg"
+                  className="mt-3 h-12 w-full rounded-2xl text-sm font-black md:h-14 md:text-base"
+                  startContent={!loggingOut && <FaSignOutAlt className="text-sm" />}
+                  isLoading={loggingOut}
+                  onPress={handleLogout}
+                >
+                  {t("nav.signOut")}
                 </Button>
               </div>
           </div>
