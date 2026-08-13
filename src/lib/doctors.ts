@@ -39,6 +39,24 @@ function writeCache(speciality: string, doctors: Doctor[]): void {
   }
 }
 
+/** Returns a doctor already fetched by either listing page, without a read. */
+export function getCachedDoctorById(doctorId: string): Doctor | null {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw) as DoctorCache;
+
+    for (const entry of Object.values(cache)) {
+      if (Date.now() - entry.at > TTL_MS) continue;
+      const doctor = entry.doctors.find((item) => item.id === doctorId);
+      if (doctor) return doctor;
+    }
+  } catch {
+    // Treat corrupt or unavailable storage as a cache miss.
+  }
+  return null;
+}
+
 /**
  * Fetches the verified doctors for one speciality once per session cache window.
  * Both `/doctors` and `/[speciality]` use the same Firestore query, so sharing
@@ -71,4 +89,3 @@ export function fetchDoctorsBySpeciality(speciality: string): Promise<Doctor[]> 
   inflight.set(speciality, request);
   return request;
 }
-

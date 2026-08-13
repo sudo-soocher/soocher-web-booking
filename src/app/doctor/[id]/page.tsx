@@ -15,7 +15,7 @@ import {
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody, Avatar, Chip, Skeleton, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@nextui-org/react";
+import { Card, CardBody, Avatar, Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure, Spinner } from "@nextui-org/react";
 import {
   FaStar,
   FaLanguage,
@@ -42,6 +42,7 @@ import { Coupon } from "@/types/coupon";
 import { validateCoupon } from "@/utils/coupon";
 import { Input } from "@nextui-org/react";
 import { RemoteImage } from "@/components/ui/RemoteImage";
+import { getCachedDoctorById } from "@/lib/doctors";
 
 interface Doctor {
   name: string;
@@ -432,6 +433,18 @@ function DoctorDetailsContent() {
 
   useEffect(() => {
     const fetchDoctorAndSlots = async () => {
+      const doctorId = params.id as string;
+
+      // Listing pages already fetched the full doctor document. Reuse it after
+      // hydration so the profile image request can start immediately instead
+      // of waiting for another Firestore round trip. The network read below
+      // still refreshes the data and loads the slot subcollection.
+      const cachedDoctor = getCachedDoctorById(doctorId) as unknown as Doctor | null;
+      if (cachedDoctor) {
+        setDoctor(cachedDoctor);
+        setLoading(false);
+      }
+
       try {
         // Coupons and the lifetime consultation count are secondary content.
         // Start them in parallel, but never hold the doctor profile or bookable
@@ -442,8 +455,8 @@ function DoctorDetailsContent() {
         ]);
 
         const [docSnap, slotsSnap] = await Promise.all([
-          getDoc(doc(db, "Users", params.id as string)),
-          getDocs(collection(db, "Users", params.id as string, "Available Slots")),
+          getDoc(doc(db, "Users", doctorId)),
+          getDocs(collection(db, "Users", doctorId, "Available Slots")),
         ]);
 
         if (docSnap.exists()) {
@@ -791,26 +804,21 @@ function DoctorDetailsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <Skeleton className="h-10 w-24 rounded-full" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <Card className="premium-card">
-                <CardBody className="p-8">
-                  <div className="flex flex-col md:flex-row gap-8">
-                    <Skeleton className="rounded-[32px] w-48 h-48" />
-                    <div className="flex-1 space-y-4">
-                      <Skeleton className="h-10 w-1/2 rounded-xl" />
-                      <Skeleton className="h-6 w-1/3 rounded-lg" />
-                      <Skeleton className="h-20 w-full rounded-2xl" />
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
+      <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#F8FAFC]">
+        <header className="mobile-page-header md:hidden">
+          <div className="mobile-page-header-inner">
+            <div><span className="mobile-page-title">Doctor Profile</span></div>
+          </div>
+        </header>
+        <div className="mx-auto flex min-h-[calc(100dvh-56px)] max-w-7xl items-center justify-center px-4 md:min-h-[100dvh]">
+          <div className="flex flex-col items-center gap-4 rounded-[28px] border border-white/90 bg-white/75 px-8 py-7 text-center shadow-[0_16px_45px_rgba(46,109,212,0.10)] backdrop-blur-xl">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-primary/10 to-cyan-100/70 text-primary">
+              <FaUserMd className="text-2xl" />
             </div>
-            <div className="lg:col-span-1">
-              <Skeleton className="h-[500px] w-full rounded-[32px]" />
+            <Spinner size="sm" color="primary" />
+            <div>
+              <p className="text-sm font-extrabold text-slate-800">Loading doctor profile</p>
+              <p className="mt-1 text-[11px] font-medium text-slate-400">Fetching profile and availability…</p>
             </div>
           </div>
         </div>
@@ -832,7 +840,7 @@ function DoctorDetailsContent() {
   }
 
   return (
-    <div className="mobile-app-shell min-h-[100dvh] bg-[#F8FAFC]">
+    <div className="mobile-app-shell min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#F8FAFC]">
 
       {/* ── Mobile Top Bar ─────────────────────────────────────────── */}
       <header
@@ -866,9 +874,9 @@ function DoctorDetailsContent() {
       </header>
 
       <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-8 pb-safe-nav md:pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 items-start">
+        <div className="grid min-w-0 grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 items-start">
           {/* Main Info Column */}
-          <div className="lg:col-span-2 space-y-4 md:space-y-8">
+          <div className="min-w-0 lg:col-span-2 space-y-4 md:space-y-8">
             <Card className="mobile-app-card premium-card overflow-hidden border border-white/80">
               <CardBody className="relative p-4 md:p-8">
                 <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
@@ -883,6 +891,7 @@ function DoctorDetailsContent() {
                             alt={doctor.name}
                             sizes="(max-width: 768px) 84px, 128px"
                             priority
+                            shimmer={false}
                             className="object-cover object-top"
                           />
                         </div>
@@ -994,7 +1003,7 @@ function DoctorDetailsContent() {
           </div>
 
           {/* Booking Column */}
-          <div className="lg:col-span-1 border-none">
+          <div className="min-w-0 lg:col-span-1 border-none">
             <Card className="mobile-app-card premium-card md:sticky md:top-28 overflow-hidden border border-white/80 md:border-primary/10">
               <CardBody className="p-4 md:p-6">
                 <div className="flex items-center justify-between gap-3 mb-5 md:mb-6">
@@ -1139,7 +1148,7 @@ function DoctorDetailsContent() {
                     {availableCoupons.length > 0 && !appliedCoupon && (
                       <div className="flex flex-col gap-2">
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Available Offers</p>
-                        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                        <div className="grid min-w-0 grid-cols-2 gap-2">
                           {availableCoupons.map((coupon) => (
                             <div
                               key={coupon.id}
@@ -1147,9 +1156,9 @@ function DoctorDetailsContent() {
                                 setCouponCode(coupon.couponCode);
                                 // Trigger apply automatically or let user click Apply
                               }}
-                              className="flex-shrink-0 cursor-pointer p-2.5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors min-w-[112px]"
+                              className="min-w-0 cursor-pointer overflow-hidden p-2.5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors"
                             >
-                              <p className="text-xs font-black text-primary">{coupon.couponCode}</p>
+                              <p className="truncate text-xs font-black text-primary">{coupon.couponCode}</p>
                               <p className="text-[8px] font-bold text-primary/60">
                                 {coupon.isPercentage ? `${coupon.couponValue}% OFF` : `₹${coupon.couponValue} OFF`}
                               </p>

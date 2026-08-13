@@ -332,7 +332,7 @@ export default function Login() {
   }
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[#F4F8FF] px-3 pb-6 pt-20 md:px-8 md:pb-8 md:pt-24">
+    <main className="relative min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#F4F8FF] px-3 pb-6 pt-20 md:px-8 md:pb-8 md:pt-24">
       <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
 
@@ -401,11 +401,11 @@ export default function Login() {
       </div>
 
       {/* Form Side */}
-      <div className="flex w-full items-center justify-center p-3 md:p-8 lg:p-10">
+      <div className="flex min-w-0 w-full items-center justify-center p-3 md:p-8 lg:p-10">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-full max-w-md space-y-6 rounded-[28px] border border-white/90 bg-white/72 p-5 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:p-8"
+          className="min-w-0 w-full max-w-md space-y-6 overflow-hidden rounded-[28px] border border-white/90 bg-white/72 p-5 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:p-8"
         >
           <div className="flex items-center gap-3 lg:hidden">
             <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
@@ -453,8 +453,8 @@ export default function Login() {
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-4"
                 >
-                  <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-600">{linkPhoneNumber}</span>
+                  <div className="min-w-0 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-sm font-bold text-slate-600">{linkPhoneNumber}</span>
                     <Button
                       size="sm"
                       variant="light"
@@ -618,8 +618,8 @@ export default function Login() {
                 </div>
               ) : (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                  <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-600">{phoneNumber}</span>
+                  <div className="min-w-0 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-sm font-bold text-slate-600">{phoneNumber}</span>
                     <Button size="sm" variant="light" color="primary" className="font-bold" onClick={() => setShowOTPInput(false)}>Change</Button>
                   </div>
                   <div className="space-y-2">
@@ -659,7 +659,7 @@ export default function Login() {
 
             <div className="relative flex items-center">
               <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-4 text-slate-400 font-bold text-[10px] uppercase tracking-[0.16em]">Or continue with</span>
+              <span className="mx-2 shrink-0 text-slate-400 font-bold text-[9px] uppercase tracking-[0.12em] sm:mx-4 sm:text-[10px] sm:tracking-[0.16em]">Or continue with</span>
               <div className="flex-grow border-t border-slate-200"></div>
             </div>
 

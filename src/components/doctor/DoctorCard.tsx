@@ -6,7 +6,7 @@ import { FaStar, FaMapMarkerAlt, FaUserMd, FaChevronRight } from "react-icons/fa
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Doctor } from "@/types/doctor";
-import { RemoteImage } from "@/components/ui/RemoteImage";
+import { preloadRemoteImage, RemoteImage } from "@/components/ui/RemoteImage";
 
 interface DoctorCardProps {
     doctor: Doctor;
@@ -17,6 +17,10 @@ import { useState } from "react";
 const DoctorCardInner = ({ doctor }: DoctorCardProps) => {
     const router = useRouter();
     const [isNavigating, setIsNavigating] = useState(false);
+    const warmProfile = () => {
+        if (doctor.profileImage) preloadRemoteImage(doctor.profileImage, 128);
+        router.prefetch(`/doctor/${doctor.id}`);
+    };
 
     return (
         <motion.div
@@ -25,7 +29,11 @@ const DoctorCardInner = ({ doctor }: DoctorCardProps) => {
             className="h-full"
         >
             <div
+                onPointerEnter={warmProfile}
+                onPointerDown={warmProfile}
+                onFocus={warmProfile}
                 onClick={() => {
+                    warmProfile();
                     setIsNavigating(true);
                     router.push(`/doctor/${doctor.id}`);
                 }}
