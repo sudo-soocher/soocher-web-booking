@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -28,6 +30,9 @@ const HIDDEN_ROUTES = ["/login", "/video-call", "/native-auth", "/booking-comple
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   // Match whole path segments, not raw prefixes. A plain `startsWith("/doc")`
   // would also swallow the patient routes `/doctors` and `/doctor/[id]` and
@@ -35,11 +40,11 @@ export function MobileBottomNav() {
   const isHidden = HIDDEN_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
-  if (isHidden) return null;
+  if (isHidden || !mounted) return null;
 
-  return (
+  return createPortal(
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 md:hidden"
+      className="patient-bottom-nav fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 md:hidden"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
       aria-label={t("nav.bottomNav")}
     >
@@ -87,6 +92,7 @@ export function MobileBottomNav() {
           );
         })}
       </ul>
-    </nav>
+    </nav>,
+    document.body
   );
 }

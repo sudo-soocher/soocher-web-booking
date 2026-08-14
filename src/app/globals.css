@@ -75,6 +75,29 @@ body {
     background: transparent;
   }
 
+  /* WKWebView performs page scrolling on a separate compositor thread. Give
+     the patient nav its own fixed layer so it cannot be carried with the page
+     during momentum scrolling, then snap back when scrolling ends. */
+  .patient-bottom-nav {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100%;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+    contain: layout paint style;
+    isolation: isolate;
+  }
+
+  .patient-bottom-nav > ul {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
   .mobile-glass-panel {
     border: 1px solid rgba(255, 255, 255, 0.82);
     background:
@@ -373,11 +396,14 @@ body {
    keyboard animates instead of retaining the taller pre-keyboard layout. */
 .mobile-chat-viewport,
 .soocher-chat-screen {
-  top: var(--mobile-visual-viewport-top, 0px) !important;
+  top: 0 !important;
   bottom: auto !important;
   height: var(--mobile-visual-viewport-height, 100dvh) !important;
   max-height: var(--mobile-visual-viewport-height, 100dvh) !important;
   overscroll-behavior: none;
+  contain: layout paint;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .soocher-chat-screen .str-chat,
