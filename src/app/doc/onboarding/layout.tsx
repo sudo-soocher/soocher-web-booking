@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/doctor/lib/auth";
 import { ProgressHeader } from "@/doctor/components/onboarding/shell";
@@ -10,6 +10,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
   const { user, status, loading, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname() || "";
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -31,6 +32,68 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     }
   }, [user, status, loading, pathname, router, signOut]);
 
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    let focusTimer: number | undefined;
+    const isEditableTarget = (element: HTMLElement) =>
+      element.matches(
+        "input, textarea, select, [contenteditable='true'], [role='combobox'], button[data-slot='trigger']"
+      );
+
+    const revealFocusedField = (element: HTMLElement, behavior: ScrollBehavior = "smooth") => {
+      const field = element.closest<HTMLElement>("[data-onboarding-field]") ?? element;
+      const viewport = window.visualViewport;
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const fieldRect = field.getBoundingClientRect();
+      const ctaHeight = document.querySelector<HTMLElement>(".doctor-onboarding-cta")?.offsetHeight ?? 88;
+      const visualBottom = viewport
+        ? Math.min(containerRect.bottom, viewport.offsetTop + viewport.height)
+        : containerRect.bottom;
+      const visibleTop = containerRect.top + 14;
+      const visibleBottom = visualBottom - ctaHeight - 14;
+
+      if (fieldRect.top < visibleTop || fieldRect.bottom > visibleBottom) {
+        const availableHeight = Math.max(80, visibleBottom - visibleTop);
+        const targetTop = visibleTop + Math.max(8, (availableHeight - fieldRect.height) / 2);
+        scrollContainer.scrollBy({
+          top: fieldRect.top - targetTop,
+          behavior,
+        });
+      }
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !isEditableTarget(target)) return;
+      window.clearTimeout(focusTimer);
+      // Android/iOS keyboards animate after focus. Re-check after the visual
+      // viewport settles, otherwise the pre-keyboard geometry is used.
+      revealFocusedField(target);
+      focusTimer = window.setTimeout(() => revealFocusedField(target), 360);
+    };
+
+    const handleViewportChange = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && isEditableTarget(active)) {
+        window.clearTimeout(focusTimer);
+        focusTimer = window.setTimeout(() => revealFocusedField(active), 80);
+      }
+    };
+
+    scrollContainer.addEventListener("focusin", handleFocusIn);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      scrollContainer.removeEventListener("focusin", handleFocusIn);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, [pathname]);
+
   if (loading || !user || status === "not-a-doctor") {
     return <PageLoader />;
   }
@@ -45,7 +108,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     // container so no padding-top calculation is needed in the content.
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#F8FAFC] lg:h-auto lg:min-h-[100dvh] lg:overflow-visible">
       {showHeader && <ProgressHeader currentSlug={slug} />}
-      <div className="flex-1 overflow-y-auto overscroll-y-contain lg:overflow-visible">
+      <div ref={scrollContainerRef} className="doctor-onboarding-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain lg:overflow-visible">
         {children}
       </div>
     </div>

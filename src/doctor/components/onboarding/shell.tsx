@@ -173,7 +173,7 @@ export function Field({
     : children;
 
   return (
-    <div className="block min-w-0">
+    <div data-onboarding-field className="block min-w-0 scroll-mt-4 scroll-mb-28">
       <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
         {label}
         {required && <span className="ml-1 text-rose-500">*</span>}

@@ -28,6 +28,7 @@ import { auth } from "@/doctor/lib/firebase";
 import type { FirestoreConsultation } from "@/doctor/services/consultations";
 import { getChatAvailability } from "@/doctor/utils/chat/availability";
 import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
+import { useMobileVisualViewport } from "@/hooks/useMobileVisualViewport";
 
 interface ChatSidebarProps {
   isOpen: boolean;
@@ -80,6 +81,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
   const [channel, setChannel] = useState<Channel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const chatViewportRef = useMobileVisualViewport<HTMLDivElement>(isOpen);
 
   const patientName =
     consultation.extras?.patientDetails?.patientName ||
@@ -175,6 +177,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         <>
           {/* Backdrop — mobile */}
           <motion.div
+            ref={chatViewportRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -188,7 +191,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 26, stiffness: 220 }}
-            className="fixed inset-0 z-[101] flex w-full flex-col bg-[#F8FAFC] shadow-2xl md:left-auto md:right-0 md:w-[460px] md:border-l md:border-slate-200"
+            className="mobile-chat-viewport fixed inset-0 z-[101] flex w-full flex-col overflow-hidden bg-[#F8FAFC] shadow-2xl md:left-auto md:right-0 md:w-[460px] md:border-l md:border-slate-200"
           >
             {/* ── Custom branded header ────────────────────────────── */}
             <header className="relative overflow-hidden">
@@ -363,7 +366,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                         {/* Default ChannelHeader hidden via CSS — we render our own above */}
                         <MessageList />
                         {!isExpired ? (
-                          <MessageInput focus />
+                          <MessageInput />
                         ) : (
                           <div className="flex items-center justify-center gap-2 border-t border-slate-100 bg-white px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">
                             <FaLock className="text-[10px]" />
