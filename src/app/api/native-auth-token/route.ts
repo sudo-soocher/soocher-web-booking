@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { getAdminAuth } from "@/lib/firebase-admin";
-import { resolveNativeAuthUid, saveFcmToken } from "@/lib/native-auth-uid";
+import {
+  loadServiceAccountCreds,
+  resolveNativeAuthUid,
+  saveFcmToken,
+  type ServiceAccountCreds,
+} from "@/lib/native-auth-uid";
 
-interface ServiceAccount {
-  client_email: string;
-  private_key: string;
-}
-
-function mintCustomToken(uid: string, sa: ServiceAccount): string {
+function mintCustomToken(uid: string, sa: ServiceAccountCreds): string {
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(
     JSON.stringify({ alg: "RS256", typ: "JWT" })
@@ -67,20 +67,13 @@ export async function POST(request: Request) {
       await saveFcmToken(uid, body.fcmToken.trim());
     }
 
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-    if (!clientEmail || !privateKey) {
+    const sa = loadServiceAccountCreds();
+    if (!sa) {
       return NextResponse.json(
         { error: "Server not configured (missing service account)" },
         { status: 500 }
       );
     }
-
-    const sa: ServiceAccount = {
-      client_email: clientEmail,
-      private_key: privateKey.replace(/\\n/g, "\n"),
-    };
 
     const customToken = mintCustomToken(uid, sa);
     return NextResponse.json({ customToken });

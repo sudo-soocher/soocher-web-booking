@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { getAdminAuth } from "@/lib/firebase-admin";
-import { resolveNativeAuthUid, saveFcmToken } from "@/lib/native-auth-uid";
-
-interface ServiceAccount {
-  client_email: string;
-  private_key: string;
-}
+import {
+  loadServiceAccountCreds,
+  resolveNativeAuthUid,
+  saveFcmToken,
+  type ServiceAccountCreds,
+} from "@/lib/native-auth-uid";
 
 // Build a Firebase custom token JWT using Node.js crypto (RS256)
-function mintCustomToken(uid: string, sa: ServiceAccount): string {
+function mintCustomToken(uid: string, sa: ServiceAccountCreds): string {
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(
@@ -43,15 +43,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const serviceAccountEnv = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT;
-    if (!serviceAccountEnv) {
+    const sa = loadServiceAccountCreds();
+    if (!sa) {
       return NextResponse.json(
         { error: "Server not configured (missing service account)" },
         { status: 500 }
       );
     }
-
-    const sa: ServiceAccount = JSON.parse(serviceAccountEnv);
 
     // Verify the ID token's signature against Google's public keys before
     // minting anything.
