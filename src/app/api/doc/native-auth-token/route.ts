@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { getAdminAuth } from "@/lib/firebase-admin";
+import { resolveNativeAuthUid, saveFcmToken } from "@/lib/native-auth-uid";
 
 interface ServiceAccount {
   client_email: string;
@@ -62,7 +63,27 @@ export async function POST(request: Request) {
     // receive a valid custom token for that account. The patient app closed the
     // identical hole in 7415788; this is the same fix.
     const decoded = await getAdminAuth().verifyIdToken(idToken);
-    const customToken = mintCustomToken(decoded.uid, sa);
+
+    // Reconcile a phone-auth uid against the Firestore account of record —
+    // see native-auth-uid.ts for why this matters for the Flutter native OTP
+    // login specifically.
+    const resolved = await resolveNativeAuthUid(decoded);
+    if ("error" in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 409 });
+    }
+    const uid = resolved.uid;
+
+    // Optional: the Flutter app also uses this endpoint to persist the FCM
+    // token it registered natively, against the SAME reconciled uid used for
+    // sign-in — see saveFcmToken()'s comment for why that matters. The body
+    // is optional (a plain sign-in call sends none), so a parse failure just
+    // means "no FCM token this time," not an error.
+    const body: { fcmToken?: unknown } = await request.json().catch(() => ({}));
+    if (typeof body.fcmToken === "string" && body.fcmToken.trim()) {
+      await saveFcmToken(uid, body.fcmToken.trim());
+    }
+
+    const customToken = mintCustomToken(uid, sa);
 
     return NextResponse.json({ customToken });
   } catch (err: unknown) {

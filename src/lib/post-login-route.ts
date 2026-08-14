@@ -36,16 +36,24 @@ interface AccountDoc {
  *
  * Needed because a unified login cannot infer intent from the phone number
  * alone — a number nobody has seen before could be either role. The /doc splash
- * sends `?as=doctor`, and only a signed-in user with no existing account type
- * can be promoted. It never overwrites an established type, so a patient cannot
- * be converted by visiting the doctor entry point.
+ * sends `?as=doctor`, and both native entry points (this app's /doc/native-auth
+ * and the Flutter app's own OTP handoff) call this for a first-time sign-in.
+ *
+ * Only claims a Firestore doc that either doesn't exist yet or is already a
+ * doctor (idempotent re-claim) — never one that exists for any other reason.
+ * The obvious guard, checking only for an explicit non-DOCTOR `type`, is NOT
+ * enough: `/api/auth/verify-otp` writes a `{ phoneNumber }`-only doc on a
+ * patient's very first OTP verify, and `type` isn't set until their first
+ * profile save. In that window a patient's doc has no `type` at all, so the
+ * explicit-type check would have missed it and silently converted a real
+ * patient into a doctor.
  */
 export async function claimDoctorAccount(uid: string): Promise<boolean> {
   const ref = doc(db, "Users", uid);
   const snap = await getDoc(ref);
   const data = (snap.exists() ? snap.data() : null) as AccountDoc | null;
 
-  if (data?.type && data.type !== "DOCTOR") return false;
+  if (snap.exists() && data?.type !== "DOCTOR") return false;
 
   await setDoc(
     ref,
