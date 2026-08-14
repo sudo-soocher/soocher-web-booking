@@ -13,7 +13,14 @@ import {
   clearNativeSession,
 } from "@/lib/native-session";
 import { destinationPath, resolveDestination } from "@/lib/post-login-route";
+import { withTimeout } from "@/lib/with-timeout";
 import { HomeShimmer } from "@/components/loading/HomeShimmer";
+
+// Firestore's SDK does not time out a stalled connection on its own — see
+// with-timeout.ts. Without this, a stalled connection left every call site
+// below awaiting forever: the slow path never left its loading shimmer, and
+// the fast/self-heal paths never cleared a stale session marker.
+const AUTH_TIMEOUT_MS = 8000;
 
 /**
  * Read the `uid` claim out of a Firebase custom token without verifying it.
@@ -102,7 +109,10 @@ export default function NativeAuthPage() {
       try {
         // destinationPath() returns null for a patient with an incomplete
         // profile; the patient home handles that case already, so "/" stands.
-        target = destinationPath(await resolveDestination(uid)) ?? "/";
+        target =
+          destinationPath(
+            await withTimeout(resolveDestination(uid), AUTH_TIMEOUT_MS)
+          ) ?? "/";
       } catch (err) {
         console.error("[native-auth] could not resolve account type:", err);
       }
@@ -144,7 +154,7 @@ export default function NativeAuthPage() {
           // onboarding lands on the dashboard next launch. The in-app guards
           // already correct a stale value on arrival, so this only affects the
           // first frame of the *next* start.
-          void resolveDestination(user.uid)
+          void withTimeout(resolveDestination(user.uid), AUTH_TIMEOUT_MS)
             .then((d) => markNativeSession(user.uid, destinationPath(d) ?? "/"))
             .catch(() => {});
           return;
@@ -155,11 +165,12 @@ export default function NativeAuthPage() {
           clearNativeSession();
           return;
         }
-        signInWithCustomToken(auth, ct)
+        withTimeout(signInWithCustomToken(auth, ct), AUTH_TIMEOUT_MS)
           .then((result) => void goToAccountHome(result.user.uid, "self-heal"))
           .catch(() => {
-            // Token is unusable too — drop the marker so the next launch runs
-            // the full flow instead of looping straight to a signed-out home.
+            // Token is unusable too (or the attempt timed out) — drop the
+            // marker so the next launch runs the full flow instead of looping
+            // straight to a signed-out home.
             clearNativeSession();
           });
       });
@@ -184,7 +195,11 @@ export default function NativeAuthPage() {
       }
 
       try {
-        const result = await signInWithCustomToken(auth, ct);
+        const result = await withTimeout(
+          signInWithCustomToken(auth, ct),
+          AUTH_TIMEOUT_MS,
+          "Sign-in timed out. Check your connection and try again."
+        );
         if (cancelled) return;
         void goToAccountHome(result.user.uid, "custom-token");
       } catch (err) {
