@@ -62,33 +62,6 @@ export async function resolveNativeAuthUid(
   return { uid: decoded.uid };
 }
 
-/**
- * Persist an FCM token against the resolved (canonical) uid — never the raw
- * phone-auth uid a caller might otherwise have on hand.
- *
- * The Flutter app used to write `fcmToken` straight to Firestore from the
- * client using `FirebaseAuth.instance.currentUser.uid` — the same native
- * phone-auth uid `resolveNativeAuthUid` exists to correct. When that uid
- * didn't match the doctor's real Firestore document, the token landed on an
- * empty, unrelated doc: authenticated correctly, but silently unreachable by
- * push notifications. Routing this through the same reconciliation as sign-in
- * keeps both uses of "who is this account" from drifting apart.
- *
- * Failures are logged, not thrown — a missed FCM token registration should
- * never fail the request that carries it (typically the sign-in/token-mint
- * call itself).
- */
-export async function saveFcmToken(uid: string, fcmToken: string): Promise<void> {
-  try {
-    await getAdminFirestore()
-      .collection("Users")
-      .doc(uid)
-      .set({ fcmToken }, { merge: true });
-  } catch (err) {
-    console.error("[native-auth-token] failed to save fcmToken:", err);
-  }
-}
-
 export interface ServiceAccountCreds {
   client_email: string;
   private_key: string;

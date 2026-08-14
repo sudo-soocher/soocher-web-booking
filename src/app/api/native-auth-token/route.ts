@@ -4,7 +4,6 @@ import { getAdminAuth } from "@/lib/firebase-admin";
 import {
   loadServiceAccountCreds,
   resolveNativeAuthUid,
-  saveFcmToken,
   type ServiceAccountCreds,
 } from "@/lib/native-auth-uid";
 
@@ -56,16 +55,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: resolved.error }, { status: 409 });
     }
     const uid = resolved.uid;
-
-    // Optional: the Flutter app also uses this endpoint to persist the FCM
-    // token it registered natively, against the SAME reconciled uid used for
-    // sign-in — see saveFcmToken()'s comment for why that matters. The body
-    // is optional (a plain sign-in call sends none), so a parse failure just
-    // means "no FCM token this time," not an error.
-    const body: { fcmToken?: unknown } = await request.json().catch(() => ({}));
-    if (typeof body.fcmToken === "string" && body.fcmToken.trim()) {
-      await saveFcmToken(uid, body.fcmToken.trim());
-    }
 
     const sa = loadServiceAccountCreds();
     if (!sa) {

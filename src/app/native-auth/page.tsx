@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithCustomToken, onAuthStateChanged, User } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase-auth";
-import { db } from "@/lib/firebase-db";
 import {
   markNativeSession,
   readNativeSession,
@@ -78,19 +76,10 @@ export default function NativeAuthPage() {
 
     const params = new URLSearchParams(window.location.search);
     const ct = params.get("ct");
-    const fcmToken = params.get("fcm");
 
     // Warm the home-page chunk before anything else, so the transition to "/"
     // is instant rather than a fresh chunk download.
     router.prefetch("/");
-
-    const saveFcmToken = (uid: string) => {
-      // Fire-and-forget: the FCM write must never sit between the user and the app.
-      if (!fcmToken) return;
-      updateDoc(doc(db, "Users", uid), { fcmToken }).catch(() => {
-        // non-fatal — the token is refreshed on the next launch
-      });
-    };
 
     /**
      * Send the user to the screen their account type belongs to.
@@ -103,8 +92,6 @@ export default function NativeAuthPage() {
      *   - patient                       → /
      */
     const goToAccountHome = async (uid: string, path: string) => {
-      saveFcmToken(uid);
-
       let target = "/";
       try {
         // destinationPath() returns null for a patient with an incomplete
@@ -149,7 +136,6 @@ export default function NativeAuthPage() {
       waitForPersistedUser(5000).then((user) => {
         // Normal case: Firebase restored the session we expected.
         if (user) {
-          saveFcmToken(user.uid);
           // Refresh the cached destination so a doctor who has since finished
           // onboarding lands on the dashboard next launch. The in-app guards
           // already correct a stale value on arrival, so this only affects the
