@@ -47,32 +47,77 @@ interface AccountDoc {
  * profile save. In that window a patient's doc has no `type` at all, so the
  * explicit-type check would have missed it and silently converted a real
  * patient into a doctor.
+ *
+ * `phoneNumber` is persisted here (when the caller has it) so a freshly
+ * claimed doctor is immediately findable by phone — `resolveNativeAuthUid`'s
+ * reconciliation, and any admin lookup, depend on it being on the doc from
+ * the start rather than waiting for onboarding to eventually save it.
  */
-export async function claimDoctorAccount(uid: string): Promise<boolean> {
+export async function claimDoctorAccount(
+  uid: string,
+  phoneNumber?: string | null
+): Promise<boolean> {
   const ref = doc(db, "Users", uid);
-  const snap = await getDoc(ref);
+
+  let snap;
+  try {
+    snap = await getDoc(ref);
+  } catch (err) {
+    console.error("[claimDoctorAccount] getDoc failed for", uid, err);
+    throw err;
+  }
+
   const data = (snap.exists() ? snap.data() : null) as AccountDoc | null;
+  // TEMPORARY diagnostic: a new sign-up was unexpectedly being classified as
+  // "not a doctor" and this is the only place that decision is made. Remove
+  // once the cause is confirmed from real output instead of static reading.
+  console.log("[claimDoctorAccount]", uid, {
+    exists: snap.exists(),
+    type: data?.type,
+  });
 
-  if (snap.exists() && data?.type !== "DOCTOR") return false;
+  if (snap.exists() && data?.type !== "DOCTOR") {
+    console.log("[claimDoctorAccount] refusing — doc exists with non-doctor type", uid);
+    return false;
+  }
 
-  await setDoc(
-    ref,
-    {
-      type: "DOCTOR",
-      isAccountVerified: false,
-      documentsSubmitted: false,
-      onboardingComplete: false,
-      dateOfAccountCreation: Date.now(),
-      accountCreationDate: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  try {
+    await setDoc(
+      ref,
+      {
+        type: "DOCTOR",
+        isAccountVerified: false,
+        documentsSubmitted: false,
+        onboardingComplete: false,
+        dateOfAccountCreation: Date.now(),
+        accountCreationDate: serverTimestamp(),
+        ...(phoneNumber ? { phoneNumber } : {}),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error("[claimDoctorAccount] setDoc failed for", uid, err);
+    throw err;
+  }
+  console.log("[claimDoctorAccount] claimed", uid);
   return true;
 }
 
 export async function resolveDestination(uid: string): Promise<Destination> {
-  const snap = await getDoc(doc(db, "Users", uid));
+  let snap;
+  try {
+    snap = await getDoc(doc(db, "Users", uid));
+  } catch (err) {
+    console.error("[resolveDestination] getDoc failed for", uid, err);
+    throw err;
+  }
   const data = (snap.exists() ? snap.data() : null) as AccountDoc | null;
+  // TEMPORARY diagnostic — see claimDoctorAccount.
+  console.log("[resolveDestination]", uid, {
+    exists: snap.exists(),
+    type: data?.type,
+    onboardingComplete: data?.onboardingComplete,
+  });
 
   if (data?.type === "DOCTOR") {
     // A doctor who has not finished the onboarding steps has no usable

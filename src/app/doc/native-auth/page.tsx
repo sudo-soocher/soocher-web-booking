@@ -50,7 +50,7 @@ export default function NativeAuthPage() {
         // patient, or one mid-signup with only a phoneNumber on file yet), so
         // this cannot convert a real patient into a doctor.
         if (await withTimeout(
-          claimDoctorAccount(user.uid),
+          claimDoctorAccount(user.uid, user.phoneNumber),
           AUTH_TIMEOUT_MS,
           "Couldn't reach the server. Check your connection and try again."
         )) {

@@ -73,7 +73,7 @@ export default function Login() {
         new URLSearchParams(window.location.search).get("as") === "doctor";
 
       if (wantsDoctor) {
-        await claimDoctorAccount(user.uid).catch(() => false);
+        await claimDoctorAccount(user.uid, user.phoneNumber).catch(() => false);
       }
 
       const destination = await resolveDestination(user.uid);
