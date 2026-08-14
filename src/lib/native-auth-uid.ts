@@ -88,3 +88,57 @@ export async function saveFcmToken(uid: string, fcmToken: string): Promise<void>
     console.error("[native-auth-token] failed to save fcmToken:", err);
   }
 }
+
+export interface ServiceAccountCreds {
+  client_email: string;
+  private_key: string;
+}
+
+/**
+ * Load the service-account credentials used to hand-sign a custom token JWT.
+ *
+ * The two native-auth-token routes independently invented two different env
+ * var conventions for this: the patient route reads split
+ * `FIREBASE_ADMIN_CLIENT_EMAIL` / `FIREBASE_ADMIN_PRIVATE_KEY` vars, the
+ * doctor route reads a single `FIREBASE_ADMIN_SERVICE_ACCOUNT` JSON blob.
+ * Only one of those was actually set on the production deployment — this
+ * showed up as every doctor sign-in from the Flutter app hitting
+ * `500 "Server not configured (missing service account)"` before the request
+ * ever got as far as verifying the ID token, which the native WebView then
+ * displayed as a generic "no internet connection" error.
+ *
+ * Accepting either form here, in one place both routes call, means it no
+ * longer matters which convention a given deployment happens to have
+ * configured — and the two can't silently drift out of sync with each other
+ * again.
+ */
+export function loadServiceAccountCreds(): ServiceAccountCreds | null {
+  const blob = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT;
+  if (blob) {
+    try {
+      const parsed = JSON.parse(blob) as Partial<ServiceAccountCreds>;
+      if (parsed.client_email && parsed.private_key) {
+        return {
+          client_email: parsed.client_email,
+          private_key: parsed.private_key,
+        };
+      }
+    } catch (err) {
+      console.error(
+        "[native-auth-token] FIREBASE_ADMIN_SERVICE_ACCOUNT is set but not valid JSON:",
+        err
+      );
+    }
+  }
+
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+  if (clientEmail && privateKey) {
+    return {
+      client_email: clientEmail,
+      private_key: privateKey.replace(/\\n/g, "\n"),
+    };
+  }
+
+  return null;
+}
