@@ -7,12 +7,14 @@ import { FaSignOutAlt } from "react-icons/fa";
 import { Logo } from "@/doctor/components/ui/Logo";
 import { useAuth } from "@/doctor/lib/auth";
 import { MAIN_TABS } from "@/doctor/components/layout/BottomNav";
+import { useStreamChat } from "@/doctor/components/chat/StreamChatContext";
 
 /** Desktop-only sidebar. Mobile users navigate via BottomNav. */
 export const DoctorSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useAuth();
+  const { unreadCount } = useStreamChat();
 
   const handleSignOut = async () => {
     await signOut();
@@ -39,6 +41,14 @@ export const DoctorSidebar = () => {
               >
                 <Icon className="text-[15px]" />
                 <span className="text-sm">{item.label}</span>
+                {item.href === "/doc/messages" && unreadCount > 0 && (
+                  <span
+                    className="ml-auto grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black leading-none text-white shadow-sm"
+                    aria-label={`${unreadCount} unread message${unreadCount === 1 ? "" : "s"}`}
+                  >
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

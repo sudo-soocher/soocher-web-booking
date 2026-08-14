@@ -369,8 +369,16 @@ body {
   background: rgba(46, 109, 212, 0.25);
 }
 
-/* User consultation chat */
-.soocher-chat-screen { height: 100dvh; }
+/* User/doctor consultation chat. Follow iOS's visual viewport while the
+   keyboard animates instead of retaining the taller pre-keyboard layout. */
+.mobile-chat-viewport,
+.soocher-chat-screen {
+  top: var(--mobile-visual-viewport-top, 0px) !important;
+  bottom: auto !important;
+  height: var(--mobile-visual-viewport-height, 100dvh) !important;
+  max-height: var(--mobile-visual-viewport-height, 100dvh) !important;
+  overscroll-behavior: none;
+}
 
 .soocher-chat-screen .str-chat,
 .soocher-chat-screen .str-chat-channel,
@@ -495,7 +503,8 @@ body {
 .soocher-chat-screen .str-chat__textarea textarea {
   max-height: 104px !important;
   color: #202c43 !important;
-  font-size: 14px !important;
+  /* iOS automatically zooms focused controls below 16px. */
+  font-size: 16px !important;
   line-height: 1.45 !important;
 }
 

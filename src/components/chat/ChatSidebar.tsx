@@ -11,6 +11,7 @@ import { FiAlertCircle, FiArrowLeft, FiLock, FiMessageCircle, FiRefreshCw } from
 import { useStreamChat } from "./StreamChatContext";
 import { Consultation } from "@/types/consultation";
 import { auth } from "@/lib/firebase-auth";
+import { useMobileVisualViewport } from "@/hooks/useMobileVisualViewport";
 
 interface ChatSidebarProps {
     isOpen: boolean;
@@ -24,6 +25,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
     const [channel, setChannel] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const chatViewportRef = useMobileVisualViewport<HTMLDivElement>(isOpen);
 
     const initChat = React.useCallback(async (signal?: AbortSignal) => {
         if (!isOpen) return;
@@ -75,19 +77,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         if (isOpen) {
             initChat(controller.signal);
             document.body.style.overflow = "hidden";
-            document.body.style.position = "fixed";
-            document.body.style.width = "100%";
         } else {
             document.body.style.overflow = "";
-            document.body.style.position = "";
-            document.body.style.width = "";
         }
 
         return () => {
             controller.abort();
             document.body.style.overflow = "";
-            document.body.style.position = "";
-            document.body.style.width = "";
         };
     }, [isOpen, initChat]);
 
@@ -127,6 +123,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             {isOpen && (
                 <>
                     <motion.div
+                        ref={chatViewportRef}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -204,7 +201,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                                                 <Window>
                                                     <div className="min-h-0 flex-1"><MessageList /></div>
                                                     {!isExpired ? (
-                                                        <div className="soocher-chat-input"><MessageInput focus /></div>
+                                                    <div className="soocher-chat-input"><MessageInput /></div>
                                                     ) : (
                                                         <div className="flex shrink-0 items-center justify-center gap-2 border-t border-slate-200/70 bg-white/90 px-4 py-4 pb-[max(16px,env(safe-area-inset-bottom))] text-xs font-bold text-slate-400 backdrop-blur-xl"><FiLock /> Conversation is read-only</div>
                                                     )}

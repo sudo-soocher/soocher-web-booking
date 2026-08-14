@@ -11,6 +11,7 @@ import {
   FaUserMd,
 } from "react-icons/fa";
 import type { IconType } from "react-icons";
+import { useStreamChat } from "@/doctor/components/chat/StreamChatContext";
 
 interface Tab {
   href: string;
@@ -28,6 +29,7 @@ export const MAIN_TABS: Tab[] = [
 /** Sticky bottom nav for mobile. Hidden on lg+ (where the sidebar takes over). */
 export function BottomNav() {
   const pathname = usePathname() || "";
+  const { unreadCount } = useStreamChat();
 
   // Hide on edit pages — their own sticky Save CTA owns the bottom of the screen.
   if (pathname.startsWith("/doc/profile/edit/")) return null;
@@ -64,6 +66,14 @@ export function BottomNav() {
                       active ? "text-primary" : "text-slate-400"
                     }`}
                   />
+                  {tab.href === "/doc/messages" && unreadCount > 0 && (
+                    <span
+                      className="absolute -right-3 -top-2 grid min-h-5 min-w-5 place-items-center rounded-full border-2 border-white bg-rose-500 px-1 text-[9px] font-black leading-none text-white shadow-sm"
+                      aria-label={`${unreadCount} unread message${unreadCount === 1 ? "" : "s"}`}
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`relative text-[9px] font-bold tracking-wide transition-colors ${

@@ -16,6 +16,7 @@ const ChatSidebar = dynamic(
 import { fetchDoctorPatients, type DoctorPatient } from "@/doctor/services/patients";
 import { getChatAvailability } from "@/doctor/utils/chat/availability";
 import type { FirestoreConsultation } from "@/doctor/services/consultations";
+import { useStreamChat } from "@/doctor/components/chat/StreamChatContext";
 
 const AVATAR_GRADIENTS = [
   "from-primary-400 to-primary-600",
@@ -64,6 +65,7 @@ function relativeDay(ms: number): string {
 
 export default function MessagesPage() {
   const { user, status } = useAuth();
+  const { getConsultationUnreadCount } = useStreamChat();
   const [patients, setPatients] = useState<DoctorPatient[]>([]);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
@@ -189,6 +191,9 @@ export default function MessagesPage() {
                   key={p.uid}
                   patient={p}
                   index={i}
+                  unreadCount={getConsultationUnreadCount(
+                    p.latestConsultation.consultationId
+                  )}
                   onOpen={() => setChatTarget(p.latestConsultation)}
                 />
               ))}
@@ -211,10 +216,12 @@ export default function MessagesPage() {
 function MessageRow({
   patient,
   index,
+  unreadCount,
   onOpen,
 }: {
   patient: DoctorPatient;
   index: number;
+  unreadCount: number;
   onOpen: () => void;
 }) {
   const gradient = AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
@@ -296,6 +303,14 @@ function MessageRow({
         </div>
 
         {/* Right: chat affordance */}
+        {unreadCount > 0 && (
+          <span
+            className="grid min-h-6 min-w-6 shrink-0 place-items-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black leading-none text-white shadow-sm shadow-rose-200"
+            aria-label={`${unreadCount} unread message${unreadCount === 1 ? "" : "s"}`}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
         <span
           className={`hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition md:inline-flex ${
             chatWindow.isAvailable

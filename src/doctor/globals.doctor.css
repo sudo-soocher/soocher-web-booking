@@ -34,6 +34,18 @@ html.doc-app, html.doc-app body { overscroll-behavior-y: none; }
   padding-bottom: calc(6rem + max(1.25rem, env(safe-area-inset-bottom)));
 }
 
+.doctor-onboarding-scroll {
+  scroll-padding-top: 1rem;
+  scroll-padding-bottom: calc(6rem + max(1.25rem, env(safe-area-inset-bottom)));
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .doctor-onboarding-content {
+    padding-top: 1rem !important;
+  }
+}
+
 @media (min-width: 768px) {
   .doctor-onboarding-cta {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
@@ -309,6 +321,13 @@ select:-webkit-autofill {
   border-color: rgba(46, 109, 212, 0.4) !important;
   background: white !important;
   box-shadow: 0 0 0 4px rgba(46, 109, 212, 0.06);
+}
+
+/* Keep the composer at an iOS-safe font size so focusing it never zooms the
+   whole WebView. Stream's default can be smaller on narrow screens. */
+.soocher-chat .str-chat__textarea textarea,
+.soocher-chat textarea {
+  font-size: 16px !important;
 }
 .soocher-chat .str-chat__send-button {
   background: #2e6dd4 !important;
