@@ -10,6 +10,11 @@ import {
   destinationPath,
   resolveDestination,
 } from "@/lib/post-login-route";
+import { withTimeout } from "@/lib/with-timeout";
+
+// Firestore's SDK does not time out a stalled connection on its own — see
+// with-timeout.ts for what happens without this.
+const AUTH_TIMEOUT_MS = 8000;
 
 export default function NativeAuthPage() {
   const router = useRouter();
@@ -19,14 +24,18 @@ export default function NativeAuthPage() {
     const ct = new URLSearchParams(window.location.search).get("ct");
     if (!ct) { setError("No authentication token provided."); return; }
 
-    signInWithCustomToken(auth, ct)
+    withTimeout(signInWithCustomToken(auth, ct), AUTH_TIMEOUT_MS, "Sign-in timed out. Check your connection and try again.")
       .then(async ({ user }) => {
         // Resolve the real destination instead of always sending the doctor
         // to /doc/dashboard. That previously relied on AuthGuard to notice an
         // unfinished profile and bounce a second time — this loaded the
         // dashboard's data before redirecting away from it, and it silently
         // trusted every custom token as a doctor's.
-        const destination = await resolveDestination(user.uid);
+        const destination = await withTimeout(
+          resolveDestination(user.uid),
+          AUTH_TIMEOUT_MS,
+          "Couldn't reach the server. Check your connection and try again."
+        );
         if (destination.kind === "doctor-dashboard" || destination.kind === "doctor-onboarding") {
           router.replace(destinationPath(destination)!);
           return;
@@ -40,7 +49,11 @@ export default function NativeAuthPage() {
         // account that already exists for some other reason (an established
         // patient, or one mid-signup with only a phoneNumber on file yet), so
         // this cannot convert a real patient into a doctor.
-        if (await claimDoctorAccount(user.uid)) {
+        if (await withTimeout(
+          claimDoctorAccount(user.uid),
+          AUTH_TIMEOUT_MS,
+          "Couldn't reach the server. Check your connection and try again."
+        )) {
           router.replace("/doc/onboarding");
           return;
         }
