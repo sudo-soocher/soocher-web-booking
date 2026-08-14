@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { Spinner } from "@heroui/react";
 import { FaStar, FaMapMarkerAlt, FaUserMd, FaChevronRight } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Doctor } from "@/types/doctor";
 import { preloadRemoteImage, RemoteImage } from "@/components/ui/RemoteImage";
 import { formatCountWithPlus } from "@/utils/format-count";
+import { ButtonSpinner } from "@/components/ui/ButtonSpinner";
 
 interface DoctorCardProps {
     doctor: Doctor;
@@ -42,7 +42,7 @@ const DoctorCardInner = ({ doctor }: DoctorCardProps) => {
             >
                 {isNavigating && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-50 flex items-center justify-center rounded-[20px] md:rounded-[40px]">
-                        <Spinner size="lg" color="primary" />
+                        <ButtonSpinner label="Opening doctor profile" className="text-primary" />
                     </div>
                 )}
                 <div className="flex items-center gap-3 md:items-start md:gap-6">

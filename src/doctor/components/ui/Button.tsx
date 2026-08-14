@@ -2,6 +2,7 @@
 
 import React, { forwardRef, useState } from "react";
 import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@heroui/react";
+import { ButtonSpinner } from "@/components/ui/ButtonSpinner";
 
 type HeroUIClickHandler = NonNullable<NextUIButtonProps["onClick"]>;
 type HeroUIClickEvent = Parameters<HeroUIClickHandler>[0];
@@ -16,7 +17,7 @@ export interface ButtonProps extends Omit<NextUIButtonProps, "onPress" | "onClic
  * a loading state automatically. Matches the soocher-web pattern.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-  const { onPress, onClick, isLoading: externalIsLoading, children, ...rest } = props;
+  const { onPress, onClick, isLoading: externalIsLoading, children, spinnerPlacement: _spinnerPlacement, ...rest } = props;
   const [internalIsLoading, setInternalIsLoading] = useState(false);
   const isLoading = externalIsLoading ?? internalIsLoading;
 
@@ -57,10 +58,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
       className={isPrimarySolid ? `text-white ${rest.className ?? ""}` : rest.className}
     >
       {isLoading ? (
-        <>
-          <span aria-hidden="true" className="app-shimmer h-4 w-28 rounded-full bg-white/35" />
-          <span className="sr-only">Saving</span>
-        </>
+        <span className="relative inline-flex min-h-6 min-w-5 items-center justify-center">
+          <span className="invisible" aria-hidden="true">{children}</span>
+          <ButtonSpinner className="absolute inset-0 m-auto" />
+        </span>
       ) : children}
     </NextUIButton>
   );

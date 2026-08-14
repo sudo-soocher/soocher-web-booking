@@ -4,7 +4,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton, Spinner } from "@heroui/react";
+import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton } from "@heroui/react";
 import { auth } from "@/lib/firebase-auth";
 import { clearNativeSession } from "@/lib/native-session";
 import { signOut } from "firebase/auth";
@@ -32,6 +32,7 @@ import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useTranslation } from "@/i18n/LanguageProvider";
 import Image from "next/image";
 import { getSpecialityImage } from "@/utils/speciality-images";
+import { ButtonSpinner } from "@/components/ui/ButtonSpinner";
 import { fetchSpecialities, getCachedSpecialities, type Speciality } from "@/lib/specialities";
 import { clearCachedBookings } from "@/lib/bookings-cache";
 
@@ -429,7 +430,7 @@ export default function Home() {
                       <span className="absolute inset-0 flex items-center justify-center text-primary"><FaStethoscope className="text-lg md:text-2xl" /></span>
                     )}
                     {navigatingSpeciality === speciality.name && (
-                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 backdrop-blur-sm"><Spinner size="sm" color="primary" /></span>
+                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 text-primary backdrop-blur-sm"><ButtonSpinner size="sm" label={`Opening ${speciality.name}`} /></span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -486,7 +487,7 @@ export default function Home() {
                 ) : (
                   <span className={`absolute inset-0 flex items-center justify-center ${index % 3 === 0 ? "bg-blue-50 text-primary" : index % 3 === 1 ? "bg-emerald-50 text-emerald-600" : "bg-violet-50 text-violet-600"}`}><FaStethoscope className="text-sm" /></span>
                 )}
-                {navigatingSpeciality === speciality.name && <span className="absolute inset-0 flex items-center justify-center bg-white/65 backdrop-blur-sm"><Spinner size="sm" /></span>}
+                {navigatingSpeciality === speciality.name && <span className="absolute inset-0 flex items-center justify-center bg-white/65 text-primary backdrop-blur-sm"><ButtonSpinner size="sm" label={`Opening ${speciality.name}`} /></span>}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="line-clamp-3 break-words [overflow-wrap:anywhere] text-[10px] font-extrabold leading-snug text-slate-800 min-[360px]:text-[11px]">{speciality.name}</span>

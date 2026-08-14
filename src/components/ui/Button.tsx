@@ -3,6 +3,7 @@
 
 import React, { useState, forwardRef } from "react";
 import { Button as NextUIButton, ButtonProps as NextUIButtonProps } from "@heroui/react";
+import { ButtonSpinner } from "./ButtonSpinner";
 
 export type ButtonProps = NextUIButtonProps;
 
@@ -14,6 +15,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
         children,
         startContent,
         endContent,
+        spinnerPlacement: _spinnerPlacement,
         ...rest
     } = props;
     const [internalIsLoading, setInternalIsLoading] = useState(false);
@@ -83,11 +85,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
             className={isPrimarySolid ? `!text-white ${rest.className ?? ""}` : rest.className}
         >
             {isLoading ? (
-                <span className="flex h-6 w-full items-center justify-center" role="status" aria-label="Loading">
-                    <span
-                        aria-hidden="true"
-                        className={`app-shimmer h-4 w-28 rounded-full ${isPrimarySolid ? "bg-white/35" : "bg-primary/20"}`}
-                    />
+                <span className="relative inline-flex min-h-6 min-w-5 items-center justify-center">
+                    <span className="invisible" aria-hidden="true">{children}</span>
+                    <ButtonSpinner className="absolute inset-0 m-auto" />
                 </span>
             ) : children}
         </NextUIButton>
