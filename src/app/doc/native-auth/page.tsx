@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { signInWithCustomToken, signOut } from "firebase/auth";
 import { auth } from "@/doctor/lib/firebase";
 import { PageLoader } from "@/doctor/components/ui/PageLoader";
-import { destinationPath, resolveDestination } from "@/lib/post-login-route";
+import {
+  claimDoctorAccount,
+  destinationPath,
+  resolveDestination,
+} from "@/lib/post-login-route";
 
 export default function NativeAuthPage() {
   const router = useRouter();
@@ -21,17 +25,28 @@ export default function NativeAuthPage() {
         // to /doc/dashboard. That previously relied on AuthGuard to notice an
         // unfinished profile and bounce a second time — this loaded the
         // dashboard's data before redirecting away from it, and it silently
-        // trusted every custom token as a doctor's. This is the Flutter app's
-        // doctor entry point, so a non-doctor account here means the wrong
-        // person reached this URL; sign them back out rather than showing
-        // any doctor screen.
+        // trusted every custom token as a doctor's.
         const destination = await resolveDestination(user.uid);
-        if (destination.kind === "patient" || destination.kind === "patient-needs-profile") {
-          await signOut(auth);
-          router.replace("/login?denied=1");
+        if (destination.kind === "doctor-dashboard" || destination.kind === "doctor-onboarding") {
+          router.replace(destinationPath(destination)!);
           return;
         }
-        router.replace(destinationPath(destination) ?? "/doc/dashboard");
+
+        // Not yet on record as a doctor. This IS the doctor app's own entry
+        // point (reached from the Flutter doctor app's native OTP login, or a
+        // fresh sign-up via /login?as=doctor), so a brand-new account is
+        // claimed as a doctor here rather than rejected — same rule the web
+        // login's ?as=doctor path uses. claimDoctorAccount refuses to touch an
+        // account that already exists for some other reason (an established
+        // patient, or one mid-signup with only a phoneNumber on file yet), so
+        // this cannot convert a real patient into a doctor.
+        if (await claimDoctorAccount(user.uid)) {
+          router.replace("/doc/onboarding");
+          return;
+        }
+
+        await signOut(auth);
+        router.replace("/login?denied=1");
       })
       .catch((err: { message?: string }) => setError(err?.message || "Authentication failed."));
   }, [router]);

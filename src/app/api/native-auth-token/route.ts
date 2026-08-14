@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { getAdminAuth } from "@/lib/firebase-admin";
+import { resolveNativeAuthUid, saveFcmToken } from "@/lib/native-auth-uid";
 
 interface ServiceAccount {
   client_email: string;
@@ -46,7 +47,25 @@ export async function POST(request: Request) {
     // Verify the ID token signature against Google's public keys —
     // prevents forged tokens from minting custom tokens for arbitrary UIDs.
     const decoded = await getAdminAuth().verifyIdToken(idToken);
-    const uid = decoded.uid;
+
+    // Reconcile a phone-auth uid against the Firestore account of record —
+    // see native-auth-uid.ts for why this matters for the Flutter native OTP
+    // login specifically.
+    const resolved = await resolveNativeAuthUid(decoded);
+    if ("error" in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 409 });
+    }
+    const uid = resolved.uid;
+
+    // Optional: the Flutter app also uses this endpoint to persist the FCM
+    // token it registered natively, against the SAME reconciled uid used for
+    // sign-in — see saveFcmToken()'s comment for why that matters. The body
+    // is optional (a plain sign-in call sends none), so a parse failure just
+    // means "no FCM token this time," not an error.
+    const body: { fcmToken?: unknown } = await request.json().catch(() => ({}));
+    if (typeof body.fcmToken === "string" && body.fcmToken.trim()) {
+      await saveFcmToken(uid, body.fcmToken.trim());
+    }
 
     const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
