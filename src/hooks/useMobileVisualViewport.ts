@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 /**
  * Keeps a full-screen mobile surface inside the part of the viewport that is
@@ -11,40 +11,38 @@ import { useEffect, useRef } from "react";
 export function useMobileVisualViewport<T extends HTMLElement>(active: boolean) {
   const ref = useRef<T>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) return;
 
     const element = ref.current;
     if (!element) return;
 
     let frame = 0;
+    let lastHeight = 0;
     const update = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         const viewport = window.visualViewport;
-        element.style.setProperty(
-          "--mobile-visual-viewport-height",
-          `${Math.round(viewport?.height ?? window.innerHeight)}px`
-        );
-        element.style.setProperty(
-          "--mobile-visual-viewport-top",
-          `${Math.round(viewport?.offsetTop ?? 0)}px`
-        );
+        const nextHeight = Math.round(viewport?.height ?? window.innerHeight);
+
+        // iOS emits several nearly identical resize/scroll values while its
+        // keyboard and suggestion bar settle. Ignore sub-pixel noise so the
+        // fixed chat surface is not repainted on every event.
+        if (Math.abs(nextHeight - lastHeight) < 3) return;
+        lastHeight = nextHeight;
+        element.style.setProperty("--mobile-visual-viewport-height", `${nextHeight}px`);
       });
     };
 
     update();
     window.addEventListener("resize", update);
     window.visualViewport?.addEventListener("resize", update);
-    window.visualViewport?.addEventListener("scroll", update);
 
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", update);
       window.visualViewport?.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("scroll", update);
       element.style.removeProperty("--mobile-visual-viewport-height");
-      element.style.removeProperty("--mobile-visual-viewport-top");
     };
   }, [active]);
 
