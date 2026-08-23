@@ -95,8 +95,11 @@ export function LanguageSwitcher({
         onClick={toggle}
         className={`mobile-pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-primary shadow-sm transition-colors hover:bg-slate-200 ${className ?? ""}`}
       >
+        {/* Shows the language a tap switches TO, not the current one — a
+            button reading "A" while already in English reads as inert; showing
+            the other option reads as an action. */}
         <span className="text-lg font-black leading-none" aria-hidden="true">
-          {lang === "ml" ? "മ" : "A"}
+          {lang === "ml" ? "A" : "മ"}
         </span>
       </button>
     );
