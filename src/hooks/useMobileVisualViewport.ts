@@ -17,31 +17,30 @@ export function useMobileVisualViewport<T extends HTMLElement>(active: boolean) 
     const element = ref.current;
     if (!element) return;
 
-    let frame = 0;
+    let settleTimer = 0;
     let lastHeight = 0;
-    const update = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const viewport = window.visualViewport;
-        const nextHeight = Math.round(viewport?.height ?? window.innerHeight);
-
-        // iOS emits several nearly identical resize/scroll values while its
-        // keyboard and suggestion bar settle. Ignore sub-pixel noise so the
-        // fixed chat surface is not repainted on every event.
-        if (Math.abs(nextHeight - lastHeight) < 3) return;
-        lastHeight = nextHeight;
-        element.style.setProperty("--mobile-visual-viewport-height", `${nextHeight}px`);
-      });
+    const applyHeight = () => {
+      const viewport = window.visualViewport;
+      const nextHeight = Math.round(viewport?.height ?? window.innerHeight);
+      if (Math.abs(nextHeight - lastHeight) < 6) return;
+      lastHeight = nextHeight;
+      element.style.setProperty("--mobile-visual-viewport-height", `${nextHeight}px`);
+    };
+    const scheduleUpdate = () => {
+      window.clearTimeout(settleTimer);
+      // Updating on every VisualViewport frame makes WKWebView repaint the
+      // Stream list repeatedly. Commit one size after the keyboard settles.
+      settleTimer = window.setTimeout(applyHeight, 140);
     };
 
-    update();
-    window.addEventListener("resize", update);
-    window.visualViewport?.addEventListener("resize", update);
+    applyHeight();
+    window.addEventListener("resize", scheduleUpdate);
+    window.visualViewport?.addEventListener("resize", scheduleUpdate);
 
     return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("resize", update);
+      window.clearTimeout(settleTimer);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.visualViewport?.removeEventListener("resize", scheduleUpdate);
       element.style.removeProperty("--mobile-visual-viewport-height");
     };
   }, [active]);

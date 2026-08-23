@@ -122,10 +122,14 @@ export function bucketConsultations(list: FirestoreConsultation[]) {
     }
   }
 
-  // Today: show earliest first; upcoming: earliest first; past: most recent first
-  today.sort((a, b) => a.consultationTime - b.consultationTime);
-  upcoming.sort((a, b) => a.consultationTime - b.consultationTime);
-  // past already desc from query
+  // Keep every doctor bookings section newest-first. Do this explicitly rather
+  // than relying on the Firestore query order so filtered/bucketed data cannot
+  // accidentally reverse the visible list.
+  const newestFirst = (a: FirestoreConsultation, b: FirestoreConsultation) =>
+    b.consultationTime - a.consultationTime;
+  today.sort(newestFirst);
+  upcoming.sort(newestFirst);
+  past.sort(newestFirst);
 
   return { today, upcoming, past };
 }
