@@ -37,7 +37,7 @@ function readStoredLang(): Lang | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw === "en" || raw === "ml" ? raw : null;
   } catch {
-    // Storage can be blocked; Malayalam is the documented default.
+    // Storage can be blocked; English is the documented default.
     return null;
   }
 }
@@ -51,20 +51,16 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Always start from Malayalam. Every route is statically prerendered, so
-  // the server HTML is Malayalam and the hydration pass must match it
-  // exactly — reading localStorage during render would mismatch every text
-  // node.
-  const [lang, setLangState] = useState<Lang>("ml");
+  // Always start from English. Every route is statically prerendered, so the
+  // server HTML is English and the hydration pass must match it exactly —
+  // reading localStorage during render would mismatch every text node.
+  const [lang, setLangState] = useState<Lang>("en");
 
-  // Runs before the browser paints, so a returning user who chose English
-  // never sees a Malayalam frame even though the markup they received was
-  // Malayalam. Unlike the old English-default, any stored value (including
-  // "ml") must be applied explicitly here — the default no longer matches
-  // every stored preference for free.
+  // Runs before the browser paints, so a Malayalam user never sees an English
+  // frame even though the markup they received was English.
   useIsomorphicLayoutEffect(() => {
     const stored = readStoredLang();
-    if (stored) setLangState(stored);
+    if (stored && stored !== "en") setLangState(stored);
   }, []);
 
   // Drives the Malayalam font rule in globals.css and screen-reader pronunciation.
