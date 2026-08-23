@@ -97,8 +97,16 @@ export function LanguageSwitcher({
       >
         {/* Shows the language a tap switches TO, not the current one — a
             button reading "A" while already in English reads as inert; showing
-            the other option reads as an action. */}
-        <span className="text-lg font-black leading-none" aria-hidden="true">
+            the other option reads as an action. This means the Malayalam
+            glyph can appear while <html lang="en">, where globals.css's
+            Malayalam font rule (scoped to html[lang="ml"]) doesn't apply —
+            so it's set inline here instead, unconditionally, rather than
+            falling back to a system font with no Malayalam glyph coverage. */}
+        <span
+          className="text-lg font-black leading-none"
+          style={{ fontFamily: "var(--font-malayalam), system-ui, sans-serif" }}
+          aria-hidden="true"
+        >
           {lang === "ml" ? "A" : "മ"}
         </span>
       </button>
