@@ -69,6 +69,20 @@ body {
       #f5f7fb;
   }
 
+  /* iOS Safari auto-zooms the whole page when a focused form control's
+     font-size is under 16px — the "app zooms in when I tap a field" bug.
+     HeroUI's default Input size and several custom inputs render at 14px
+     (Tailwind's text-sm), so this is a blanket floor rather than chasing
+     every current and future call site individually. !important is
+     deliberate: it must win over the text-sm/text-xs utility classes that
+     cause the problem, which always outrank a plain element selector.
+     Desktop is untouched — this quirk is iOS/mobile-only. */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   .mobile-app-shell {
     width: 100%;
     min-height: 100dvh;

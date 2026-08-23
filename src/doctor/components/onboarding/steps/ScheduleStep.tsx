@@ -506,7 +506,7 @@ function TimeField({
             "border-2 border-slate-200 bg-white rounded-xl shadow-sm transition-all " +
             "data-[hover=true]:border-primary-300 data-[hover=true]:shadow-md data-[hover=true]:shadow-primary/5 " +
             "group-data-[focus=true]:border-primary group-data-[focus=true]:shadow-lg group-data-[focus=true]:shadow-primary/15",
-          input: "text-sm font-bold text-slate-900",
+          input: "text-base md:text-sm font-bold text-slate-900",
         }}
       />
     </div>

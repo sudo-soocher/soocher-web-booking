@@ -202,7 +202,7 @@ export default function PatientsPage() {
             classNames={{
               inputWrapper:
                 "border-2 border-slate-100 data-[hover=true]:border-primary-200 group-data-[focus=true]:border-primary bg-white",
-              input: "text-sm font-semibold text-slate-900 placeholder:text-slate-400",
+              input: "text-base md:text-sm font-semibold text-slate-900 placeholder:text-slate-400",
             }}
           />
         </div>
