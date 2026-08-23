@@ -65,7 +65,7 @@ function relativeDay(ms: number): string {
 
 export default function MessagesPage() {
   const { user, status } = useAuth();
-  const { getConsultationUnreadCount } = useStreamChat();
+  const { getDirectUnreadCount } = useStreamChat();
   const [patients, setPatients] = useState<DoctorPatient[]>([]);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
@@ -191,9 +191,7 @@ export default function MessagesPage() {
                   key={p.uid}
                   patient={p}
                   index={i}
-                  unreadCount={getConsultationUnreadCount(
-                    p.latestConsultation.consultationId
-                  )}
+                  unreadCount={getDirectUnreadCount(p.uid)}
                   onOpen={() => setChatTarget(p.latestConsultation)}
                 />
               ))}

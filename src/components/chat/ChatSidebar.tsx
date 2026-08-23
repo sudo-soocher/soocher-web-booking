@@ -12,6 +12,7 @@ import { useStreamChat } from "./StreamChatContext";
 import { Consultation } from "@/types/consultation";
 import { auth } from "@/lib/firebase-auth";
 import { useMobileVisualViewport } from "@/hooks/useMobileVisualViewport";
+import { getDirectConsultationChannel } from "@/lib/chat/directConsultationChannel";
 
 interface ChatSidebarProps {
     isOpen: boolean;
@@ -43,23 +44,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             if (!chatClient?.userID) throw new Error("Stream client failed to connect user");
             if (signal?.aborted) return;
 
-            const channelId = `consultation_${sanitizeId(consultation.consultationId)}`;
             const members = Array.from(new Set([uid, ...(consultation.participants || [])]))
                 .filter((id) => id && id.trim() !== "")
                 .map((id) => sanitizeId(id));
 
-            const newChannel = chatClient.channel("messaging", channelId, {
-                name: `Consultation with ${consultation.doctorName}`,
-                members,
-                doctor_name: consultation.doctorName,
-                patient_name: consultation.patientName,
-                consultation_id: consultation.consultationId,
-            } as any);
-
-            await Promise.race([
-                newChannel.watch(),
-                new Promise((_, reject) => window.setTimeout(() => reject(new Error("Chat connection timed out. Please try again.")), 15000)),
-            ]);
+            const newChannel = await getDirectConsultationChannel(chatClient, members, {
+                consultationId: consultation.consultationId,
+                doctorName: consultation.doctorName,
+                patientName: consultation.patientName,
+            });
             if (signal?.aborted) return;
             setActiveClient(chatClient);
             setChannel(newChannel);
@@ -123,7 +116,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
             {isOpen && (
                 <>
                     <motion.div
-                        ref={chatViewportRef}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -132,39 +124,50 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                     />
 
                     <motion.div
-                        initial={{ x: "100%", opacity: 0.85 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: "100%", opacity: 0.9 }}
-                        transition={{ type: "spring", damping: 29, stiffness: 260, mass: 0.9 }}
-                        className="soocher-chat-screen fixed inset-0 z-[101] flex w-full flex-col overflow-hidden bg-[#f5f8ff] md:left-auto md:right-0 md:w-[460px] md:border-l md:border-white/70 md:shadow-[-24px_0_70px_rgba(15,23,42,0.18)]"
+                        ref={chatViewportRef}
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={{ type: "spring", damping: 26, stiffness: 220 }}
+                        className="mobile-chat-viewport fixed inset-0 z-[101] flex w-full flex-col overflow-hidden bg-[#F8FAFC] shadow-2xl md:left-auto md:right-0 md:w-[460px] md:border-l md:border-slate-200"
                     >
-                        <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#1e62cb] via-[#2f73db] to-[#50a5ec] px-4 pb-5 pt-[max(14px,env(safe-area-inset-top))] text-white">
-                            <div className="pointer-events-none absolute -right-14 -top-20 h-52 w-52 rounded-full bg-white/10" />
-                            <div className="pointer-events-none absolute -bottom-20 left-16 h-36 w-36 rounded-full bg-cyan-200/10 blur-2xl" />
-
-                            <div className="relative flex items-center gap-3">
-                                <button type="button" onClick={onClose} aria-label="Close chat" className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 text-xl shadow-sm backdrop-blur-md transition hover:bg-white/20 active:scale-95">
-                                    <FiArrowLeft />
-                                </button>
+                        <header className="relative shrink-0 overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-500 to-primary-700" aria-hidden />
+                            <div className="absolute inset-0 opacity-30" style={{ background: "radial-gradient(at 0% 0%, #8fb8ff 0px, transparent 50%), radial-gradient(at 100% 100%, #2559b3 0px, transparent 50%)" }} aria-hidden />
+                            <div className="relative z-10 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] md:px-5 md:pt-5">
+                                <div className="flex items-center justify-between gap-2">
+                                    <button type="button" onClick={onClose} aria-label="Close chat" className="grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25 md:hidden">
+                                        <FiArrowLeft className="text-sm" />
+                                    </button>
+                                    <span className="hidden md:block" />
+                                    <div className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur">
+                                        <FiLock /> Private
+                                    </div>
+                                </div>
+                                <div className="mt-3 flex items-center gap-3">
                                 <div className="relative shrink-0">
-                                    <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/25 bg-white/95 text-sm font-black tracking-wide text-[#246bd3] shadow-[0_8px_22px_rgba(14,60,130,0.22)]">
+                                    <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-700 text-base font-black text-white shadow-lg shadow-black/20 ring-2 ring-white/20">
                                         {doctorInitials}
                                     </div>
-                                    <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-[#3277dc] ${consultation.doctorInRoom ? "bg-emerald-400" : "bg-sky-200"}`} />
+                                    <span className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-[3px] border-primary-600 ${consultation.doctorInRoom ? "bg-emerald-400" : "bg-slate-300"}`} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-[17px] font-extrabold leading-tight tracking-[-0.01em]">{consultation.doctorName}</p>
-                                    <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-blue-50/90">
-                                        <span className="shrink-0">{consultation.doctorInRoom ? "Available now" : "Consultation chat"}</span>
-                                        <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-white/55" />
+                                    <p className="truncate text-lg font-black leading-tight tracking-tight text-white">{consultation.doctorName}</p>
+                                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-white/80">
+                                        <span className={consultation.doctorInRoom ? "text-emerald-200" : "text-white/70"}>{consultation.doctorInRoom ? "Available now" : "Consultation chat"}</span>
+                                        <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-white/40" />
                                         <span className="truncate">{consultationLabel}</span>
                                     </div>
                                 </div>
-                                <div className="hidden h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-50 sm:flex">
-                                    <FiLock /> Private
                                 </div>
                             </div>
-                        </div>
+                        </header>
+
+                        {isExpired && !loading && !error && (
+                            <div className="flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800">
+                                <FiLock className="text-[10px]" /> Chat window closed. History is read-only.
+                            </div>
+                        )}
 
                         <div className="relative min-h-0 flex-1 overflow-hidden">
                             {loading ? (
@@ -185,31 +188,28 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                                     <Button color="primary" onPress={() => initChat()} startContent={<FiRefreshCw />} className="mt-2 h-12 rounded-2xl bg-[#2f73db] px-6 font-bold text-white shadow-[0_10px_24px_rgba(47,115,219,0.24)]">Try again</Button>
                                 </div>
                             ) : activeClient && channel ? (
-                                <div className="stream-chat-container flex h-full flex-col overflow-hidden">
-                                    {isExpired && (
-                                        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mx-3 mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-200/70 bg-amber-50 px-3.5 py-3 text-amber-800 shadow-sm">
-                                            <FiLock className="mt-0.5 shrink-0 text-sm" />
-                                            <div>
-                                                <p className="text-xs font-extrabold">This consultation chat has ended</p>
-                                                <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700">You can still read the conversation, but new messages are disabled.</p>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                    <div className="relative min-h-0 flex-1">
-                                        <Chat client={activeClient} theme="messaging light soocher-user-chat">
-                                            <Channel channel={channel}>
+                                <div className="stream-chat-container soocher-chat flex h-full flex-col overflow-hidden">
+                                    <Chat client={activeClient} theme="messaging light">
+                                            <Channel
+                                                channel={channel}
+                                                EmptyStateIndicator={() => (
+                                                    <PatientChatEmptyState
+                                                        doctorName={consultation.doctorName}
+                                                        isExpired={isExpired}
+                                                    />
+                                                )}
+                                            >
                                                 <Window>
-                                                    <div className="min-h-0 flex-1"><MessageList /></div>
+                                                    <MessageList />
                                                     {!isExpired ? (
-                                                    <div className="soocher-chat-input"><MessageInput /></div>
+                                                        <MessageInput />
                                                     ) : (
-                                                        <div className="flex shrink-0 items-center justify-center gap-2 border-t border-slate-200/70 bg-white/90 px-4 py-4 pb-[max(16px,env(safe-area-inset-bottom))] text-xs font-bold text-slate-400 backdrop-blur-xl"><FiLock /> Conversation is read-only</div>
+                                                        <div className="flex shrink-0 items-center justify-center gap-2 border-t border-slate-100 bg-white px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-400"><FiLock /> Replies disabled</div>
                                                     )}
                                                 </Window>
                                                 <Thread />
                                             </Channel>
-                                        </Chat>
-                                    </div>
+                                    </Chat>
                                 </div>
                             ) : (
                                 <div className="flex h-full items-center justify-center p-8 text-center">
@@ -223,3 +223,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         </AnimatePresence>
     );
 };
+
+function PatientChatEmptyState({
+    doctorName,
+    isExpired,
+}: {
+    doctorName: string;
+    isExpired: boolean;
+}) {
+    const firstName = doctorName.replace(/^dr\.?\s*/i, "").split(/\s+/)[0] || "your doctor";
+
+    return (
+        <div className="flex h-full flex-col items-center justify-center gap-4 px-8 py-12 text-center">
+            <div className="relative">
+                <div className="grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-primary-400 to-primary-700 text-2xl text-white shadow-xl shadow-primary/30">
+                    <FiMessageCircle />
+                </div>
+                <div className="absolute inset-0 -z-10 rounded-3xl bg-primary/20 blur-2xl" aria-hidden />
+            </div>
+            <div>
+                <p className="text-lg font-black tracking-tight text-slate-900">
+                    {isExpired ? "No messages in this consultation" : `Start a conversation with Dr. ${firstName}`}
+                </p>
+                <p className="mt-1 max-w-xs text-sm text-slate-500">
+                    {isExpired
+                        ? "This consultation chat has closed without any messages."
+                        : "Your messages are private and will reach your doctor instantly."}
+                </p>
+            </div>
+        </div>
+    );
+}

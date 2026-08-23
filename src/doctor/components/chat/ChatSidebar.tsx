@@ -29,6 +29,7 @@ import type { FirestoreConsultation } from "@/doctor/services/consultations";
 import { getChatAvailability } from "@/doctor/utils/chat/availability";
 import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import { useMobileVisualViewport } from "@/hooks/useMobileVisualViewport";
+import { getDirectConsultationChannel } from "@/lib/chat/directConsultationChannel";
 
 interface ChatSidebarProps {
   isOpen: boolean;
@@ -106,22 +107,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
       await connectUser(uid, name);
       if (!client.userID) throw new Error("Stream client failed to connect user");
 
-      const channelId = `consultation_${sanitizeId(consultation.consultationId)}`;
       const rawMembers = [uid, ...(consultation.participants || [])];
       const members = Array.from(new Set(rawMembers))
         .filter((id) => id && id.trim() !== "")
         .map((id) => sanitizeId(id));
 
-      const newChannel = client.channel("messaging", channelId, {
-        name: `Consultation with ${patientName}`,
-        members,
-        doctor_name: doctorName,
-        patient_name: patientName,
-        consultation_id: consultation.consultationId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-
-      await newChannel.watch();
+      const newChannel = await getDirectConsultationChannel(client, members, {
+        consultationId: consultation.consultationId,
+        doctorName,
+        patientName,
+      });
       setChannel(newChannel);
     } catch (err: unknown) {
       const e = err as { explanation?: string; message?: string };

@@ -19,7 +19,7 @@ interface StreamChatContextType {
   sanitizeId: (id: string) => string;
   unreadCount: number;
   unreadByChannel: Record<string, number>;
-  getConsultationUnreadCount: (consultationId: string) => number;
+  getDirectUnreadCount: (otherUserId: string) => number;
 }
 
 /**
@@ -44,6 +44,7 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [connectedUserId, setConnectedUserId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadByChannel, setUnreadByChannel] = useState<Record<string, number>>({});
+  const [unreadByMember, setUnreadByMember] = useState<Record<string, number>>({});
   const connectingRef = useRef<{ userId: string; promise: Promise<void> } | null>(null);
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setConnectedUserId(null);
     setUnreadCount(0);
     setUnreadByChannel({});
+    setUnreadByMember({});
   }, [client]);
 
   // Keep the doctor connected for the lifetime of the authenticated app, not
@@ -159,6 +161,31 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           result.channels.map((channel) => [channel.channel_id, channel.unread_count])
         )
       );
+
+      const unreadChannels = result.channels.filter((channel) => channel.unread_count > 0);
+      if (unreadChannels.length === 0) {
+        setUnreadByMember({});
+        return;
+      }
+
+      const unreadById = new Map(
+        unreadChannels.map((channel) => [channel.channel_id, channel.unread_count])
+      );
+      const channels = await client.queryChannels(
+        { cid: { $in: unreadChannels.map((channel) => `messaging:${channel.channel_id}`) } },
+        {},
+        { state: true, watch: false, limit: 100, message_limit: 0 }
+      );
+      const memberCounts: Record<string, number> = {};
+      channels.forEach((channel) => {
+        const count = unreadById.get(channel.id || "") || 0;
+        Object.keys(channel.state.members)
+          .filter((memberId) => memberId !== connectedUserId)
+          .forEach((memberId) => {
+            memberCounts[memberId] = (memberCounts[memberId] || 0) + count;
+          });
+      });
+      setUnreadByMember(memberCounts);
     } catch (error) {
       console.error("Failed to refresh unread messages:", error);
     }
@@ -192,10 +219,9 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [client, connectedUserId, refreshUnread]);
 
-  const getConsultationUnreadCount = useCallback(
-    (consultationId: string) =>
-      unreadByChannel[`consultation_${sanitizeStreamId(consultationId)}`] || 0,
-    [unreadByChannel]
+  const getDirectUnreadCount = useCallback(
+    (otherUserId: string) => unreadByMember[sanitizeStreamId(otherUserId)] || 0,
+    [unreadByMember]
   );
 
   const value = useMemo<StreamChatContextType>(
@@ -206,7 +232,7 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       sanitizeId: sanitizeStreamId,
       unreadCount,
       unreadByChannel,
-      getConsultationUnreadCount,
+      getDirectUnreadCount,
     }),
     [
       client,
@@ -214,7 +240,7 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       disconnectUser,
       unreadCount,
       unreadByChannel,
-      getConsultationUnreadCount,
+      getDirectUnreadCount,
     ]
   );
 

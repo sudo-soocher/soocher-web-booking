@@ -414,6 +414,14 @@ select:-webkit-autofill {
     flex: 1 1 auto !important;
     min-height: 0 !important;
   }
+  .soocher-chat .str-chat__list {
+    height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
 }
 
 /* Force white text on all solid primary HeroUI buttons */

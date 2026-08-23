@@ -31,6 +31,9 @@ export const TEST_OTP_NUMBERS: readonly string[] = [
   "+915550000008",
   "+915550000009",
   "+915550000010",
+  // Real-range exception to the 555 rule above — requested for a specific
+  // test flow. Only reachable with ALLOW_TEST_OTP=true.
+  "+919988998899",
 ];
 
 /** True only when test numbers are explicitly enabled for this environment. */
