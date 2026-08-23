@@ -46,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`light ${notoMalayalam.variable}`}>
+    <html lang="ml" className={`light ${notoMalayalam.variable}`}>
       <body className="min-h-screen bg-background">
         <Providers>
           {children}
