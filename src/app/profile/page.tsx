@@ -50,8 +50,12 @@ function ProfileFormField({
   );
 }
 
+// text-base (16px) on mobile, not text-sm (14px): iOS Safari auto-zooms the
+// whole page on focus for any input under 16px, which is the "page zooms in
+// when I tap a field" behavior a native-feeling mobile form must not have.
+// Desktop keeps the smaller size since that zoom-on-focus quirk is iOS-only.
 const profileControlClass =
-  "block h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10";
+  "block h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-base md:text-sm font-medium text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/10";
 
 export default function Profile() {
   const router = useRouter();
