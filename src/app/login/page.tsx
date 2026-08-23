@@ -51,6 +51,7 @@ export default function Login() {
     name: "",
     email: "",
     dob: "",
+    gender: "",
     currentState: "",
     currentCity: "",
   });
@@ -314,6 +315,10 @@ export default function Login() {
       setError(t("login.enterDob"));
       return;
     }
+    if (!registrationData.gender) {
+      setError(t("login.enterGender"));
+      return;
+    }
 
     setIsLoading(true);
     setError("");
@@ -326,6 +331,7 @@ export default function Login() {
       );
       const dobDate = new Date(registrationData.dob);
       patient.dob = isNaN(dobDate.getTime()) ? 0 : dobDate.getTime();
+      patient.gender = registrationData.gender as "Male" | "Female" | "Other";
       patient.currentState = registrationData.currentState.trim();
       patient.currentCity = registrationData.currentCity.trim();
 
@@ -583,6 +589,27 @@ export default function Login() {
                   }
                   classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "min-w-0 text-sm" }}
                 />
+              </div>
+
+              <div className="min-w-0 space-y-1.5">
+                <label htmlFor="registration-gender" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
+                  {t("profile.gender")} <span className="text-danger">*</span>
+                </label>
+                <select
+                  id="registration-gender"
+                  aria-label={t("profile.gender")}
+                  required
+                  value={registrationData.gender}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, gender: e.target.value })
+                  }
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
+                >
+                  <option value="">—</option>
+                  <option value="Male">{t("profile.genderMale")}</option>
+                  <option value="Female">{t("profile.genderFemale")}</option>
+                  <option value="Other">{t("profile.genderOther")}</option>
+                </select>
               </div>
 
               <div className="min-w-0 space-y-1.5">

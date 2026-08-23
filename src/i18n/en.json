@@ -196,6 +196,7 @@
   "login.enterEmail": "Please enter your email address.",
   "login.enterValidEmail": "Please enter a valid email address.",
   "login.enterDob": "Please enter your date of birth.",
+  "login.enterGender": "Please select your gender.",
   "login.saveFailed": "Failed to save profile. Please try again.",
   "login.sendFailedRetry": "Failed to send code. Please try again.",
   "login.deniedNotDoctor": "That account is registered as a patient, so it cannot open the doctor app. Sign in with your doctor number instead.",
