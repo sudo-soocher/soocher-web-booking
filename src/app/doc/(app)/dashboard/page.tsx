@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
   FaCalendarCheck,
   FaUsers,
@@ -11,9 +12,25 @@ import {
   FaArrowRight,
   FaBell,
   FaHourglassHalf,
+  FaVideo,
 } from "react-icons/fa";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
 import { useAuth } from "@/doctor/lib/auth";
+import { db } from "@/doctor/lib/firebase";
+import type { FirestoreConsultation } from "@/doctor/services/consultations";
+
+/** Same active-window rule as the shared patient-side getConsultationStatus,
+ * reimplemented here since the doctor side has its own FirestoreConsultation
+ * shape rather than importing the patient app's Consultation type. */
+function isLive(c: FirestoreConsultation): boolean {
+  const now = Date.now();
+  return (
+    !c.cancelledByDoctor &&
+    !c.videoConsultDone &&
+    now >= c.consultationTime &&
+    now <= c.consultationExpiration
+  );
+}
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -35,6 +52,27 @@ const STAT_COLORS = [
 
 export default function DashboardPage() {
   const { profile, user, status } = useAuth();
+  const [liveConsultation, setLiveConsultation] = useState<FirestoreConsultation | null>(null);
+
+  // Realtime, not a one-off fetch — a consultation going live (or a doctor
+  // opening the dashboard mid-call) must show up without a page reload.
+  useEffect(() => {
+    if (!user?.uid) {
+      setLiveConsultation(null);
+      return;
+    }
+    const q = query(
+      collection(db, "Consultations"),
+      where("participants", "array-contains", user.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const active = snapshot.docs
+        .map((d) => ({ ...(d.data() as FirestoreConsultation), consultationId: d.id }))
+        .find(isLive);
+      setLiveConsultation(active ?? null);
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const displayName =
     (profile?.fullName as string) ||
@@ -55,6 +93,32 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 lg:max-w-7xl">
+
+      {/* ── Live consultation banner ─────────────────────── */}
+      {liveConsultation && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+          <Link
+            href={`/doc/consultations/${liveConsultation.consultationId}/room`}
+            className="flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3.5 shadow-lg shadow-emerald-500/25 transition hover:from-emerald-600 hover:to-emerald-700 md:px-5 md:py-4"
+          >
+            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 md:h-11 md:w-11">
+              <span className="absolute inset-0 animate-ping rounded-full bg-white/30" />
+              <FaVideo className="relative text-base text-white md:text-lg" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-50">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> Live now
+              </span>
+              <span className="mt-0.5 block truncate text-sm font-extrabold text-white md:text-base">
+                Consultation with {liveConsultation.patientName} is in progress
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-white px-3.5 py-2 text-xs font-extrabold text-emerald-700 md:text-sm">
+              Join
+            </span>
+          </Link>
+        </motion.div>
+      )}
 
       {/* ── Hero card ─────────────────────────────────────── */}
       <motion.div
