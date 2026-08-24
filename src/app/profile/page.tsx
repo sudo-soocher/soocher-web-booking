@@ -271,10 +271,16 @@ export default function Profile() {
             <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
             <div className="relative flex items-center gap-3.5 lg:flex-col lg:text-center">
               <div className="relative group">
+                {/* sr-only, not `hidden` (display:none) — the Flutter app's
+                    iOS WebView (WKWebView) relies entirely on its own native
+                    file picker for <input type="file">, with no Flutter-side
+                    hook the way Android has, and silently does nothing for
+                    an input that's display:none since it isn't actually in
+                    the render tree. sr-only stays invisible without that. */}
                 <input
                   type="file"
                   id="profile-image-input"
-                  className="hidden"
+                  className="sr-only"
                   accept="image/*"
                   onChange={handleImageUpload}
                   disabled={uploading}
