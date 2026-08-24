@@ -6,6 +6,9 @@
 import { Button } from "@/components/ui/Button";
 import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Skeleton } from "@heroui/react";
 import { auth } from "@/lib/firebase-auth";
+import { db } from "@/lib/firebase-db";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { getConsultationStatus, type Consultation } from "@/types/consultation";
 import { clearNativeSession } from "@/lib/native-session";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -75,6 +78,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [navigatingSpeciality, setNavigatingSpeciality] = useState<string | null>(null);
   const [showAllSpecialities, setShowAllSpecialities] = useState(false);
+  const [liveConsultation, setLiveConsultation] = useState<Consultation | null>(null);
   /* Commented out AI Assistant state
   const [symptoms, setSymptoms] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
@@ -96,6 +100,31 @@ export default function Home() {
     });
     return () => unsubscribe();
   }, []);
+
+  // A live consultation must surface here the moment it starts, not just on
+  // the bookings page the patient has to think to open — onSnapshot instead
+  // of a one-off read so it appears/disappears in real time as the window
+  // opens and closes, without needing a page reload.
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setLiveConsultation(null);
+      return;
+    }
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const q = query(
+      collection(db, "Consultations"),
+      where("participants", "array-contains", uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const active = snapshot.docs
+        .map((d) => ({ ...(d.data() as Consultation), consultationId: d.id }))
+        .find((c) => getConsultationStatus(c) === "active");
+      setLiveConsultation(active ?? null);
+    });
+    return () => unsubscribe();
+  }, [isLoggedIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,6 +302,37 @@ export default function Home() {
           </div>
         </nav>
       </header>
+
+      {/* ── Live consultation banner — same on every breakpoint, unlike the
+          hero below which has separate mobile/desktop variants. ───────── */}
+      {liveConsultation && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="px-4 pt-2 md:mx-auto md:max-w-5xl md:px-6 md:pt-4"
+        >
+          <button
+            onClick={() => router.push(`/video-call/${liveConsultation.consultationId}`)}
+            className="mobile-pressable flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3.5 text-left shadow-lg shadow-emerald-500/25 md:px-5 md:py-4"
+          >
+            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 md:h-11 md:w-11">
+              <span className="absolute inset-0 animate-ping rounded-full bg-white/30" />
+              <FaVideo className="relative text-base text-white md:text-lg" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-50">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> Live now
+              </span>
+              <span className="mt-0.5 block truncate text-sm font-extrabold text-white md:text-base">
+                Consultation with {liveConsultation.doctorName} is in progress
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-white px-3.5 py-2 text-xs font-extrabold text-emerald-700 md:text-sm">
+              Join
+            </span>
+          </button>
+        </motion.div>
+      )}
 
       {/* ── Mobile Hero ─────────────────────────────────────────────── */}
       <section className="md:hidden px-4 pt-2 pb-4">
