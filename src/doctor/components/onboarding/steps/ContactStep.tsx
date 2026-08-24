@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@heroui/react";
-import { FaCheck, FaWhatsapp } from "react-icons/fa";
+import { FaCheck, FaShieldAlt, FaWhatsapp } from "react-icons/fa";
 import { ErrorBanner, Field, StepShell, inputClassNames } from "@/doctor/components/onboarding/shell";
 import { useAuth } from "@/doctor/lib/auth";
 import { STEPS, getNextStepSlug, saveStep } from "@/doctor/lib/onboarding";
@@ -23,9 +23,12 @@ export default function ContactStep() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Mobile is always the OTP-verified number on the account, never a
+    // stored/editable value — a doctor cannot silently swap the number
+    // patients and the app already trust for that account.
+    setMobile(user?.phoneNumber?.replace("+91", "") ?? "");
     if (!profile) return;
     setEmail((profile.email as string) || user?.email || "");
-    setMobile((profile.mobile as string) || (user?.phoneNumber?.replace("+91", "") ?? ""));
     setSameAsMobile((profile.whatsappSameAsMobile as boolean) ?? true);
     setWhatsapp((profile.whatsapp as string) || "");
     setLandline((profile.clinicLandline as string) || "");
@@ -78,16 +81,20 @@ export default function ContactStep() {
         />
       </Field>
 
-      <Field label="Mobile number" required hint="10-digit Indian number, no +91 prefix.">
+      <Field label="Mobile number" required hint="This is the number you verified with OTP — it can't be changed here.">
         <Input
           value={mobile}
-          onValueChange={(v) => setMobile(v.replace(/\D/g, "").slice(0, 10))}
+          isReadOnly
           variant="bordered"
           radius="lg"
           size="lg"
           startContent={<span className="text-sm font-bold text-slate-500">+91</span>}
-          placeholder="9876543210"
-          classNames={inputClassNames}
+          endContent={<FaShieldAlt className="text-sm text-emerald-500" aria-label="Verified" />}
+          classNames={{
+            ...inputClassNames,
+            inputWrapper: `${inputClassNames.inputWrapper} bg-slate-50 cursor-not-allowed`,
+            input: `${inputClassNames.input} cursor-not-allowed`,
+          }}
         />
       </Field>
 
@@ -118,18 +125,18 @@ export default function ContactStep() {
           </div>
         </div>
 
-        {/* Custom toggle — kept inline so it always paints correctly */}
+        {/* Custom toggle — kept inline so it always paints correctly. Uses
+            flex justify-content to park the knob at an edge, not a hand-
+            calculated translate-x offset — the previous pixel-math version
+            could leave the knob short of the right edge in the ON state
+            depending on box-sizing, which is what read as "not working". */}
         <span
           role="presentation"
-          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border-2 transition-colors ${
-            sameAsMobile ? "border-primary bg-primary" : "border-slate-200 bg-slate-100"
+          className={`flex h-7 w-12 shrink-0 items-center rounded-full border-2 p-0.5 transition-colors ${
+            sameAsMobile ? "justify-end border-primary bg-primary" : "justify-start border-slate-200 bg-slate-100"
           }`}
         >
-          <span
-            className={`grid h-5 w-5 place-items-center rounded-full bg-white shadow-sm transition-transform ${
-              sameAsMobile ? "translate-x-[22px]" : "translate-x-0.5"
-            }`}
-          >
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white shadow-sm transition-transform">
             {sameAsMobile && <FaCheck className="text-[8px] text-primary" />}
           </span>
         </span>
