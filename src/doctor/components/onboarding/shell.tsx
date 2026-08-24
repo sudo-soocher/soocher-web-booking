@@ -111,7 +111,11 @@ export function StepShell({
         initial={{ y: 6 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.2 }}
-        className="doctor-onboarding-content mx-auto flex w-full max-w-3xl min-w-0 flex-col px-4 pt-5 sm:px-5 sm:pt-7 md:pb-32 md:pt-10"
+        // pb-28 reserves space for the fixed CTA bar below md — it was only
+        // reserved at md:pb-32 and up, so on phones the last field(s) of
+        // every step could sit directly behind the fixed "Save & continue"
+        // button with no way to scroll past it.
+        className="doctor-onboarding-content mx-auto flex w-full max-w-3xl min-w-0 flex-col px-4 pt-5 pb-28 sm:px-5 sm:pt-7 md:pb-32 md:pt-10"
       >
         <div className="text-[11px] font-bold uppercase tracking-widest text-primary">
           {effectiveEyebrow}
@@ -129,7 +133,10 @@ export function StepShell({
           transformed containing block (which made the bar briefly narrow on
           first mount). Onboarding has no sidebar, so the bar spans the full
           viewport and centers the CTA under the form via the inner max-w-3xl. */}
-      <div className="doctor-onboarding-cta fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/95 pt-3 shadow-[0_-12px_32px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+      <div
+        className="doctor-onboarding-cta fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/95 pt-3 shadow-[0_-12px_32px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+      >
         <div className="mx-auto flex w-full max-w-3xl px-4 sm:px-5">
           <Button
             color="primary"
@@ -172,28 +179,8 @@ export function Field({
       })
     : children;
 
-  // Neither iOS WKWebView nor Android WebView reliably auto-scrolls a
-  // focused input above the keyboard the way a real browser tab does — the
-  // scroll-mt/scroll-mb classes above are inert without something to trigger
-  // a scroll. Doing it here, once, covers every field on all 12 onboarding
-  // steps instead of wiring it per-step. The delay lets the keyboard's own
-  // resize/animation start first; scrolling immediately fights it and the
-  // field ends up in the wrong place once the keyboard finishes opening.
-  const scrollTimer = React.useRef<number | null>(null);
-  const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (scrollTimer.current) window.clearTimeout(scrollTimer.current);
-    const target = e.target;
-    scrollTimer.current = window.setTimeout(() => {
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 300);
-  };
-
   return (
-    <div
-      data-onboarding-field
-      onFocusCapture={handleFocusCapture}
-      className="block min-w-0 scroll-mt-4 scroll-mb-28"
-    >
+    <div data-onboarding-field className="block min-w-0 scroll-mt-4 scroll-mb-28">
       <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
         {label}
         {required && <span className="ml-1 text-rose-500">*</span>}
