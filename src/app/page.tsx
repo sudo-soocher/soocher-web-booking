@@ -24,6 +24,7 @@ import {
   FaShieldAlt,
   FaChevronRight,
   FaRegBell,
+  FaPrescriptionBottleAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -38,6 +39,7 @@ import { getSpecialityImage } from "@/utils/speciality-images";
 import { ButtonSpinner } from "@/components/ui/ButtonSpinner";
 import { fetchSpecialities, getCachedSpecialities, type Speciality } from "@/lib/specialities";
 import { clearCachedBookings } from "@/lib/bookings-cache";
+import { formatDisplayDate, formatDisplayTime } from "@/utils/timezone";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface AIResponse {
@@ -79,6 +81,7 @@ export default function Home() {
   const [navigatingSpeciality, setNavigatingSpeciality] = useState<string | null>(null);
   const [showAllSpecialities, setShowAllSpecialities] = useState(false);
   const [liveConsultation, setLiveConsultation] = useState<Consultation | null>(null);
+  const [nextConsultation, setNextConsultation] = useState<Consultation | null>(null);
   /* Commented out AI Assistant state
   const [symptoms, setSymptoms] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
@@ -108,6 +111,7 @@ export default function Home() {
   useEffect(() => {
     if (!isLoggedIn) {
       setLiveConsultation(null);
+      setNextConsultation(null);
       return;
     }
     const uid = auth.currentUser?.uid;
@@ -118,10 +122,15 @@ export default function Home() {
       where("participants", "array-contains", uid)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const active = snapshot.docs
-        .map((d) => ({ ...(d.data() as Consultation), consultationId: d.id }))
-        .find((c) => getConsultationStatus(c) === "active");
-      setLiveConsultation(active ?? null);
+      const all = snapshot.docs.map((d) => ({ ...(d.data() as Consultation), consultationId: d.id }));
+      setLiveConsultation(all.find((c) => getConsultationStatus(c) === "active") ?? null);
+      // The hero card's "book a consultation" prompt only makes sense when
+      // there's nothing already booked — once there is, showing it anyway
+      // hides the one thing the patient actually needs to see there.
+      const upcoming = all
+        .filter((c) => getConsultationStatus(c) === "upcoming")
+        .sort((a, b) => a.consultationTime - b.consultationTime);
+      setNextConsultation(upcoming[0] ?? null);
     });
     return () => unsubscribe();
   }, [isLoggedIn]);
@@ -293,6 +302,7 @@ export default function Home() {
                   </DropdownItem>
                   <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">{t("nav.myProfile")}</DropdownItem>
                   <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">{t("nav.myBookings")}</DropdownItem>
+                  <DropdownItem key="prescriptions" startContent={<FaPrescriptionBottleAlt className="text-primary opacity-70" />} onPress={() => router.push("/prescriptions")} className="rounded-lg">Prescriptions</DropdownItem>
                   <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>{t("nav.signOut")}</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
@@ -345,16 +355,30 @@ export default function Home() {
           <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-2xl" />
           <div className="absolute -bottom-20 -left-12 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
           <div className="absolute right-5 bottom-5 h-20 w-20 rounded-full border border-primary/10" />
-          <div className={`relative z-10 ${lang === "ml" ? "w-full pr-1" : "max-w-[78%]"}`}>
-            <h1 className={`break-words font-black text-slate-900 ${
-              lang === "ml"
-                ? "text-[26px] leading-[1.22] tracking-normal"
-                : "text-[28px] leading-[1.08] tracking-[-0.035em]"
-            }`}>{t("home.heroTitleMobile")}<br />{t("home.heroTitleMobile2")}</h1>
-            <p className="mt-3 text-xs leading-relaxed text-slate-600">{t("home.heroSubtitleMobile")}</p>
-          </div>
-          <button onClick={() => router.push("/doctors")} className="mobile-pressable relative z-10 mt-5 flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/75 px-4 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg shadow-primary/10 backdrop-blur-xl">
-            <span className="min-w-0 flex-1 break-words text-left leading-5">{t("home.bookConsultation")}</span>
+          {nextConsultation ? (
+            <div className="relative z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+                <FaCalendarCheck className="text-[10px]" /> Upcoming consultation
+              </span>
+              <h1 className="mt-2.5 break-words text-[22px] font-black leading-[1.15] tracking-[-0.03em] text-slate-900">
+                {nextConsultation.doctorName}
+              </h1>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-600">
+                {formatDisplayDate(nextConsultation.consultationTime, nextConsultation.timezone)} · {formatDisplayTime(nextConsultation.consultationTime, nextConsultation.timezone)}
+              </p>
+            </div>
+          ) : (
+            <div className={`relative z-10 ${lang === "ml" ? "w-full pr-1" : "max-w-[78%]"}`}>
+              <h1 className={`break-words font-black text-slate-900 ${
+                lang === "ml"
+                  ? "text-[26px] leading-[1.22] tracking-normal"
+                  : "text-[28px] leading-[1.08] tracking-[-0.035em]"
+              }`}>{t("home.heroTitleMobile")}<br />{t("home.heroTitleMobile2")}</h1>
+              <p className="mt-3 text-xs leading-relaxed text-slate-600">{t("home.heroSubtitleMobile")}</p>
+            </div>
+          )}
+          <button onClick={() => router.push(nextConsultation ? "/bookings" : "/doctors")} className="mobile-pressable relative z-10 mt-5 flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/75 px-4 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg shadow-primary/10 backdrop-blur-xl">
+            <span className="min-w-0 flex-1 break-words text-left leading-5">{nextConsultation ? "View booking details" : t("home.bookConsultation")}</span>
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white"><FaChevronRight className="text-[10px]" /></span>
           </button>
         </motion.div>
@@ -365,15 +389,16 @@ export default function Home() {
           <FaChevronRight className="text-[10px] text-slate-300" />
         </button>
 
-        <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="mt-5 grid grid-cols-4 gap-2">
           {[
             { label: t("home.videoConsult"), icon: FaVideo, href: "/doctors", tone: "bg-blue-50 text-primary" },
             { label: t("home.myBookings"), icon: FaCalendarCheck, href: "/bookings", tone: "bg-emerald-50 text-emerald-600" },
+            { label: "Prescriptions", icon: FaPrescriptionBottleAlt, href: "/prescriptions", tone: "bg-amber-50 text-amber-600" },
             { label: t("home.myProfile"), icon: FaHeartbeat, href: "/profile", tone: "bg-rose-50 text-rose-500" },
           ].map(({ label, icon: Icon, href, tone }) => (
-            <button key={label} onClick={() => router.push(href)} className="mobile-pressable mobile-app-card flex min-w-0 min-h-24 flex-col items-start justify-between overflow-hidden p-3 text-left sm:p-3.5">
-              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}><Icon className="text-sm" /></span>
-              <span className="mt-3 max-w-full break-words text-[10px] font-extrabold leading-[1.35] text-slate-700 min-[360px]:text-[11px]">{label}</span>
+            <button key={label} onClick={() => router.push(href)} className="mobile-pressable flex min-w-0 flex-col items-center gap-1.5 text-center">
+              <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${tone}`}><Icon className="text-base" /></span>
+              <span className="w-full truncate text-[9px] font-bold leading-tight text-slate-600">{label}</span>
             </button>
           ))}
         </div>
@@ -386,18 +411,39 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto overflow-hidden rounded-[38px] border border-white/90 bg-white/55 p-7 lg:p-10 shadow-[0_30px_90px_rgba(46,109,212,0.12)] backdrop-blur-2xl">
           <div className="grid grid-cols-[0.95fr_1.05fr] gap-8 lg:gap-12 items-center">
           <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55 }} className="z-10 will-change-transform flex flex-col items-start text-left">
-            <h1 className="text-[42px] lg:text-[58px] xl:text-[64px] font-black text-slate-900 leading-[1.04] tracking-[-0.045em]">
-              {t("home.heroTitle")}<br />
-              <span className="text-primary">{t("home.heroTitleAccent")}</span>
-            </h1>
-            <p className="mt-5 text-sm lg:text-base text-slate-600 leading-relaxed max-w-lg">
-              {t("home.heroSubtitle")}
-            </p>
-            <div className="mt-7 flex items-center gap-3">
-              <Button size="lg" color="primary" className="rounded-2xl px-7 font-black shadow-xl shadow-primary/20 h-12 text-sm" onClick={() => router.push("/doctors")}>
-                {t("home.bookConsultation")}
-              </Button>
-            </div>
+            {nextConsultation ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-primary">
+                  <FaCalendarCheck className="text-xs" /> Upcoming consultation
+                </span>
+                <h1 className="mt-4 text-[38px] lg:text-[50px] font-black text-slate-900 leading-[1.06] tracking-[-0.04em]">
+                  {nextConsultation.doctorName}
+                </h1>
+                <p className="mt-4 text-sm lg:text-base font-semibold text-slate-600 leading-relaxed max-w-lg">
+                  {formatDisplayDate(nextConsultation.consultationTime, nextConsultation.timezone)} at {formatDisplayTime(nextConsultation.consultationTime, nextConsultation.timezone)}
+                </p>
+                <div className="mt-7 flex items-center gap-3">
+                  <Button size="lg" color="primary" className="rounded-2xl px-7 font-black shadow-xl shadow-primary/20 h-12 text-sm" onClick={() => router.push("/bookings")}>
+                    View booking details
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-[42px] lg:text-[58px] xl:text-[64px] font-black text-slate-900 leading-[1.04] tracking-[-0.045em]">
+                  {t("home.heroTitle")}<br />
+                  <span className="text-primary">{t("home.heroTitleAccent")}</span>
+                </h1>
+                <p className="mt-5 text-sm lg:text-base text-slate-600 leading-relaxed max-w-lg">
+                  {t("home.heroSubtitle")}
+                </p>
+                <div className="mt-7 flex items-center gap-3">
+                  <Button size="lg" color="primary" className="rounded-2xl px-7 font-black shadow-xl shadow-primary/20 h-12 text-sm" onClick={() => router.push("/doctors")}>
+                    {t("home.bookConsultation")}
+                  </Button>
+                </div>
+              </>
+            )}
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-bold text-slate-500">
               <span className="flex items-center gap-1.5"><FaShieldAlt className="text-emerald-500" /> {t("home.verifiedSpecialists")}</span>
               <span className="flex items-center gap-1.5"><FaVideo className="text-primary" /> {t("home.secureVideoCare")}</span>

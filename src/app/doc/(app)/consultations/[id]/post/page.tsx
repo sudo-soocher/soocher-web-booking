@@ -52,6 +52,16 @@ export default function PostConsultPage() {
     consultation?.patientName ||
     "Patient";
 
+  // "Post-Consult Actions" is a permanent shortcut on the consultation detail
+  // page, reachable at any time — not only after the session has actually
+  // ended (via the room's "Leave" button or the expiration window passing).
+  // The header must reflect which case this is, instead of always claiming
+  // the consultation already ended.
+  const hasEnded = Boolean(
+    consultation?.videoConsultDone ||
+      (consultation && Date.now() > consultation.consultationExpiration)
+  );
+
   const handleSaveNotes = async () => {
     await updateDoc(doc(db, "Consultations", params.id), { clinicalNotes });
     setNotesSaved(true);
@@ -91,10 +101,11 @@ export default function PostConsultPage() {
           <FaCheckCircle className="text-3xl" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-          Consultation ended
+          {hasEnded ? "Consultation ended" : "Post-consult actions"}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Session with <span className="font-semibold text-slate-700">{patientName}</span>
+          {hasEnded ? "Session with" : "For your session with"}{" "}
+          <span className="font-semibold text-slate-700">{patientName}</span>
         </p>
       </motion.div>
 

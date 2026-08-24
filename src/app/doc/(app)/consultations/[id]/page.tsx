@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { Avatar, Chip, Divider } from "@heroui/react";
+import { Chip, Divider } from "@heroui/react";
 import {
   FaArrowLeft,
   FaVideo,
@@ -17,6 +17,7 @@ import {
   FaPrescriptionBottleAlt,
   FaEye,
   FaStickyNote,
+  FaUser,
 } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/doctor/components/ui/Button";
@@ -24,7 +25,6 @@ import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import {
   fetchConsultationById,
   epochToTime,
-  epochToDateStr,
   deriveStatus,
   type FirestoreConsultation,
 } from "@/doctor/services/consultations";
@@ -34,15 +34,6 @@ const ChatSidebar = dynamic(
   () => import("@/doctor/components/chat/ChatSidebar").then((m) => m.ChatSidebar),
   { ssr: false }
 );
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 export default function AppointmentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -100,7 +91,6 @@ export default function AppointmentDetailPage() {
   const status = deriveStatus(consultation);
   const startTime = epochToTime(consultation.consultationTime);
   const endTime = epochToTime(consultation.consultationExpiration);
-  const dateStr = epochToDateStr(consultation.consultationTime);
   const formattedDate = new Date(consultation.consultationTime).toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -109,46 +99,46 @@ export default function AppointmentDetailPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl pb-48 md:pb-8">
+    <div className="doctor-detail-page mx-auto max-w-3xl pb-48 md:pb-8">
       {/* Back navigation — router.back() returns to the list with the same tab
           (?tab=past, ?tab=upcoming, …) preserved. Falls back to the list root
           if there's no in-app history (direct link). */}
-      <motion.button
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        onClick={() => {
-          if (typeof window !== "undefined" && window.history.length > 1) {
-            router.back();
-          } else {
-            router.push("/doc/consultations");
-          }
-        }}
-        className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-primary"
-      >
-        <FaArrowLeft className="text-xs" /> Back to Consultations
-      </motion.button>
-
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">Appointment Detail</h1>
-      </motion.div>
+      <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 flex items-center gap-3">
+        <button
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) router.back();
+            else router.push("/doc/consultations");
+          }}
+          aria-label="Back to consultations"
+          className="doctor-tap grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-slate-200/80 bg-white text-slate-600 shadow-sm transition hover:border-primary-200 hover:text-primary"
+        >
+          <FaArrowLeft className="text-xs" />
+        </button>
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">Consultation</p>
+          <h1 className="text-[1.55rem] font-black leading-tight tracking-[-0.04em] text-slate-950 md:text-3xl">Appointment details</h1>
+        </div>
+      </motion.header>
 
       {/* Patient hero card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="premium-card mb-4 p-6"
+        className="doctor-patient-card mb-4 overflow-hidden rounded-[26px] border border-white/80 bg-white/90 p-5 md:p-7"
       >
-        <div className="flex items-start gap-4">
-          <Avatar
-            name={getInitials(patientName)}
-            className="h-14 w-14 shrink-0 bg-primary-100 text-lg font-bold text-primary"
-            size="lg"
-          />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-black tracking-tight text-slate-900">{patientName}</h2>
+        <div className="relative flex items-center gap-4">
+          <div className="doctor-patient-avatar relative grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[24px] text-white">
+            <FaUser className="text-[28px]" />
+            <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-[3px] border-white bg-emerald-500">
+              <span className="h-2 w-2 rounded-full bg-white" />
+            </span>
+          </div>
+          <div className="min-w-0 flex-1 pr-20">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">Patient</p>
+            <h2 className="mt-0.5 truncate text-xl font-black tracking-[-0.03em] text-slate-950 md:text-2xl">{patientName}</h2>
             {patientDetails && (
-              <p className="mt-0.5 text-sm text-slate-500">
+              <p className="mt-1 text-sm font-medium text-slate-500">
                 {patientDetails.patientAge} yrs · {patientDetails.gender}
                 {patientDetails.relationship !== "self" && (
                   <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
@@ -158,32 +148,37 @@ export default function AppointmentDetailPage() {
               </p>
             )}
           </div>
+          <span className={`absolute right-0 top-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider ${
+            status === "completed" ? "bg-emerald-50 text-emerald-700"
+            : status === "cancelled" ? "bg-rose-50 text-rose-600"
+            : "bg-amber-50 text-amber-700"
+          }`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" /> {status}
+          </span>
         </div>
 
-        <Divider className="my-4" />
-
         {/* Consultation info grid */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary">
+        <div className="mt-5 grid grid-cols-2 gap-2.5 border-t border-slate-100 pt-5 md:gap-3">
+          <div className="doctor-detail-metric flex items-center gap-2.5 rounded-2xl bg-blue-50/70 p-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-primary shadow-sm">
               <FaCalendarAlt className="text-sm" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Date</p>
-              <p className="text-xs font-bold text-slate-700">{formattedDate}</p>
+              <p className="mt-0.5 text-[11px] font-extrabold leading-4 text-slate-700 md:text-xs">{formattedDate}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary">
+          <div className="doctor-detail-metric flex items-center gap-2.5 rounded-2xl bg-violet-50/70 p-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-violet-600 shadow-sm">
               <FaClock className="text-sm" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Time</p>
-              <p className="text-xs font-bold text-slate-700">{startTime} – {endTime}</p>
+              <p className="mt-0.5 whitespace-nowrap text-[11px] font-extrabold text-slate-700 md:text-xs">{startTime} – {endTime}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${meetLink ? "bg-primary-50 text-primary" : "bg-emerald-50 text-emerald-600"}`}>
+          <div className="doctor-detail-metric flex items-center gap-2.5 rounded-2xl bg-cyan-50/70 p-3">
+            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white shadow-sm ${meetLink ? "text-primary" : "text-emerald-600"}`}>
               {meetLink ? <FaVideo className="text-sm" /> : <FaCommentDots className="text-sm" />}
             </div>
             <div>
@@ -191,17 +186,13 @@ export default function AppointmentDetailPage() {
               <p className="text-xs font-bold text-slate-700">{meetLink ? "Video" : "Chat"}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-              status === "completed" ? "bg-emerald-50 text-emerald-600"
-              : status === "cancelled" ? "bg-rose-50 text-rose-500"
-              : "bg-amber-50 text-amber-600"
-            }`}>
-              <div className="h-2.5 w-2.5 rounded-full bg-current" />
+          <div className="doctor-detail-metric flex items-center gap-2.5 rounded-2xl bg-amber-50/70 p-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-amber-600 shadow-sm">
+              <FaStethoscope className="text-sm" />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Status</p>
-              <p className="text-xs font-bold capitalize text-slate-700">{status}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Visit</p>
+              <p className="text-xs font-bold capitalize text-slate-700">{status === "completed" ? "Finished" : status}</p>
             </div>
           </div>
         </div>
@@ -213,7 +204,7 @@ export default function AppointmentDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mb-4 overflow-hidden rounded-2xl border border-primary-200 bg-primary-50 p-4"
+          className="doctor-detail-card mb-4 overflow-hidden rounded-[22px] border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/70 p-4 md:p-5"
         >
           <div className="mb-3 flex items-center gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-white shadow-sm shadow-primary/30">
@@ -243,7 +234,7 @@ export default function AppointmentDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="premium-card mb-4 p-6"
+          className="doctor-detail-card mb-4 rounded-[22px] border border-white/80 bg-white/90 p-5 md:p-6"
         >
           <div className="mb-3 flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary-50 text-primary shadow-sm">
@@ -275,7 +266,7 @@ export default function AppointmentDetailPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="premium-card mb-4 p-6"
+        className="doctor-detail-card mb-4 rounded-[22px] border border-white/80 bg-white/90 p-5 md:p-6"
       >
         <h3 className="mb-3 text-base font-black tracking-tight text-slate-900">Session Info</h3>
         <div className="space-y-2 text-sm">
@@ -317,7 +308,7 @@ export default function AppointmentDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="premium-card mb-4 overflow-hidden p-0"
+          className="doctor-detail-card mb-4 overflow-hidden rounded-[22px] border border-white/80 bg-white/90 p-0"
         >
           <div className="flex items-center justify-between px-6 pt-5 pb-3">
             <h3 className="text-base font-black tracking-tight text-slate-900">Post-Consultation</h3>
@@ -379,7 +370,7 @@ export default function AppointmentDetailPage() {
       )}
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+5rem))] left-0 right-0 z-50 flex flex-col gap-2 border-t border-slate-100 bg-[#F8FAFC]/95 px-4 pb-3 pt-3 backdrop-blur-sm md:static md:flex-row md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+      <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+5rem))] left-0 right-0 z-50 flex flex-col gap-2 rounded-t-[24px] border-t border-white/80 bg-white/90 px-4 pb-3 pt-3 shadow-[0_-14px_36px_-24px_rgba(15,23,42,.45)] backdrop-blur-xl md:static md:flex-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
         {status !== "completed" && status !== "cancelled" && (
           consultation.extras?.streamCallId ? (
             <Button

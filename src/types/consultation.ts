@@ -13,6 +13,30 @@ interface ConsultationExtras {
   patientDetails: PatientDetails;
 }
 
+export interface PrescriptionMedicine {
+  id: string;
+  name: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+  instructions?: string;
+}
+
+// Written by the doctor app's post-consultation flow onto this same
+// Consultations/{id} document — see src/doctor/types/consultation.ts for the
+// authoring side. Optional here since most consultations never get one.
+export interface Prescription {
+  appointmentId?: string;
+  patientName?: string;
+  patientAge?: number;
+  date?: string;
+  diagnosis?: string;
+  medicines?: PrescriptionMedicine[];
+  advice?: string | null;
+  followUpDate?: string | null;
+  savedAt?: number;
+}
+
 export interface Consultation {
   // Basic Information
   consultationId: string;
@@ -66,6 +90,10 @@ export interface Consultation {
   patientWhatsApp?: string;
   doctorWhatsApp?: string;
   wa_noti_15min: boolean;
+
+  // Post-consultation record — see Prescription above.
+  prescription?: Prescription;
+  clinicalNotes?: string;
 }
 
 // Helper function to check if consultation is active
