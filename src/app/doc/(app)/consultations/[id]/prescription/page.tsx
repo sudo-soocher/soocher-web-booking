@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Chip } from "@heroui/react";
 import {
@@ -49,6 +49,9 @@ export default function PrescriptionBuilderPage() {
 
   // Guard so autosave never fires before the initial load completes
   const hasLoaded = useRef(false);
+
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const ctaBarRef = useRef<HTMLDivElement>(null);
 
   // Fetch consultation + restore draft (localStorage first, Firestore fallback)
   useEffect(() => {
@@ -100,6 +103,71 @@ export default function PrescriptionBuilderPage() {
     try { localStorage.setItem(storageKey, JSON.stringify(draft)); } catch { /* ignore */ }
   }, [diagnosis, medicines, advice, followUpDate, params.id, storageKey, patientName, patientAge]);
 
+  // This page's own scroll container is the shared doctor-app <main>
+  // (.doctor-mobile-main from the (app) layout) — the document itself never
+  // scrolls. The browser's default "scroll the focused field into view"
+  // doesn't know about this page's sticky Patient Details header or its
+  // fixed bottom CTA bar, so on focus it can land a field half-hidden
+  // behind one of them, then the keyboard opening nudges it again — the
+  // repeated correction is what read as "auto scrolling" and a glitchy
+  // cursor position. This replaces that guesswork with an explicit
+  // calculation, same approach already used for doctor onboarding.
+  const revealFocusedField = useCallback((element: HTMLElement, behavior: ScrollBehavior = "smooth") => {
+    const scrollContainer = element.closest<HTMLElement>(".doctor-mobile-main");
+    if (!scrollContainer) return;
+
+    const viewport = window.visualViewport;
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const fieldRect = element.getBoundingClientRect();
+    const stickyHeight = stickyHeaderRef.current?.offsetHeight ?? 0;
+    const ctaHeight = ctaBarRef.current?.offsetHeight ?? 0;
+    const visualBottom = viewport
+      ? Math.min(containerRect.bottom, viewport.offsetTop + viewport.height)
+      : containerRect.bottom;
+
+    const visibleTop = containerRect.top + stickyHeight + 14;
+    const visibleBottom = visualBottom - ctaHeight - 14;
+    if (fieldRect.top >= visibleTop && fieldRect.bottom <= visibleBottom) return;
+
+    const availableHeight = Math.max(80, visibleBottom - visibleTop);
+    const targetTop = visibleTop + Math.max(8, (availableHeight - fieldRect.height) / 2);
+    scrollContainer.scrollBy({ top: fieldRect.top - targetTop, behavior });
+  }, []);
+
+  useEffect(() => {
+    const isEditableTarget = (element: HTMLElement) =>
+      element.matches("input, textarea, select");
+
+    let focusTimer: number | undefined;
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !isEditableTarget(target)) return;
+      window.clearTimeout(focusTimer);
+      revealFocusedField(target);
+      // Keyboards animate open after focus fires — recheck once it settles,
+      // otherwise the correction runs against the pre-keyboard geometry.
+      focusTimer = window.setTimeout(() => revealFocusedField(target), 360);
+    };
+
+    const handleViewportChange = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && isEditableTarget(active)) {
+        window.clearTimeout(focusTimer);
+        focusTimer = window.setTimeout(() => revealFocusedField(active), 80);
+      }
+    };
+
+    document.addEventListener("focusin", handleFocusIn);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("scroll", handleViewportChange);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("focusin", handleFocusIn);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, [revealFocusedField]);
+
   const addMedicine = () => setMedicines((p) => [...p, emptyMedicine()]);
   const removeMedicine = (id: string) => setMedicines((p) => p.filter((m) => m.id !== id));
   const updateMedicine = (id: string, field: keyof Medicine, value: string) =>
@@ -132,7 +200,7 @@ export default function PrescriptionBuilderPage() {
       <div className="flex flex-col gap-4">
 
         {/* Patient Details — sticky so context is always visible while filling the form */}
-        <motion.div custom={0} initial="hidden" animate="visible" variants={section}
+        <motion.div custom={0} initial="hidden" animate="visible" variants={section} ref={stickyHeaderRef}
           className="sticky top-0 z-20 rounded-2xl border border-slate-100 bg-white p-5 shadow-md">
           <h3 className="mb-4 flex items-center gap-2 font-black tracking-tight text-slate-900">
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary-50 text-primary">
@@ -265,7 +333,7 @@ export default function PrescriptionBuilderPage() {
       </div>
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+5rem))] left-0 right-0 z-50 border-t border-slate-100 bg-[#F8FAFC]/95 px-4 pb-3 pt-3 backdrop-blur-sm md:static md:mt-6 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+      <div ref={ctaBarRef} className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+5rem))] left-0 right-0 z-50 border-t border-slate-100 bg-[#F8FAFC]/95 px-4 pb-3 pt-3 backdrop-blur-sm md:static md:mt-6 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <Button color="primary" size="lg"
           className="h-14 w-full rounded-2xl text-base font-bold text-white shadow-2xl shadow-primary/25 md:rounded-full"
           endContent={<FaArrowRight />}
