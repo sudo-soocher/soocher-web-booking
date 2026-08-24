@@ -171,8 +171,14 @@ export const StreamChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const unreadById = new Map(
         unreadChannels.map((channel) => [channel.channel_id, channel.unread_count])
       );
+      // Despite its name, `channel_id` on getUnreadCount()'s response is
+      // already the full CID ("messaging:abc123"), not a bare channel id —
+      // a known Stream Chat API naming quirk. Prepending "messaging:" again
+      // produced a double-prefixed, malformed CID ("messaging:messaging:…"),
+      // which is exactly what Stream's "did you pass a channel id instead
+      // of channel cid?" error is complaining about.
       const channels = await client.queryChannels(
-        { cid: { $in: unreadChannels.map((channel) => `messaging:${channel.channel_id}`) } },
+        { cid: { $in: unreadChannels.map((channel) => channel.channel_id) } },
         {},
         { state: true, watch: false, limit: 100, message_limit: 0 }
       );

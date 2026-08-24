@@ -15,6 +15,7 @@ import {
   FaVenusMars,
 } from "react-icons/fa";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
+import { DoctorNotificationBell } from "@/doctor/components/layout/DoctorNotificationBell";
 import { useAuth } from "@/doctor/lib/auth";
 import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import {
@@ -143,17 +144,20 @@ export default function PatientsPage() {
   const firstName = fullName.split(/\s+/)[0] || "";
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Back nav */}
-      <motion.button
-        initial={{ opacity: 0, x: -8 }}
-        animate={{ opacity: 1, x: 0 }}
-        onClick={handleBack}
-        className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-100 transition hover:text-primary hover:ring-primary-200 md:mb-6"
-      >
-        <FaArrowLeft className="text-[10px]" />
-        Back
-      </motion.button>
+      <div className="mb-4 flex items-center justify-between gap-3 md:mb-6">
+        <motion.button
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-100 transition hover:text-primary hover:ring-primary-200"
+        >
+          <FaArrowLeft className="text-[10px]" />
+          Back
+        </motion.button>
+        <DoctorNotificationBell className="lg:hidden" />
+      </div>
 
       <VerificationBanner />
 

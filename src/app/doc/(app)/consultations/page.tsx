@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
+import { DoctorNotificationBell } from "@/doctor/components/layout/DoctorNotificationBell";
 import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import { useAuth } from "@/doctor/lib/auth";
 import {
@@ -295,14 +296,17 @@ export default function ConsultationsPage() {
   const counts  = { today: buckets.today.length, upcoming: buckets.upcoming.length, past: buckets.past.length };
 
   return (
-    <div className="mx-auto max-w-2xl lg:max-w-4xl">
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
-          Consultations
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Join, manage, and review every patient session.
-        </p>
+    <div className="mx-auto max-w-2xl lg:max-w-4xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
+            Consultations
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Join, manage, and review every patient session.
+          </p>
+        </div>
+        <DoctorNotificationBell className="lg:hidden" />
       </motion.div>
 
       <div className="mt-5">

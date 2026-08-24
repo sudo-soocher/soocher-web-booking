@@ -15,7 +15,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           Desktop: revert to natural document flow so the sticky sidebar keeps
           working and long pages scroll the page, not the main pane.
         */}
-        <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#F8FAFC] lg:h-auto lg:min-h-[100dvh] lg:flex-row lg:overflow-visible">
+        <div className="doctor-app-viewport flex h-[100dvh] flex-col overflow-hidden bg-[#F5F7FA] lg:h-auto lg:min-h-[100dvh] lg:flex-row lg:overflow-visible">
           <DoctorSidebar />
           {/*
             `min-h-0` is critical inside a flex column — without it, flex
@@ -24,7 +24,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             document scroll instead. That's why the BottomNav was still being
             dragged by rubber-band — the doc, not <main>, was scrolling.
           */}
-          <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] pt-4 md:px-8 md:py-8 lg:min-h-[unset] lg:overflow-y-visible lg:overscroll-y-auto lg:pb-8">
+          <main className="doctor-mobile-main min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] pt-4 md:px-7 md:py-7 lg:min-h-[unset] lg:overflow-y-visible lg:overscroll-y-auto lg:px-9 lg:py-8 xl:px-12">
             {children}
           </main>
           <BottomNav />
