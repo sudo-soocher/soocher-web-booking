@@ -89,17 +89,22 @@ export default function NativeAuthPage() {
      * point that can. A doctor must never land on the patient home screen:
      *   - doctor, onboarding finished  → /doc/dashboard
      *   - doctor, onboarding unfinished → /doc/onboarding
-     *   - patient                       → /
+     *   - patient, profile complete    → /
+     *   - patient, profile incomplete  → /login (registration form)
+     *
+     * The `?complete=1` marker on that last case isn't read by /login itself
+     * (its own onAuthStateChanged already detects the incomplete profile from
+     * Firestore) — it exists purely so the Flutter WebView shell can tell this
+     * apart from a real logout/auth-failure landing on /login. See
+     * `_isLoginUrl`/`_isAuthFlowUrl` in the Flutter app's web_view_screen.dart.
      */
     const goToAccountHome = async (uid: string, path: string) => {
       let target = "/";
       try {
-        // destinationPath() returns null for a patient with an incomplete
-        // profile; the patient home handles that case already, so "/" stands.
         target =
           destinationPath(
             await withTimeout(resolveDestination(uid), AUTH_TIMEOUT_MS)
-          ) ?? "/";
+          ) ?? "/login?complete=1";
       } catch (err) {
         console.error("[native-auth] could not resolve account type:", err);
       }
