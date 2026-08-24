@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Autocomplete, AutocompleteItem, Input } from "@heroui/react";
 import { FaSearch } from "react-icons/fa";
@@ -23,6 +23,17 @@ export default function LicenceStep() {
   const [docUrl, setDocUrl] = useState<string | undefined>();
   const [aadhaar, setAadhaar] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Autocomplete's built-in filtering only runs against `defaultItems`
+  // (uncontrolled input state) — once `inputValue` is controlled, as it must
+  // be here to also accept a typed value not in the list, the list has to be
+  // filtered by hand and passed as `items` instead, or every keystroke shows
+  // the full unfiltered list.
+  const filteredCouncils = useMemo(() => {
+    const q = council.trim().toLowerCase();
+    if (!q) return MEDICAL_COUNCILS;
+    return MEDICAL_COUNCILS.filter((c) => c.toLowerCase().includes(q));
+  }, [council]);
 
   useEffect(() => {
     if (!profile) return;
@@ -68,7 +79,7 @@ export default function LicenceStep() {
         hint="Not listed? Just type your council's full name."
       >
         <Autocomplete
-          defaultItems={MEDICAL_COUNCILS.map((c) => ({ key: c }))}
+          items={filteredCouncils.map((c) => ({ key: c }))}
           inputValue={council}
           onInputChange={setCouncil}
           onSelectionChange={(key) => {
@@ -80,6 +91,7 @@ export default function LicenceStep() {
           placeholder="Search or type your council…"
           menuTrigger="input"
           allowsCustomValue
+          isClearable={false}
           startContent={<FaSearch className="text-slate-400" />}
           inputProps={{ classNames: inputClassNames }}
           classNames={autocompleteClassNames}

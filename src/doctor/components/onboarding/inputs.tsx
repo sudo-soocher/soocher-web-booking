@@ -58,11 +58,17 @@ export function ImageUploader({ value, onChange, upload, disabled }: UploaderPro
         <span className="text-[11px] leading-4 text-slate-500 sm:text-xs">PNG or JPG, up to 5 MB.</span>
         {error && <span className="text-xs font-bold text-rose-600">{error}</span>}
       </div>
+      {/* sr-only, not `hidden` (display:none): the Flutter app's iOS WebView
+          (WKWebView) has no Flutter-level file-selector API the way Android
+          does — it relies entirely on WKWebView's own native picker, which
+          silently does nothing for a file input that's display:none, since
+          it isn't actually in the render tree. sr-only keeps it invisible
+          without removing it from layout, so the native picker still opens. */}
       <input
         ref={inputRef}
         type="file"
         accept="image/png,image/jpeg"
-        className="hidden"
+        className="sr-only"
         onChange={(e) => e.target.files?.[0] && handle(e.target.files[0])}
       />
     </div>
@@ -118,11 +124,14 @@ export function FileUploader({ value, onChange, upload, disabled }: UploaderProp
         )}
       </button>
       {error && <p className="mt-2 text-xs font-bold text-rose-600">{error}</p>}
+      {/* sr-only, not `hidden` — see the note on ImageUploader's file input
+          above; same fix, same reason (WKWebView's native file picker on
+          iOS silently no-ops for a display:none input). */}
       <input
         ref={inputRef}
         type="file"
         accept=".pdf,image/png,image/jpeg"
-        className="hidden"
+        className="sr-only"
         onChange={(e) => e.target.files?.[0] && handle(e.target.files[0])}
       />
     </div>
