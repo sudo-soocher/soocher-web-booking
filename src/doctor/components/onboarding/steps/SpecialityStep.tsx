@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Input, Select, SelectItem } from "@heroui/react";
-import { ErrorBanner, Field, StepShell, inputClassNames, selectClassNames } from "@/doctor/components/onboarding/shell";
+import { Autocomplete, AutocompleteItem, Input } from "@heroui/react";
+import { FaSearch } from "react-icons/fa";
+import { ErrorBanner, Field, StepShell, autocompleteClassNames, inputClassNames } from "@/doctor/components/onboarding/shell";
 import { ChipMultiSelect } from "@/doctor/components/onboarding/inputs";
 import { useAuth } from "@/doctor/lib/auth";
 import { useStepSave } from "@/doctor/lib/edit-mode";
@@ -40,19 +41,26 @@ export default function SpecialityStep() {
   return (
     <StepShell {...meta} onNext={handleNext}>
       <Field label="Primary speciality" required>
-        <Select
-          selectedKeys={primary ? [primary] : []}
-          onChange={(e) => setPrimary(e.target.value)}
+        <Autocomplete
+          defaultItems={SPECIALITIES.map((s) => ({ key: s }))}
+          selectedKey={primary || null}
+          onSelectionChange={(key) => setPrimary((key as string | null) ?? "")}
           variant="bordered"
           radius="lg"
           size="lg"
-          placeholder="Select"
-          classNames={selectClassNames}
+          placeholder="Search speciality (e.g. Cardiology)…"
+          menuTrigger="input"
+          allowsCustomValue={false}
+          startContent={<FaSearch className="text-slate-400" />}
+          inputProps={{ classNames: inputClassNames }}
+          classNames={autocompleteClassNames}
         >
-          {SPECIALITIES.map((s) => (
-            <SelectItem key={s}>{s}</SelectItem>
-          ))}
-        </Select>
+          {(item) => (
+            <AutocompleteItem key={item.key} textValue={item.key}>
+              {item.key}
+            </AutocompleteItem>
+          )}
+        </Autocomplete>
       </Field>
 
       <Field label="Sub-specialities" hint="Pick from the suggestions or add your own.">
