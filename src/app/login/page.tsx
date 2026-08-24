@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@heroui/react";
 import { FcGoogle } from "react-icons/fc";
 import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
@@ -539,17 +538,15 @@ export default function Login() {
                 <label htmlFor="registration-name" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
                   {t("profile.name")} <span className="text-danger">*</span>
                 </label>
-                <Input
+                <input
                   id="registration-name"
                   aria-label={t("profile.name")}
-                  variant="bordered"
-                  radius="lg"
-                  isRequired
+                  required
                   value={registrationData.name}
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, name: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
                 />
               </div>
 
@@ -557,18 +554,16 @@ export default function Login() {
                 <label htmlFor="registration-email" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
                   {t("profile.email")} <span className="text-danger">*</span>
                 </label>
-                <Input
+                <input
                   id="registration-email"
                   aria-label={t("profile.email")}
                   type="email"
-                  variant="bordered"
-                  radius="lg"
-                  isRequired
+                  required
                   value={registrationData.email}
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, email: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
                 />
               </div>
 
@@ -576,18 +571,16 @@ export default function Login() {
                 <label htmlFor="registration-dob" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
                   {t("profile.dob")} <span className="text-danger">*</span>
                 </label>
-                <Input
+                <input
                   id="registration-dob"
                   aria-label={t("profile.dob")}
                   type="date"
-                  variant="bordered"
-                  radius="lg"
-                  isRequired
+                  required
                   value={registrationData.dob}
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, dob: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "min-w-0 text-base md:text-sm" }}
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
                 />
               </div>
 
@@ -616,16 +609,14 @@ export default function Login() {
                 <label htmlFor="registration-state" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
                   {t("profile.state")}
                 </label>
-                <Input
+                <input
                   id="registration-state"
                   aria-label={t("profile.state")}
-                  variant="bordered"
-                  radius="lg"
                   value={registrationData.currentState}
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, currentState: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
                 />
               </div>
 
@@ -633,16 +624,14 @@ export default function Login() {
                 <label htmlFor="registration-district" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
                   {t("login.district")}
                 </label>
-                <Input
+                <input
                   id="registration-district"
                   aria-label={t("login.district")}
-                  variant="bordered"
-                  radius="lg"
                   value={registrationData.currentCity}
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, currentCity: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
                 />
               </div>
 
