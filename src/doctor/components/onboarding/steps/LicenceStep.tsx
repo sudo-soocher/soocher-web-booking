@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Input, Select, SelectItem } from "@heroui/react";
-import { ErrorBanner, Field, StepShell, inputClassNames, selectClassNames } from "@/doctor/components/onboarding/shell";
+import { Autocomplete, AutocompleteItem, Input } from "@heroui/react";
+import { FaSearch } from "react-icons/fa";
+import { ErrorBanner, Field, StepShell, autocompleteClassNames, inputClassNames } from "@/doctor/components/onboarding/shell";
 import { FileUploader } from "@/doctor/components/onboarding/inputs";
 import { useAuth } from "@/doctor/lib/auth";
 import { MEDICAL_COUNCILS, STEPS, getNextStepSlug, saveStep, uploadDoctorFile } from "@/doctor/lib/onboarding";
@@ -61,20 +62,34 @@ export default function LicenceStep() {
 
   return (
     <StepShell {...meta} onNext={handleNext}>
-      <Field label="Medical council" required>
-        <Select
-          selectedKeys={council ? [council] : []}
-          onChange={(e) => setCouncil(e.target.value)}
+      <Field
+        label="Medical council"
+        required
+        hint="Not listed? Just type your council's full name."
+      >
+        <Autocomplete
+          defaultItems={MEDICAL_COUNCILS.map((c) => ({ key: c }))}
+          inputValue={council}
+          onInputChange={setCouncil}
+          onSelectionChange={(key) => {
+            if (key) setCouncil(key as string);
+          }}
           variant="bordered"
           radius="lg"
           size="lg"
-          placeholder="Select"
-          classNames={selectClassNames}
+          placeholder="Search or type your council…"
+          menuTrigger="input"
+          allowsCustomValue
+          startContent={<FaSearch className="text-slate-400" />}
+          inputProps={{ classNames: inputClassNames }}
+          classNames={autocompleteClassNames}
         >
-          {MEDICAL_COUNCILS.map((c) => (
-            <SelectItem key={c}>{c}</SelectItem>
-          ))}
-        </Select>
+          {(item) => (
+            <AutocompleteItem key={item.key} textValue={item.key}>
+              {item.key}
+            </AutocompleteItem>
+          )}
+        </Autocomplete>
       </Field>
 
       <Field label="Registration number" required>
