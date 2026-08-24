@@ -406,10 +406,15 @@ body {
   background: rgba(46, 109, 212, 0.25);
 }
 
-/* User/doctor consultation chat. Follow iOS's visual viewport while the
-   keyboard animates instead of retaining the taller pre-keyboard layout. */
+/* User/doctor consultation chat, and the login/registration screen. Follow
+   iOS's visual viewport while the keyboard animates instead of retaining the
+   taller pre-keyboard layout — without this, a focused field near the bottom
+   of a tall form (e.g. the registration form's later fields) left a gap of
+   blank space at the top where content the stale 100dvh height had reserved
+   used to be. */
 .mobile-chat-viewport,
-.soocher-chat-screen {
+.soocher-chat-screen,
+.login-page {
   top: 0 !important;
   bottom: auto !important;
   height: var(--mobile-visual-viewport-height, 100dvh) !important;
@@ -417,6 +422,18 @@ body {
   overscroll-behavior: none;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+}
+
+/* Doctor onboarding wants this ONLY below lg (1024px) — above that it
+   deliberately switches to natural document flow (lg:h-auto,
+   lg:overflow-visible in the component). Scoped to a media query instead of
+   joining the unconditional rule above, so it can never fight that desktop
+   behavior the way an unscoped !important height would. */
+@media (max-width: 1023px) {
+  .doctor-onboarding-viewport {
+    height: var(--mobile-visual-viewport-height, 100dvh) !important;
+    max-height: var(--mobile-visual-viewport-height, 100dvh) !important;
+  }
 }
 
 .soocher-chat-screen .str-chat,

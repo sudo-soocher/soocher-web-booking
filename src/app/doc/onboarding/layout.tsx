@@ -5,12 +5,21 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/doctor/lib/auth";
 import { ProgressHeader } from "@/doctor/components/onboarding/shell";
 import { PageLoader } from "@/doctor/components/ui/PageLoader";
+import { useMobileVisualViewport } from "@/hooks/useMobileVisualViewport";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const { user, status, loading, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname() || "";
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // The revealFocusedField effect below already compensates for the
+  // keyboard when computing where to scroll to, but that only adjusts
+  // scroll position — the outer h-[100dvh] container's actual rendered
+  // height never shrinks (WKWebView can keep reporting the pre-keyboard
+  // 100dvh), so the CTA bar and lower content can end up sitting behind the
+  // keyboard rather than above it. Same fix already used for /login and the
+  // chat viewport.
+  const viewportRef = useMobileVisualViewport<HTMLDivElement>(true);
 
   useEffect(() => {
     if (loading) return;
@@ -106,7 +115,10 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     // Outer div locks viewport height and clips overscroll on mobile.
     // flex-col makes the header a natural in-flow sibling of the scroll
     // container so no padding-top calculation is needed in the content.
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#F8FAFC] lg:h-auto lg:min-h-[100dvh] lg:overflow-visible">
+    <div
+      ref={viewportRef}
+      className="doctor-onboarding-viewport flex h-[100dvh] flex-col overflow-hidden bg-[#F8FAFC] lg:h-auto lg:min-h-[100dvh] lg:overflow-visible"
+    >
       {showHeader && <ProgressHeader currentSlug={slug} />}
       <div ref={scrollContainerRef} className="doctor-onboarding-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain lg:overflow-visible">
         {children}

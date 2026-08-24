@@ -30,8 +30,15 @@ import {
 import { createNewPatient } from "@/types/patient";
 import OtpInput from "@/components/forms/OtpInput";
 import { HomeShimmer } from "@/components/loading/HomeShimmer";
+import { useMobileVisualViewport } from "@/hooks/useMobileVisualViewport";
 
 export default function Login() {
+  // 100dvh can briefly keep describing the pre-keyboard height in WKWebView,
+  // which left a gap of blank space at the top of the page when a field near
+  // the bottom of the registration form was focused. Always active — harmless
+  // when no field is focused, and the login/OTP forms can trigger the
+  // keyboard too. Same fix already used for the chat viewport.
+  const viewportRef = useMobileVisualViewport<HTMLElement>(true);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showOTPInput, setShowOTPInput] = useState(false);
@@ -352,7 +359,10 @@ export default function Login() {
   }
 
   return (
-    <main className="login-page relative h-[100dvh] min-h-0 w-full max-w-full overflow-hidden bg-[#F4F8FF] px-3 pb-3 pt-16 md:px-8 md:pb-8 md:pt-24">
+    <main
+      ref={viewportRef}
+      className="login-page relative h-[100dvh] min-h-0 w-full max-w-full overflow-hidden bg-[#F4F8FF] px-3 pb-3 pt-16 md:px-8 md:pb-8 md:pt-24"
+    >
       <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
 
