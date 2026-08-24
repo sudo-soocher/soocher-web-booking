@@ -172,8 +172,28 @@ export function Field({
       })
     : children;
 
+  // Neither iOS WKWebView nor Android WebView reliably auto-scrolls a
+  // focused input above the keyboard the way a real browser tab does — the
+  // scroll-mt/scroll-mb classes above are inert without something to trigger
+  // a scroll. Doing it here, once, covers every field on all 12 onboarding
+  // steps instead of wiring it per-step. The delay lets the keyboard's own
+  // resize/animation start first; scrolling immediately fights it and the
+  // field ends up in the wrong place once the keyboard finishes opening.
+  const scrollTimer = React.useRef<number | null>(null);
+  const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (scrollTimer.current) window.clearTimeout(scrollTimer.current);
+    const target = e.target;
+    scrollTimer.current = window.setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+  };
+
   return (
-    <div data-onboarding-field className="block min-w-0 scroll-mt-4 scroll-mb-28">
+    <div
+      data-onboarding-field
+      onFocusCapture={handleFocusCapture}
+      className="block min-w-0 scroll-mt-4 scroll-mb-28"
+    >
       <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
         {label}
         {required && <span className="ml-1 text-rose-500">*</span>}

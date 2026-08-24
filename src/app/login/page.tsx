@@ -549,7 +549,7 @@ export default function Login() {
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, name: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
                 />
               </div>
 
@@ -568,7 +568,7 @@ export default function Login() {
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, email: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
                 />
               </div>
 
@@ -587,7 +587,7 @@ export default function Login() {
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, dob: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "min-w-0 text-sm" }}
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "min-w-0 text-base md:text-sm" }}
                 />
               </div>
 
@@ -603,7 +603,7 @@ export default function Login() {
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, gender: e.target.value })
                   }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
+                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
                 >
                   <option value="">—</option>
                   <option value="Male">{t("profile.genderMale")}</option>
@@ -625,7 +625,7 @@ export default function Login() {
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, currentState: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
                 />
               </div>
 
@@ -642,7 +642,7 @@ export default function Login() {
                   onChange={(e) =>
                     setRegistrationData({ ...registrationData, currentCity: e.target.value })
                   }
-                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-sm" }}
+                  classNames={{ inputWrapper: "h-12 md:h-14 border-slate-200 hover:border-primary/50", input: "text-base md:text-sm" }}
                 />
               </div>
 

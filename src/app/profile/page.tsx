@@ -102,7 +102,11 @@ export default function Profile() {
           setFormData({
             name: data.name || "",
             email: data.email || user.email || "",
-            phoneNumber: data.phoneNumber || "",
+            // Falls back to the signed-in Firebase Auth user's phone number
+            // when Firestore doesn't have one yet — e.g. a native app sign-in
+            // whose account doc was never written with it. Saving the profile
+            // afterwards persists this back to Firestore.
+            phoneNumber: data.phoneNumber || user.phoneNumber || "",
             dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
             gender: data.gender || "",
             currentState: data.currentState || "",
