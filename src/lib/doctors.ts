@@ -57,15 +57,7 @@ export function getCachedDoctorById(doctorId: string): Doctor | null {
   return null;
 }
 
-/**
- * Fetches the verified doctors for one speciality once per session cache window.
- * Both `/doctors` and `/[speciality]` use the same Firestore query, so sharing
- * the result prevents a duplicate billed read when users move between them.
- */
-export function fetchDoctorsBySpeciality(speciality: string): Promise<Doctor[]> {
-  const cached = readCache(speciality);
-  if (cached) return Promise.resolve(cached);
-
+function fetchFresh(speciality: string): Promise<Doctor[]> {
   const pending = inflight.get(speciality);
   if (pending) return pending;
 
@@ -88,4 +80,38 @@ export function fetchDoctorsBySpeciality(speciality: string): Promise<Doctor[]> 
 
   inflight.set(speciality, request);
   return request;
+}
+
+/**
+ * Fetches the verified doctors for one speciality, serving the session cache
+ * when available. Both `/doctors` and `/[speciality]` use the same Firestore
+ * query, so sharing the result prevents a duplicate billed read when users
+ * move between them.
+ *
+ * `onRevalidate` — pass this so a cached (possibly stale) result is still
+ * shown instantly, but a live read runs in the background regardless and
+ * calls back with fresh data if anything differs. Without it, a doctor
+ * editing their profile (e.g. a fee change) wouldn't reach another user's
+ * already-open listing page until the cache's TTL naturally expired — up to
+ * 5 minutes. The doctor detail page already does this same pattern; this
+ * brings the listing pages in line with it.
+ */
+export function fetchDoctorsBySpeciality(
+  speciality: string,
+  onRevalidate?: (doctors: Doctor[]) => void
+): Promise<Doctor[]> {
+  const cached = readCache(speciality);
+  if (cached) {
+    if (onRevalidate) {
+      fetchFresh(speciality)
+        .then(onRevalidate)
+        .catch(() => {
+          // A failed background revalidation just means the cached list
+          // keeps showing — no worse than before this existed.
+        });
+    }
+    return Promise.resolve(cached);
+  }
+
+  return fetchFresh(speciality);
 }

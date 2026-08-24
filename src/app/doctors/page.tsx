@@ -63,27 +63,35 @@ function DoctorsListContent() {
         };
     }, []);
 
+    // Score using fields already on the doctor document — no extra Firestore queries
+    const scoreDoctors = useCallback((doctorsList: Doctor[]) => {
+        return doctorsList.map((doctor) => {
+            const consultCount = (doctor.numOnline || 0) + (doctor.numOffline || 0);
+            const averageRating = doctor.averageRating || 0;
+            const score = consultCount * 3 + averageRating * 2;
+            return { ...doctor, consultCount, score };
+        });
+    }, []);
+
     const fetchDoctorsWithScores = useCallback(async (speciality: string) => {
         setLoading(true);
         try {
-            const doctorsList = await fetchDoctorsBySpeciality(speciality);
-
-            // Score using fields already on the doctor document — no extra Firestore queries
-            const scoredDoctors = doctorsList.map((doctor) => {
-                const consultCount = (doctor.numOnline || 0) + (doctor.numOffline || 0);
-                const averageRating = doctor.averageRating || 0;
-                const score = consultCount * 3 + averageRating * 2;
-                return { ...doctor, consultCount, score };
-            });
+            // onRevalidate: the cached list (if any) renders instantly below, but
+            // a live read always runs alongside it — otherwise a doctor's own
+            // profile edit (e.g. an updated fee) wouldn't reach an already-open
+            // listing page until the cache's TTL expired.
+            const doctorsList = await fetchDoctorsBySpeciality(speciality, (fresh) =>
+                setDoctors(scoreDoctors(fresh))
+            );
 
             // recommendedDoctors is derived via useMemo — just set doctors
-            setDoctors(scoredDoctors);
+            setDoctors(scoreDoctors(doctorsList));
         } catch (error) {
             console.error("Error fetching doctors with scores:", error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [scoreDoctors]);
 
     useEffect(() => {
         fetchDoctorsWithScores(selectedSpeciality);

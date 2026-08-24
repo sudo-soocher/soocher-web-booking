@@ -39,30 +39,37 @@ export default function SpecialityPage() {
   }, [params.speciality]);
 
   useEffect(() => {
+    const applyDoctors = (doctorsList: Doctor[]) => {
+      if (stateParam && cityParam) {
+        const local = doctorsList.filter(
+          (doc) =>
+            doc.currentState.toLowerCase() === stateParam.toLowerCase() &&
+            doc.currentCity.toLowerCase() === cityParam.toLowerCase()
+        );
+        const others = doctorsList.filter(
+          (doc) =>
+            doc.currentState.toLowerCase() !== stateParam.toLowerCase() ||
+            doc.currentCity.toLowerCase() !== cityParam.toLowerCase()
+        );
+
+        setLocalDoctors(local);
+        setOtherDoctors(others);
+      } else {
+        setLocalDoctors([]);
+        setOtherDoctors(doctorsList);
+      }
+    };
+
     const fetchDoctors = async () => {
       setLoading(true);
       try {
         const decodedSpeciality = getDecodedSpeciality();
-        const doctorsList = await fetchDoctorsBySpeciality(decodedSpeciality);
-
-        if (stateParam && cityParam) {
-          const local = doctorsList.filter(
-            (doc) =>
-              doc.currentState.toLowerCase() === stateParam.toLowerCase() &&
-              doc.currentCity.toLowerCase() === cityParam.toLowerCase()
-          );
-          const others = doctorsList.filter(
-            (doc) =>
-              doc.currentState.toLowerCase() !== stateParam.toLowerCase() ||
-              doc.currentCity.toLowerCase() !== cityParam.toLowerCase()
-          );
-
-          setLocalDoctors(local);
-          setOtherDoctors(others);
-        } else {
-          setLocalDoctors([]);
-          setOtherDoctors(doctorsList);
-        }
+        // onRevalidate: a live read always runs alongside the cached result
+        // shown below — otherwise a doctor's own profile edit (e.g. an
+        // updated fee) wouldn't reach an already-open listing page until
+        // the cache's TTL expired.
+        const doctorsList = await fetchDoctorsBySpeciality(decodedSpeciality, applyDoctors);
+        applyDoctors(doctorsList);
       } catch (error) {
         console.error("Error fetching doctors:", error);
       } finally {

@@ -22,6 +22,7 @@ import {
   FaMicrophoneSlash,
   FaVideo,
   FaVideoSlash,
+  FaVolumeUp,
   FaWifi,
 } from "react-icons/fa";
 import { MdCallEnd } from "react-icons/md";
@@ -212,12 +213,13 @@ function ControlButton({ active, danger, label, onClick, children }: { active?: 
 
 function LiveCallUI({ onLeave, participantName }: { onLeave: () => void; participantName: string }) {
   const call = useCall();
-  const { useCallCallingState, useRemoteParticipants, useLocalParticipant, useMicrophoneState, useCameraState } = useCallStateHooks();
+  const { useCallCallingState, useRemoteParticipants, useLocalParticipant, useMicrophoneState, useCameraState, useSpeakerState } = useCallStateHooks();
   const callingState = useCallCallingState();
   const remoteParticipants = useRemoteParticipants();
   const localParticipant = useLocalParticipant();
   const { microphone, isMute: micMuted } = useMicrophoneState();
   const { camera, isMute: cameraOff } = useCameraState();
+  const { speaker, devices: speakerDevices, selectedDevice: selectedSpeaker, isDeviceSelectionSupported: canSelectSpeaker } = useSpeakerState();
   const [ending, setEnding] = useState(false);
   const [ended, setEnded] = useState(false);
   const [deviceNotice, setDeviceNotice] = useState<string | null>(null);
@@ -242,6 +244,13 @@ function LiveCallUI({ onLeave, participantName }: { onLeave: () => void; partici
       setDeviceNotice("Camera access is blocked or unavailable. Allow it in your browser settings and try again.");
     }
   }, [camera, cameraOff]);
+
+  const cycleSpeaker = useCallback(() => {
+    if (!canSelectSpeaker || speakerDevices.length < 2) return;
+    const currentIndex = speakerDevices.findIndex((d) => d.deviceId === selectedSpeaker);
+    const next = speakerDevices[(currentIndex + 1) % speakerDevices.length];
+    if (next) speaker.select(next.deviceId);
+  }, [speaker, speakerDevices, selectedSpeaker, canSelectSpeaker]);
 
   const endCall = useCallback(async () => {
     if (ending) return;
@@ -333,6 +342,9 @@ function LiveCallUI({ onLeave, participantName }: { onLeave: () => void; partici
             <ControlButton active={micMuted} label={micMuted ? "Unmute" : "Mute"} onClick={toggleMicrophone}>{micMuted ? <FaMicrophoneSlash className="text-lg" /> : <FaMicrophone className="text-lg" />}</ControlButton>
             <ControlButton danger label="Hang up" onClick={endCall}><MdCallEnd className={`text-[38px] ${ending ? "animate-pulse" : ""}`} /></ControlButton>
             <ControlButton active={cameraOff} label={cameraOff ? "Start video" : "Camera"} onClick={toggleCamera}>{cameraOff ? <FaVideoSlash className="text-lg" /> : <FaVideo className="text-lg" />}</ControlButton>
+            {canSelectSpeaker && speakerDevices.length > 1 && (
+              <ControlButton label="Speaker" onClick={cycleSpeaker}><FaVolumeUp className="text-lg" /></ControlButton>
+            )}
           </div>
         </div>
       </motion.div>
