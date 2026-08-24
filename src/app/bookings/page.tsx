@@ -18,6 +18,7 @@ import {
   FaShieldAlt,
   FaArrowRight,
   FaUser,
+  FaPrescriptionBottleAlt,
 } from "react-icons/fa";
 import { Consultation } from "@/types/consultation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -589,6 +590,14 @@ export default function Bookings() {
                         <button onClick={() => { onClose(); onChatOpen(); }} className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-left text-primary">
                           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white"><FaComments /></span>
                           <span className="min-w-0 flex-1"><span className="block text-[9px] font-bold uppercase tracking-widest text-primary/60">{t("bookings.chatActive")}</span><span className="block break-words text-sm font-extrabold leading-5">Open chat</span></span>
+                          <FaArrowRight className="shrink-0 text-xs" />
+                        </button>
+                      )}
+
+                      {selectedConsultation.prescription && (
+                        <button onClick={() => router.push(`/prescriptions/${selectedConsultation.consultationId}`)} className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-amber-700">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white"><FaPrescriptionBottleAlt /></span>
+                          <span className="min-w-0 flex-1"><span className="block text-[9px] font-bold uppercase tracking-widest text-amber-600/65">Post-consultation</span><span className="block break-words text-sm font-extrabold leading-5">View prescription</span></span>
                           <FaArrowRight className="shrink-0 text-xs" />
                         </button>
                       )}
