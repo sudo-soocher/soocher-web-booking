@@ -17,6 +17,7 @@ import {
   FaLock,
 } from "react-icons/fa";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
+import { DoctorNotificationBell } from "@/doctor/components/layout/DoctorNotificationBell";
 import { NotVerifiedModal } from "@/doctor/components/profile/NotVerifiedModal";
 import { useAuth } from "@/doctor/lib/auth";
 import type { IconType } from "react-icons";
@@ -70,11 +71,12 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
-<h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
+    <div className="mx-auto max-w-3xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
           Profile
         </h1>
+        <DoctorNotificationBell className="lg:hidden" />
       </motion.div>
 
       <div className="mt-5">

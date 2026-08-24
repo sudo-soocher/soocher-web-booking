@@ -112,6 +112,28 @@ body {
     -webkit-backface-visibility: hidden;
   }
 
+  /* Same WKWebView compositor-thread isolation as .patient-bottom-nav,
+     applied to the doctor-side nav (portaled to document.body). */
+  .doctor-bottom-nav {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100%;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+    contain: layout paint style;
+    isolation: isolate;
+  }
+
+  .doctor-bottom-nav > ul {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
   .mobile-glass-panel {
     border: 1px solid rgba(255, 255, 255, 0.82);
     background:

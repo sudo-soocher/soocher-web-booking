@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaCommentDots, FaLock, FaSearch } from "react-icons/fa";
 import { VerificationBanner } from "@/doctor/components/dashboard/VerificationBanner";
+import { DoctorNotificationBell } from "@/doctor/components/layout/DoctorNotificationBell";
 import { useAuth } from "@/doctor/lib/auth";
 import { DoctorListShimmer } from "@/doctor/components/ui/DoctorShimmer";
 
@@ -115,14 +116,17 @@ export default function MessagesPage() {
   const isVerified = status === "verified";
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
-          Messages
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Every patient you&rsquo;ve consulted with — chats stay open for 7 days after each visit.
-        </p>
+    <div className="mx-auto max-w-3xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 md:text-4xl">
+            Messages
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Every patient you&rsquo;ve consulted with — chats stay open for 7 days after each visit.
+          </p>
+        </div>
+        <DoctorNotificationBell className="lg:hidden" />
       </motion.div>
 
       <div className="mt-5">

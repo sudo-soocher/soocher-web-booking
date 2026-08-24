@@ -20,7 +20,31 @@ export function DoctorShellClass() {
   useLayoutEffect(() => {
     const root = document.documentElement;
     root.classList.add("doc-app");
-    return () => root.classList.remove("doc-app");
+
+    let animationFrame = 0;
+    const syncViewportHeight = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        // Android WebViews can report 100dvh taller than the area above the
+        // system navigation bar. VisualViewport is the actual drawable area.
+        const height = Math.round(window.visualViewport?.height ?? window.innerHeight);
+        root.style.setProperty("--doctor-viewport-height", `${height}px`);
+      });
+    };
+
+    syncViewportHeight();
+    window.addEventListener("resize", syncViewportHeight);
+    window.addEventListener("orientationchange", syncViewportHeight);
+    window.visualViewport?.addEventListener("resize", syncViewportHeight);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", syncViewportHeight);
+      window.removeEventListener("orientationchange", syncViewportHeight);
+      window.visualViewport?.removeEventListener("resize", syncViewportHeight);
+      root.style.removeProperty("--doctor-viewport-height");
+      root.classList.remove("doc-app");
+    };
   }, []);
 
   return null;
