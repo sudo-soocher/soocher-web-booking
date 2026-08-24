@@ -356,16 +356,20 @@ export default function Login() {
       <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
 
-      <button
-        type="button"
-        onClick={() => router.push("/")}
-        className="mobile-pressable absolute left-4 top-4 z-20 flex h-10 items-center gap-2 rounded-2xl border border-white/90 bg-white/70 px-3.5 text-xs font-extrabold text-slate-700 shadow-[0_8px_24px_rgba(46,109,212,0.10)] backdrop-blur-xl md:left-8 md:top-7"
-        style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
-        aria-label={t("login.backToHome")}
-      >
-        <FaArrowLeft className="text-[10px] text-primary" />
-        {t("login.backToHome")}
-      </button>
+      {/* Not shown on the registration form — a half-filled signup is not
+          something to invite abandoning mid-flow back to home. */}
+      {!needsRegistration && (
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="mobile-pressable absolute left-4 top-4 z-20 flex h-10 items-center gap-2 rounded-2xl border border-white/90 bg-white/70 px-3.5 text-xs font-extrabold text-slate-700 shadow-[0_8px_24px_rgba(46,109,212,0.10)] backdrop-blur-xl md:left-8 md:top-7"
+          style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
+          aria-label={t("login.backToHome")}
+        >
+          <FaArrowLeft className="text-[10px] text-primary" />
+          {t("login.backToHome")}
+        </button>
+      )}
 
       {/* Mirrors the back button, so a first-time user can switch language
           before having to read English to sign in. */}
