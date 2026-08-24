@@ -120,12 +120,14 @@ export default function Login() {
     [router]
   );
 
-  // A doctor-area guard bounced this user here because their account is a
-  // patient. Read the flag off window.location rather than useSearchParams,
-  // which would force this statically-prerendered page into a Suspense boundary.
+  // A role guard bounced this user here because their account doesn't match
+  // the login entry point they used. Read the flag off window.location
+  // rather than useSearchParams, which would force this statically-
+  // prerendered page into a Suspense boundary.
   React.useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("denied") !== "1") return;
-    setError(t("login.deniedNotDoctor"));
+    const denied = new URLSearchParams(window.location.search).get("denied");
+    if (denied === "1") setError(t("login.deniedNotDoctor"));
+    else if (denied === "already-doctor") setError(t("login.deniedAlreadyDoctor"));
   }, [t]);
 
   // Redirect if already authenticated AND profile exists; otherwise prompt for missing info

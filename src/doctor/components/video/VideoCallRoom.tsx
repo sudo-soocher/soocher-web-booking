@@ -19,6 +19,7 @@ import {
   FaVideo, FaVideoSlash,
   FaPhone, FaStethoscope,
   FaCheckCircle, FaExclamationTriangle,
+  FaVolumeUp,
   FaWifi,
 } from "react-icons/fa";
 import type { FirestoreConsultation } from "@/doctor/services/consultations";
@@ -141,12 +142,13 @@ function CallEndedScreen({ onLeave, patientName }: { onLeave: () => void; patien
 /* ── WhatsApp-style live call UI ─────────────────────────────────── */
 function LiveCallUI({ onLeave, patientName, doctorName }: { onLeave: () => void; patientName: string; doctorName: string }) {
   const call = useCall();
-  const { useCallCallingState, useRemoteParticipants, useLocalParticipant, useMicrophoneState, useCameraState } = useCallStateHooks();
+  const { useCallCallingState, useRemoteParticipants, useLocalParticipant, useMicrophoneState, useCameraState, useSpeakerState } = useCallStateHooks();
   const callingState = useCallCallingState();
   const remoteParticipants = useRemoteParticipants();
   const localParticipant = useLocalParticipant();
   const { microphone, isMute: micMuted } = useMicrophoneState();
   const { camera, isMute: camOff } = useCameraState();
+  const { speaker, devices: speakerDevices, selectedDevice: selectedSpeaker, isDeviceSelectionSupported: canSelectSpeaker } = useSpeakerState();
   const timer = useTimer(callingState === CallingState.JOINED);
   const pipRef = useRef<HTMLDivElement>(null);
 
@@ -159,6 +161,13 @@ function LiveCallUI({ onLeave, patientName, doctorName }: { onLeave: () => void;
     if (camOff) await camera.enable();
     else await camera.disable();
   }, [camera, camOff]);
+
+  const cycleSpeaker = useCallback(() => {
+    if (!canSelectSpeaker || speakerDevices.length < 2) return;
+    const currentIndex = speakerDevices.findIndex((d) => d.deviceId === selectedSpeaker);
+    const next = speakerDevices[(currentIndex + 1) % speakerDevices.length];
+    if (next) speaker.select(next.deviceId);
+  }, [speaker, speakerDevices, selectedSpeaker, canSelectSpeaker]);
   const endCall = useCallback(async () => {
     await call?.leave();
     onLeave();
@@ -278,6 +287,15 @@ function LiveCallUI({ onLeave, patientName, doctorName }: { onLeave: () => void;
               ? <FaVideoSlash className="text-xl text-rose-400" />
               : <FaVideo className="text-xl text-white" />}
           </button>
+
+          {/* Speaker/audio-output toggle — only shown when the browser
+              actually supports switching output devices (setSinkId). */}
+          {canSelectSpeaker && speakerDevices.length > 1 && (
+            <button onClick={cycleSpeaker} aria-label="Switch audio output"
+              className="flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-full bg-white/10 ring-1 ring-white/10 transition-all hover:bg-white/20 active:scale-95">
+              <FaVolumeUp className="text-xl text-white" />
+            </button>
+          )}
         </div>
       </div>
     </div>

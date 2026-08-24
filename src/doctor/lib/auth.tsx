@@ -25,6 +25,8 @@ import {
   where,
 } from "firebase/firestore";
 import { appCheckReady, auth, db } from "@/doctor/lib/firebase";
+import { mirrorAdminFields } from "@/doctor/lib/onboarding";
+import type { Doctor } from "@/doctor/types/doctor";
 
 // Firestore collection — matches the backend admin panel
 const USERS_COLLECTION = "Users";
@@ -439,8 +441,16 @@ function toMillis(value: unknown): number | null {
 
 /** Update a single field on the current doctor doc. */
 export async function setDoctorField(uid: string, patch: Record<string, unknown>) {
+  // Mirrors the same admin-vocabulary fields onboarding's saveStep/
+  // submitOnboarding write (e.g. videoConsultFee → consultationFees), so a
+  // post-onboarding edit (this is the function every step's "edit profile"
+  // mode calls) doesn't silently drift from what the admin panel and the
+  // patient-facing app actually read. Without this, editing e.g. the fee
+  // after onboarding updated videoConsultFee but never consultationFees,
+  // so patients kept seeing the value set at onboarding time forever.
   await updateDoc(doc(db, USERS_COLLECTION, uid), {
     ...patch,
+    ...mirrorAdminFields(patch as Partial<Doctor>),
     updatedAt: serverTimestamp(),
   });
 }

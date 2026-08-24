@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithCustomToken, onAuthStateChanged, User } from "firebase/auth";
+import { signInWithCustomToken, onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase-auth";
 import {
   markNativeSession,
@@ -87,8 +87,10 @@ export default function NativeAuthPage() {
      * The Flutter app performs the OTP and hands us a session, but it does not
      * know whether that account is a patient or a doctor — this is the first
      * point that can. A doctor must never land on the patient home screen:
-     *   - doctor, onboarding finished  → /doc/dashboard
-     *   - doctor, onboarding unfinished → /doc/onboarding
+     *   - doctor                       → rejected, see below (this is the
+     *                                     patient entry point; a doctor
+     *                                     landing here means the wrong login
+     *                                     button was used)
      *   - patient, profile complete    → /
      *   - patient, profile incomplete  → /login (registration form)
      *
@@ -101,10 +103,24 @@ export default function NativeAuthPage() {
     const goToAccountHome = async (uid: string, path: string) => {
       let target = "/";
       try {
-        target =
-          destinationPath(
-            await withTimeout(resolveDestination(uid), AUTH_TIMEOUT_MS)
-          ) ?? "/login?complete=1";
+        const destination = await withTimeout(
+          resolveDestination(uid),
+          AUTH_TIMEOUT_MS
+        );
+        if (
+          destination.kind === "doctor-dashboard" ||
+          destination.kind === "doctor-onboarding"
+        ) {
+          // Same rejection the doctor entry point already gives the reverse
+          // case (a patient account trying to open the doctor app) — see
+          // doc/native-auth/page.tsx's claimDoctorAccount-refused branch.
+          clearNativeSession();
+          await signOut(auth);
+          if (cancelled) return;
+          router.replace("/login?denied=already-doctor");
+          return;
+        }
+        target = destinationPath(destination) ?? "/login?complete=1";
       } catch (err) {
         console.error("[native-auth] could not resolve account type:", err);
       }
@@ -146,7 +162,17 @@ export default function NativeAuthPage() {
           // already correct a stale value on arrival, so this only affects the
           // first frame of the *next* start.
           void withTimeout(resolveDestination(user.uid), AUTH_TIMEOUT_MS)
-            .then((d) => markNativeSession(user.uid, destinationPath(d) ?? "/"))
+            .then((d) => {
+              // Never cache a doctor destination from the patient entry
+              // point — the fast path below trusts the cache blindly, and
+              // this is the one page that must reject doctor accounts, not
+              // silently learn to route them onward.
+              if (d.kind === "doctor-dashboard" || d.kind === "doctor-onboarding") {
+                clearNativeSession();
+                return;
+              }
+              markNativeSession(user.uid, destinationPath(d) ?? "/");
+            })
             .catch(() => {});
           return;
         }

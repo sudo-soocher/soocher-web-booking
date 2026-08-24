@@ -67,7 +67,7 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
  * of "Unknown Doctor"). Cheap to write, avoids forcing the admin team to
  * touch their UI.
  */
-function mirrorAdminFields(slice: Partial<Doctor>): Record<string, unknown> {
+export function mirrorAdminFields(slice: Partial<Doctor>): Record<string, unknown> {
   const m: Record<string, unknown> = {};
   if (slice.fullName !== undefined) m.name = slice.fullName;
   if (slice.primarySpeciality !== undefined) m.specialization = slice.primarySpeciality;
