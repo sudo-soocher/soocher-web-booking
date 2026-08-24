@@ -438,7 +438,12 @@ export default function Login() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7 ${needsRegistration ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}
+          className={`login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7 ${needsRegistration ? "mobile-scroll overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}
+          style={
+            needsRegistration
+              ? { paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }
+              : undefined
+          }
         >
           <div className="login-brand flex items-center gap-3 lg:hidden">
             <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
