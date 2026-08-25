@@ -248,6 +248,16 @@ select:-webkit-autofill {
 .doctor-detail-page {
   position: relative;
   isolation: isolate;
+  /* The decorative blob below (::before) is deliberately positioned partly
+     outside the page's right edge. Without clipping it here, that overflow
+     reaches the shared scroll container (.doctor-mobile-main), which only
+     sets overflow-y — per the CSS spec, leaving overflow-x at its default
+     'visible' next to a non-visible overflow-y computes it to 'auto'
+     instead, i.e. the whole page became horizontally scrollable just to
+     show a background flourish. The fixed bottom CTA bar on this page is
+     position:fixed, not a transformed descendant, so clipping here doesn't
+     affect it. */
+  overflow: hidden;
 }
 
 .doctor-detail-page::before {
