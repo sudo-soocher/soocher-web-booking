@@ -291,7 +291,7 @@ export default function Home() {
             <button onClick={() => router.push("/contact")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">{t("nav.contact")}</button>
             <LanguageSwitcher />
             {isLoggedIn ? (
-              <Dropdown placement="bottom-end">
+              <Dropdown placement="bottom-end" classNames={{ content: "z-[70] shadow-2xl" }}>
                 <DropdownTrigger>
                   <Avatar isBordered as="button" className="transition-transform ring-offset-2 ring-primary hover:scale-105" color="primary" name={auth.currentUser?.displayName || "User"} size="sm" src={auth.currentUser?.photoURL || undefined} />
                 </DropdownTrigger>

@@ -178,10 +178,6 @@ export default function Login() {
     }
   };
 
-  const routeAfterAuth = async (user: User) => {
-    await routeByAccount(user);
-  };
-
   const sendLinkPhoneCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!linkPhoneNumber || linkPhoneNumber.length <= 4) {
@@ -271,10 +267,13 @@ export default function Login() {
       if (!response.ok) {
         throw new Error(data.error || t("login.invalidVerificationCode"));
       }
-      const result = await signInWithCustomToken(auth, data.token);
-      if (result.user) {
-        await routeAfterAuth(result.user);
-      }
+      // Routing happens in the onAuthStateChanged effect below, not here —
+      // that listener fires for every sign-in method uniformly. Also calling
+      // routeByAccount() from this handler used to race it: two concurrent
+      // Firestore reads for the same uid, each independently deciding where
+      // to send the user, could interleave and leave the page showing the
+      // wrong state instead of completing the redirect.
+      await signInWithCustomToken(auth, data.token);
     } catch (err: unknown) {
       console.error("Error verifying code:", err);
       setError((err as { message?: string }).message || t("login.invalidVerificationCode"));
@@ -287,10 +286,9 @@ export default function Login() {
     setError("");
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      if (result.user) {
-        await routeAfterAuth(result.user);
-      }
+      // Same reasoning as verifyCode above — the onAuthStateChanged effect
+      // owns routing for every sign-in method; no need to duplicate it here.
+      await signInWithPopup(auth, provider);
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
       const firebaseErr = err as { code?: string; message?: string };
