@@ -291,19 +291,38 @@ export default function Home() {
             <button onClick={() => router.push("/contact")} className="hidden lg:block text-xs font-bold text-slate-500 transition-colors hover:text-primary">{t("nav.contact")}</button>
             <LanguageSwitcher />
             {isLoggedIn ? (
-              <Dropdown placement="bottom-end" classNames={{ content: "z-[70] shadow-2xl" }}>
+              <Dropdown
+                placement="bottom-end"
+                offset={10}
+                classNames={{
+                  content: "z-[70] w-[280px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-1 shadow-[0_24px_64px_-18px_rgba(15,23,42,0.32)]",
+                }}
+              >
                 <DropdownTrigger>
-                  <Avatar isBordered as="button" className="transition-transform ring-offset-2 ring-primary hover:scale-105" color="primary" name={auth.currentUser?.displayName || "User"} size="sm" src={auth.currentUser?.photoURL || undefined} />
+                  <Avatar
+                    isBordered
+                    as="button"
+                    className="h-10 w-10 shrink-0 cursor-pointer bg-primary-100 font-bold text-primary ring-2 ring-primary ring-offset-2 ring-offset-white transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+                    color="primary"
+                    name={auth.currentUser?.displayName || "User"}
+                    size="sm"
+                    src={auth.currentUser?.photoURL || undefined}
+                  />
                 </DropdownTrigger>
-                <DropdownMenu aria-label={t("nav.profileActions")} variant="flat" className="p-2">
-                  <DropdownItem key="profile" className="h-14 gap-2 opacity-100 cursor-default">
-                    <p className="text-xs text-slate-500">{t("nav.signedInAs")}</p>
-                    <p className="font-semibold text-slate-900">{auth.currentUser?.phoneNumber || auth.currentUser?.email}</p>
+                <DropdownMenu aria-label={t("nav.profileActions")} variant="flat" className="w-full p-1">
+                  <DropdownItem
+                    key="profile"
+                    isReadOnly
+                    textValue={auth.currentUser?.phoneNumber || auth.currentUser?.email || t("nav.signedInAs")}
+                    className="h-auto cursor-default rounded-xl bg-slate-50 px-3 py-3 opacity-100 data-[hover=true]:bg-slate-50"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{t("nav.signedInAs")}</p>
+                    <p className="mt-1 break-all text-sm font-bold leading-5 text-slate-900">{auth.currentUser?.phoneNumber || auth.currentUser?.email}</p>
                   </DropdownItem>
-                  <DropdownItem key="my_profile" startContent={<FaUser className="text-primary opacity-70" />} onPress={() => router.push("/profile")} className="rounded-lg">{t("nav.myProfile")}</DropdownItem>
-                  <DropdownItem key="bookings" startContent={<FaCalendarCheck className="text-primary opacity-70" />} onPress={() => router.push("/bookings")} className="rounded-lg">{t("nav.myBookings")}</DropdownItem>
-                  <DropdownItem key="prescriptions" startContent={<FaPrescriptionBottleAlt className="text-primary opacity-70" />} onPress={() => router.push("/prescriptions")} className="rounded-lg">Prescriptions</DropdownItem>
-                  <DropdownItem key="logout" className="text-danger rounded-lg" color="danger" startContent={<FaSignOutAlt />} onPress={handleLogout}>{t("nav.signOut")}</DropdownItem>
+                  <DropdownItem key="my_profile" textValue={t("nav.myProfile")} startContent={<FaUser className="shrink-0 text-sm text-primary" />} onPress={() => router.push("/profile")} className="min-h-11 rounded-xl px-3 text-sm font-semibold text-slate-700">{t("nav.myProfile")}</DropdownItem>
+                  <DropdownItem key="bookings" textValue={t("nav.myBookings")} startContent={<FaCalendarCheck className="shrink-0 text-sm text-primary" />} onPress={() => router.push("/bookings")} className="min-h-11 rounded-xl px-3 text-sm font-semibold text-slate-700">{t("nav.myBookings")}</DropdownItem>
+                  <DropdownItem key="prescriptions" textValue="Prescriptions" startContent={<FaPrescriptionBottleAlt className="shrink-0 text-sm text-primary" />} onPress={() => router.push("/prescriptions")} className="min-h-11 rounded-xl px-3 text-sm font-semibold text-slate-700">Prescriptions</DropdownItem>
+                  <DropdownItem key="logout" textValue={t("nav.signOut")} className="min-h-11 rounded-xl px-3 text-sm font-semibold text-rose-600" color="danger" startContent={<FaSignOutAlt className="shrink-0 text-sm" />} onPress={handleLogout}>{t("nav.signOut")}</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             ) : (
