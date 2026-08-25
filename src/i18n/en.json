@@ -199,7 +199,7 @@
   "login.enterGender": "Please select your gender.",
   "login.saveFailed": "Failed to save profile. Please try again.",
   "login.sendFailedRetry": "Failed to send code. Please try again.",
-  "login.deniedNotDoctor": "That account is registered as a patient, so it cannot open the doctor app. Sign in with your doctor number instead.",
-  "login.deniedAlreadyDoctor": "That number is already registered as a doctor, so it can't sign in here. Please use Doctor Login instead.",
+  "login.deniedNotDoctor": "This number is registered as a patient — use Patient Login.",
+  "login.deniedAlreadyDoctor": "This number is registered as a doctor — use Doctor Login.",
   "login.doctorSignup": "Doctor sign-up"
 }
