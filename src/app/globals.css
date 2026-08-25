@@ -62,6 +62,37 @@ body {
   }
 }
 
+/* Booking profile/patient forms use native controls deliberately. Their
+   fixed wrapper geometry avoids floating-label slot collapse inside HeroUI
+   modals while retaining a consistent app-level visual language. */
+.patient-form-control {
+  display: block;
+  width: 100%;
+  min-height: 3.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+  padding: 0.75rem 1rem;
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.patient-form-control::placeholder { color: #94a3b8; opacity: 1; }
+.patient-form-control:hover { border-color: #bfdbfe; }
+.patient-form-control:focus {
+  border-color: #2e6dd4;
+  box-shadow: 0 0 0 4px rgba(46, 109, 212, 0.1);
+}
+.patient-form-control:disabled { cursor: not-allowed; background: #f8fafc; color: #94a3b8; }
+.patient-form-date { color-scheme: light; }
+.patient-form-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.55; }
+.patient-form-date::-webkit-calendar-picker-indicator:hover { opacity: 0.85; }
+
 @media (max-width: 767px) {
   body {
     background:
