@@ -22,6 +22,35 @@ export interface DirectConsultationChannelData {
 }
 
 /**
+ * Stream rejects GetOrCreateChannel with "users ... don't exist" for any
+ * member who has never connected to Stream from any client — connecting
+ * only upserts your own user record, not the other party's. This is a
+ * best-effort call: if it fails (network hiccup, the other party already
+ * exists so there's nothing to do, etc.) channel creation still proceeds
+ * and surfaces its own error normally.
+ *
+ * Takes the caller's own idToken rather than reading it from a Firebase
+ * auth module directly — this file is shared between the patient and
+ * doctor apps, which use different auth setups, so the caller (which
+ * already has its own auth context) is what resolves it.
+ */
+async function ensureMembersExist(
+  idToken: string | undefined,
+  members: { id: string; name?: string }[]
+): Promise<void> {
+  if (!idToken) return;
+  try {
+    await fetch("/api/stream/ensure-users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ users: members }),
+    });
+  } catch {
+    // Best-effort — see comment above.
+  }
+}
+
+/**
  * Returns one persistent Stream channel for an exact doctor/patient pair.
  *
  * Older builds created `consultation_<booking id>` channels. We discover and
@@ -32,7 +61,8 @@ export interface DirectConsultationChannelData {
 export async function getDirectConsultationChannel(
   client: StreamChat,
   rawMembers: string[],
-  data: DirectConsultationChannelData
+  data: DirectConsultationChannelData,
+  idToken?: string
 ): Promise<Channel> {
   const members = Array.from(
     new Set(rawMembers.filter(Boolean).map((member) => sanitizeStreamId(member)))
@@ -62,6 +92,17 @@ export async function getDirectConsultationChannel(
   const existing = persistent || channelWithHistory || consultationChannels[0];
 
   if (existing) return existing;
+
+  // No existing channel — about to create one, so make sure every member
+  // Stream is being asked to add actually exists as a Stream user first.
+  // Names aren't known per-member here (members is a flat uid list); the
+  // ensure-users endpoint falls back to the id itself when name is omitted,
+  // and each user's own connectUser() call later corrects it to their real
+  // display name.
+  await ensureMembersExist(
+    idToken,
+    members.map((id) => ({ id }))
+  );
 
   const conversationKey = members.join("|");
   const channel = client.channel(

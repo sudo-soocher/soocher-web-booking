@@ -112,11 +112,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         .filter((id) => id && id.trim() !== "")
         .map((id) => sanitizeId(id));
 
+      const idToken = await auth.currentUser.getIdToken().catch(() => undefined);
       const newChannel = await getDirectConsultationChannel(client, members, {
         consultationId: consultation.consultationId,
         doctorName,
         patientName,
-      });
+      }, idToken);
       setChannel(newChannel);
     } catch (err: unknown) {
       const e = err as { explanation?: string; message?: string };
