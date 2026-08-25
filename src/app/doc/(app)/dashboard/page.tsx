@@ -116,7 +116,9 @@ export default function DashboardPage() {
   const firstName = displayName.split(" ")[0];
   const verified = status === "verified";
   const { today, upcoming, past } = useMemo(() => bucketConsultations(consultations), [consultations]);
-  const activeToday = today.filter((item) => !item.cancelledByDoctor && !item.videoConsultDone).sort((a, b) => a.consultationTime - b.consultationTime);
+  const activeToday = today
+    .filter((item) => !item.cancelledByDoctor && !item.videoConsultDone && item.consultationExpiration > now)
+    .sort((a, b) => a.consultationTime - b.consultationTime);
   const liveConsultation = consultations.find((item) => isLive(item, now));
   const nextConsultation = activeToday.find((item) => item.consultationTime > now);
   const completedCount = consultations.filter((item) => item.videoConsultDone).length;

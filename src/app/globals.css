@@ -602,6 +602,19 @@ body {
   font-size: 16px !important;
 }
 .soocher-chat .str-chat__send-button {
+  /* Stream's own send button colors its icon via this custom property, not
+     `color`/`currentColor` — our earlier `color: #fff` below never actually
+     reached it. Two distinct states read it:
+       - enabled (has text): defaults to var(--str-chat__message-send-color),
+         which falls through to var(--str-chat__primary-color) — the exact
+         blue we force this button's background to below. Blue icon on a
+         blue circle is invisible the moment you type something.
+       - disabled (empty input): Stream swaps it to a separate "disabled
+         grey" token.
+     Forcing the base token directly covers both states with one rule,
+     rather than chasing each one individually. */
+  --str-chat-icon-color: #fff;
+  --str-chat__message-send-disabled-color: #fff;
   width: 38px !important;
   height: 38px !important;
   border-radius: 999px !important;
@@ -610,7 +623,35 @@ body {
   box-shadow: 0 6px 16px -8px rgba(46, 109, 212, 0.6) !important;
 }
 .soocher-chat .str-chat__send-button:hover { background: #2559b3 !important; }
-.soocher-chat .str-chat__send-button svg { color: #fff !important; }
+.soocher-chat .str-chat__send-button svg {
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+/* Attachment/image viewer — Stream's base CSS ships `.str-chat__modal__close-button
+   { display: none }` as a reset rule meant to be overridden by a more specific
+   variant elsewhere in its own bundle; that override doesn't reliably win against
+   our own cascade position, so it was permanently hidden — no way to close or go
+   back once a sent file was opened full-screen. Forcing all three close/back
+   affordances visible. */
+.soocher-chat .str-chat__modal__close-button,
+.soocher-chat .str-chat__modal-header__close-button,
+.soocher-chat .str-chat__modal-header__go-back-button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: 1 !important;
+}
+.soocher-chat .str-chat__modal__close-button {
+  /* Same custom-property gotcha as the send button — the icon reads this
+     token directly, not `color`. */
+  --str-chat-icon-color: #fff;
+  --str-chat__modal-close-icon-color: #fff;
+  background: rgba(15, 23, 42, 0.55) !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+}
 .soocher-chat .str-chat__message-simple-timestamp,
 .soocher-chat .str-chat__message-data {
   color: #94a3b8 !important;
