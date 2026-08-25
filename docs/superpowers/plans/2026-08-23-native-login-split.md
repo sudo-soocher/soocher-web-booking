@@ -37,7 +37,7 @@
 - Consumes: `resolveDestination(uid)`, `claimDoctorAccount(uid, phoneNumber)`, `destinationPath(destination)` from `@/lib/post-login-route` (unchanged signatures); `markNativeSession(uid, destination?)`, `readNativeSession()`, `readNativeDestination()`, `clearNativeSession()` from `@/lib/native-session` (unchanged signatures); `withTimeout` from `@/lib/with-timeout`.
 - Produces: nothing consumed by other tasks — this page is a leaf route.
 
-- [ ] **Step 1: Replace the file with the cached fast-path version**
+- [x] **Step 1: Replace the file with the cached fast-path version**
 
 Replace the full contents of `src/app/doc/native-auth/page.tsx` with:
 
@@ -246,19 +246,19 @@ export default function NativeAuthPage() {
 }
 ```
 
-- [ ] **Step 2: Type-check the web app**
+- [x] **Step 2: Type-check the web app**
 
 Run: `cd /Users/apple/Documents/PP/SOOCHER-USER-WEB/soocher-web-booking && npx tsc --noEmit`
 Expected: no new errors referencing `src/app/doc/native-auth/page.tsx`.
 
-- [ ] **Step 3: Manual verification with the dev server**
+- [x] **Step 3: Manual verification with the dev server**
 
 Run: `npm run dev` in `SOOCHER-USER-WEB/soocher-web-booking`.
 1. In a browser, sign in as a doctor via `/login?as=doctor` (or an existing doctor test account) so a session exists.
 2. Visit `/doc/native-auth?ct=<any-string>` directly — with a real Firebase session already present, confirm it redirects immediately (fast path) without waiting on a visible loading spinner, and check the browser console for no new errors.
 3. Clear `localStorage` (`soocher_session_uid`, `soocher_session_dest`) and reload — confirm the slow path still resolves and redirects correctly (dashboard vs onboarding), i.e. behaves exactly as it did before this change.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/apple/Documents/PP/SOOCHER-USER-WEB/soocher-web-booking
@@ -278,7 +278,7 @@ git commit -m "Add session-cache fast path to doctor native-auth handoff"
 - Consumes: nothing from Task 1 (independent repo).
 - Produces: `WebViewScreen({Key? key, Map<String, dynamic>? userDetails, String? loginRole})` — `loginRole` is `'DOCTOR'`, `'PATIENT'`, or `null` (null = resolve via Firestore as before, used only by `splash_screen.dart`'s relaunch path, which is not modified in this task).
 
-- [ ] **Step 1: Add `loginRole` to `WebViewScreen` and use it in `_init()`**
+- [x] **Step 1: Add `loginRole` to `WebViewScreen` and use it in `_init()`**
 
 In `lib/screens/web_view_screen.dart`, replace lines 19-26:
 
@@ -314,7 +314,7 @@ Then replace the `_init()` method (lines 205-212):
   }
 ```
 
-- [ ] **Step 2: Add a role toggle to `LoginScreen`'s state**
+- [x] **Step 2: Add a role toggle to `LoginScreen`'s state**
 
 In `lib/screens/login_screen.dart`, add a field next to the existing state fields (near line 294-296, after `bool _loading = false;` / `String? _error;`):
 
@@ -330,7 +330,7 @@ In `lib/screens/login_screen.dart`, add a field next to the existing state field
   }
 ```
 
-- [ ] **Step 3: Thread `_loginRole` through `_goToApp` and its call sites**
+- [x] **Step 3: Thread `_loginRole` through `_goToApp` and its call sites**
 
 Replace `_goToApp` (lines 697-707):
 
@@ -351,7 +351,7 @@ Replace `_goToApp` (lines 697-707):
 
 (No changes needed at the two `_goToApp(details)` call sites around line 550 and line 622 — `_goToApp` now reads `_loginRole` from state directly, so the call sites are unchanged.)
 
-- [ ] **Step 4: Add the "Doctor Login" toggle button to `_PhoneStep`**
+- [x] **Step 4: Add the "Doctor Login" toggle button to `_PhoneStep`**
 
 In `lib/screens/login_screen.dart`, update the `_PhoneStep` widget (around line 927) to accept and display the toggle. Replace the class declaration and constructor:
 
@@ -401,7 +401,7 @@ Then, in `_PhoneStep.build()`, insert a toggle button right after the `_PrimaryB
         ),
 ```
 
-- [ ] **Step 5: Pass `loginRole`/`onToggleRole` where `_PhoneStep` is constructed**
+- [x] **Step 5: Pass `loginRole`/`onToggleRole` where `_PhoneStep` is constructed**
 
 In `_LoginScreenState.build()` (around line 873-883), update the `_PhoneStep` instantiation:
 
@@ -420,12 +420,12 @@ In `_LoginScreenState.build()` (around line 873-883), update the `_PhoneStep` in
                                       )
 ```
 
-- [ ] **Step 6: Static analysis**
+- [x] **Step 6: Static analysis**
 
 Run: `cd /Users/apple/Documents/PP/SOOCHER-APP-FLUTTER/soocher-doctor-app-main && flutter analyze`
 Expected: no new errors/warnings introduced in `login_screen.dart` or `web_view_screen.dart`.
 
-- [ ] **Step 7: Manual verification**
+- [x] **Step 7: Manual verification**
 
 Run: `flutter run` (against a debug/test build, using the QA test OTP number `+919988998899` documented in `SOOCHER-USER-WEB/soocher-web-booking/src/lib/test-otp-numbers.ts` if `ALLOW_TEST_OTP=true` is set on the web deployment being tested against).
 1. Launch the app fresh (no cached session) → login screen shows the phone step with a "Doctor Login" link below the "Send OTP" button.
@@ -433,7 +433,7 @@ Run: `flutter run` (against a debug/test build, using the QA test OTP number `+9
 3. Restart the app, this time tap "Doctor Login" before sending the OTP (link should now read "Not a doctor? Patient login"), complete OTP with a doctor test account → confirm it calls `/api/doc/native-auth-token` (`[SoocherAuth] type=DOCTOR` in logs) and lands under `/doc`.
 4. Force-quit and relaunch the app while still signed in → confirm the splash-screen relaunch path still works unchanged (goes straight to `WebViewScreen`, resolves role from the cached profile, no login screen shown).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd /Users/apple/Documents/PP/SOOCHER-APP-FLUTTER/soocher-doctor-app-main
