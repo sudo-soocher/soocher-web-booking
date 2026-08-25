@@ -547,16 +547,6 @@ export default function Bookings() {
                         </div>
                         <div className="shrink-0">{getStatusChip(selectedConsultation)}</div>
                       </div>
-                      <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-3">
-                        <span className="text-[10px] font-bold text-slate-400">{t("bookings.bookedVia")}</span>
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider ${
-                          getBookingSource(selectedConsultation) === "web"
-                            ? "bg-blue-100 text-blue-600"
-                            : "bg-purple-100 text-purple-600"
-                        }`}>
-                          {getBookingSource(selectedConsultation)}
-                        </span>
-                      </div>
                     </section>
 
                     <section className="rounded-3xl border border-blue-100 bg-blue-50/70 p-4">

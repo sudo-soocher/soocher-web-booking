@@ -10,6 +10,13 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Stops mobile browsers/WebViews from silently boosting font size on
+     their own heuristics (most visible on orientation change) — the app
+     already sets its own explicit sizes everywhere; this keeps them from
+     being second-guessed. Independent of the viewport meta's
+     maximum-scale/user-scalable, which govern pinch-zoom, not this. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {

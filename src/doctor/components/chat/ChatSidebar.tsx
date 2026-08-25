@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Channel as ChannelComponent,
@@ -83,6 +84,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const chatViewportRef = useMobileVisualViewport<HTMLDivElement>(isOpen);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const patientName =
     consultation.extras?.patientDetails?.patientName ||
@@ -167,7 +173,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
     router.push(`/doc/consultations/${consultation.consultationId}/room`);
   const openDetail = () => router.push(`/doc/consultations/${consultation.consultationId}`);
 
-  return (
+  if (!mounted) return null;
+
+  // Portaled to document.body — same reason as the bottom nav: a fixed
+  // z-index only outranks siblings within its own stacking context, and
+  // nested this deep inside the page tree the drawer had none to spend
+  // against the (also portaled) bottom nav, which is why the message input
+  // rendered underneath it instead of above.
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -385,7 +398,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

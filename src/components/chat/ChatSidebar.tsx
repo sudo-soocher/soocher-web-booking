@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Chat, Channel, Window, MessageList, MessageInput, Thread } from "stream-chat-react";
 import type { StreamChat } from "stream-chat";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -27,6 +28,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const chatViewportRef = useMobileVisualViewport<HTMLDivElement>(isOpen);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const initChat = React.useCallback(async (signal?: AbortSignal) => {
         if (!isOpen) return;
@@ -112,7 +118,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
         minute: "2-digit",
     }).format(new Date(consultation.consultationTime));
 
-    return (
+    if (!mounted) return null;
+
+    // Portaled to document.body — same reason as the bottom nav: a fixed
+    // z-index only outranks siblings within its own stacking context, and
+    // nested this deep inside the page tree the drawer had none to spend
+    // against the (also portaled) bottom nav, which is why the message
+    // input rendered underneath it instead of above.
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -221,7 +234,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, consu
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 
