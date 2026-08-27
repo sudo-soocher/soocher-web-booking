@@ -40,7 +40,13 @@ export function MobileBottomNav() {
   const isHidden = HIDDEN_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
-  if (isHidden || !mounted) return null;
+  // The Flutter app now renders its own native bottom nav (see
+  // soocher_webview_bridge.dart's soocherUserAgent) — this one must not
+  // double up underneath it. Browser/PWA users never send this UA, so this
+  // is a no-op for them.
+  const isInApp =
+    typeof navigator !== "undefined" && navigator.userAgent.includes("SoocherApp");
+  if (isHidden || isInApp || !mounted) return null;
 
   return createPortal(
     <nav
