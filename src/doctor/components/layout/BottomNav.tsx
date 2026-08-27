@@ -40,7 +40,13 @@ export function BottomNav() {
 
   // Hide on edit pages — their own sticky Save CTA owns the bottom of the screen.
   if (pathname.startsWith("/doc/profile/edit/")) return null;
-  if (!mounted) return null;
+  // The Flutter app now renders its own native bottom nav (see
+  // soocher_webview_bridge.dart's soocherUserAgent) — this one must not
+  // double up underneath it. Browser/PWA users never send this UA, so this
+  // is a no-op for them.
+  const isInApp =
+    typeof navigator !== "undefined" && navigator.userAgent.includes("SoocherApp");
+  if (isInApp || !mounted) return null;
 
   const nav = (
     <nav
