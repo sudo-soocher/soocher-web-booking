@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@heroui/react";
@@ -81,6 +81,25 @@ export default function Profile() {
   });
   const profileFields = [formData.name, formData.email, formData.phoneNumber, formData.dob, formData.gender, formData.currentState, formData.currentCity];
   const profileCompletion = Math.round((profileFields.filter((value) => value.trim()).length / profileFields.length) * 100);
+  const dobInputRef = useRef<HTMLInputElement>(null);
+  const openDatePicker = () => {
+    const input = dobInputRef.current;
+    if (!input) return;
+    // showPicker() is the only way to open the native date UI without also
+    // focusing+typing into the field — falls back to focus() on WebViews
+    // whose Chromium build predates it, which still opens the picker via
+    // the browser's own focus-triggers-picker behavior on mobile.
+    if ("showPicker" in input) {
+      try {
+        (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+        return;
+      } catch {
+        // Some browsers throw if the call isn't user-gesture-initiated in
+        // their eyes even though this is one — fall through to focus().
+      }
+    }
+    input.focus();
+  };
 
   useEffect(() => {
     // Wait for the persisted session before deciding the user is signed out —
@@ -404,13 +423,28 @@ export default function Profile() {
                     </div>
                   </div>
                   <ProfileFormField label={t("profile.dob")} icon={<FaCalendarAlt className="text-[10px]" />}>
-                    <input
-                      aria-label={t("profile.dob")}
-                      type="date"
-                      className={profileControlClass}
-                      value={formData.dob}
-                      onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    />
+                    <div className="relative">
+                      <input
+                        ref={dobInputRef}
+                        aria-label={t("profile.dob")}
+                        type="date"
+                        // pointer-events-none forces every tap/click through to
+                        // the calendar button layered on top instead of
+                        // opening the native picker from anywhere in the
+                        // field — the button is the only way in.
+                        className={`${profileControlClass} pointer-events-none pr-11`}
+                        value={formData.dob}
+                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                      />
+                      <button
+                        type="button"
+                        onClick={openDatePicker}
+                        aria-label={t("profile.dob")}
+                        className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-primary/70 transition hover:bg-primary/10 hover:text-primary"
+                      >
+                        <FaCalendarAlt className="text-sm" />
+                      </button>
+                    </div>
                   </ProfileFormField>
                   <ProfileFormField label={t("profile.gender")} icon={<FaVenusMars className="text-[10px]" />}>
                     <select

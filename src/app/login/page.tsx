@@ -22,7 +22,6 @@ import { useTranslation } from "@/i18n/LanguageProvider";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { clearNativeSession, markNativeSession } from "@/lib/native-session";
-import { withTimeout } from "@/lib/with-timeout";
 import { fetchUserProfile } from "@/lib/user-profile";
 import {
   claimDoctorAccount,
@@ -82,6 +81,32 @@ export default function Login() {
         await claimDoctorAccount(user.uid, user.phoneNumber).catch(() => false);
       }
 
+      // native-auth already ran this exact resolveDestination read and found
+      // "needs registration" — it says so via ?complete=1 (+ pfn/pfe prefill
+      // when available). Redoing the same Firestore read here duplicated a
+      // full lookup on top of the one native-auth already paid for, on the
+      // one page a first-time patient is actually waiting to see — this was
+      // the real reason the registration form could take as long as two
+      // sequential 8s timeouts to appear. Skipped only when NOT claiming a
+      // doctor account, since that path still needs the fresh read below.
+      if (!wantsDoctor) {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("complete") === "1") {
+          setPendingUser(user);
+          setRegistrationData((prev) => ({
+            name: params.get("pfn") || prev.name,
+            email: params.get("pfe") || prev.email,
+          }));
+          if (!user.phoneNumber) {
+            setNeedsPhoneLink(true);
+            setLinkPhoneStage("input");
+          } else {
+            setNeedsRegistration(true);
+          }
+          return false;
+        }
+      }
+
       // A timed-out/failed read (see resolveDestination's own withTimeout)
       // must not leave this signed-in user stuck: falling through to the
       // registration form (empty, since we couldn't confirm what's already
@@ -137,6 +162,15 @@ export default function Login() {
     if (denied === "1") setError(t("login.deniedNotDoctor"));
     else if (denied === "already-doctor") setError(t("login.deniedAlreadyDoctor"));
   }, [t]);
+
+  // Warm the home-page chunk as soon as this page mounts, same as
+  // native-auth already does — both the OTP flow and registration end here,
+  // so without this the first navigation to "/" (right after submitting the
+  // registration form) paid for a fresh chunk fetch at the exact moment the
+  // page was supposed to feel done, not still loading.
+  React.useEffect(() => {
+    router.prefetch("/");
+  }, [router]);
 
   // Redirect if already authenticated AND profile exists; otherwise prompt for missing info
   React.useEffect(() => {
@@ -339,15 +373,23 @@ export default function Login() {
         registrationData.email.trim() || pendingUser.email || ""
       );
 
-      // Unbounded — same stalled-connection risk as every other Firestore
-      // call in this flow (see with-timeout.ts). Without this, a stall left
-      // the button spinning forever with no error and no way to retry short
-      // of force-closing the app.
-      await withTimeout(
-        setDoc(doc(db, "Users", pendingUser.uid), patient),
-        8000,
-        t("login.saveFailed")
+      // Firestore's local cache (persistentLocalCache — see firebase-db.ts)
+      // applies this write instantly for every reader; the write PROMISE
+      // only resolves once the server acknowledges it, which is what made
+      // this feel slow on anything but a fast connection. Racing a short
+      // grace period against the real write means a healthy connection
+      // still confirms normally (and a genuine fast failure — e.g. a rules
+      // rejection — still surfaces below), but a merely slow one no longer
+      // blocks the user on network latency for data that has already
+      // landed locally and will keep syncing in the background regardless.
+      const writePromise = setDoc(doc(db, "Users", pendingUser.uid), patient);
+      writePromise.catch((err) =>
+        console.error("[login] background profile save failed:", err)
       );
+      await Promise.race([
+        writePromise,
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
       router.push("/");
     } catch (err: unknown) {
       console.error("Error saving profile:", err);
