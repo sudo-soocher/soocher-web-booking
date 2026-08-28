@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Chip } from "@heroui/react";
 import {
-  FaArrowLeft,
   FaArrowRight,
   FaGraduationCap,
   FaLanguage,
@@ -181,14 +180,7 @@ export default function ProfileEditHubPage() {
   return (
     <div className="mx-auto max-w-3xl pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/doc/profile"
-          aria-label="Back"
-          className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-slate-600 shadow-sm hover:text-primary"
-        >
-          <FaArrowLeft />
-        </Link>
+      <div className="flex items-center justify-start gap-3">
         <Chip variant="flat" color="primary" className="text-[11px]">
           Verified · editable
         </Chip>

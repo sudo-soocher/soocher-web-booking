@@ -100,20 +100,7 @@ export default function AppointmentDetailPage() {
 
   return (
     <div className="doctor-detail-page mx-auto max-w-3xl pb-48 md:pb-8">
-      {/* Back navigation — router.back() returns to the list with the same tab
-          (?tab=past, ?tab=upcoming, …) preserved. Falls back to the list root
-          if there's no in-app history (direct link). */}
       <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 flex items-center gap-3">
-        <button
-          onClick={() => {
-            if (typeof window !== "undefined" && window.history.length > 1) router.back();
-            else router.push("/doc/consultations");
-          }}
-          aria-label="Back to consultations"
-          className="doctor-tap grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-slate-200/80 bg-white text-slate-600 shadow-sm transition hover:border-primary-200 hover:text-primary"
-        >
-          <FaArrowLeft className="text-xs" />
-        </button>
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">Consultation</p>
           <h1 className="text-[1.55rem] font-black leading-tight tracking-[-0.04em] text-slate-950 md:text-3xl">Appointment details</h1>

@@ -132,7 +132,7 @@ export default function ContactPage() {
                     <Button
                         variant="flat"
                         size="sm"
-                        className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                        className="hidden md:inline-flex rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
                         startContent={<FaArrowLeft className="text-xs" />}
                         onPress={() => router.push("/")}
                     >

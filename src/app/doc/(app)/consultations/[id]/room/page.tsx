@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaArrowLeft, FaStethoscope, FaExclamationTriangle } from "react-icons/fa";
+import { FaStethoscope, FaExclamationTriangle } from "react-icons/fa";
 import {
   fetchConsultationById,
   type FirestoreConsultation,
@@ -47,14 +47,6 @@ export default function VideoRoomPage() {
 
       {/* Header */}
       <header className="shrink-0 flex items-center justify-between px-4 py-3 md:px-6 border-b border-primary/10 bg-slate-950/70 backdrop-blur-xl">
-        {/* Back button */}
-        <button
-          onClick={() => router.push(`/doc/consultations/${params.id}`)}
-          className="grid h-9 w-9 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-white/70 transition-all hover:bg-primary/20 hover:text-white"
-        >
-          <FaArrowLeft className="text-xs" />
-        </button>
-
         {/* Brand */}
         <div className="flex items-center gap-2.5">
           <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-700">

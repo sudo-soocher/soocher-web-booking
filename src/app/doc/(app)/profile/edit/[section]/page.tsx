@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { FaArrowLeft } from "react-icons/fa";
 import { useAuth } from "@/doctor/lib/auth";
 import { EditModeProvider } from "@/doctor/lib/edit-mode";
 import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
@@ -60,13 +58,6 @@ export default function ProfileEditSectionPage() {
   return (
     <div className="relative">
       <div className="sticky top-0 z-30 -mx-4 mb-2 flex items-center gap-3 border-b border-slate-100 bg-white/85 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
-        <Link
-          href="/doc/profile/edit"
-          aria-label="Back to edit hub"
-          className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-50 text-slate-600 transition hover:bg-primary-50 hover:text-primary"
-        >
-          <FaArrowLeft />
-        </Link>
         <div className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
           Edit profile
         </div>

@@ -125,7 +125,7 @@ export default function PatientPrescriptionPage() {
           <div className="no-print mb-5 flex items-center gap-3" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-primary"
+              className="hidden items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-primary md:flex"
             >
               <FaArrowLeft className="text-xs" /> Back
             </button>

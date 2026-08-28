@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Chip } from "@heroui/react";
 import {
-  FaArrowLeft,
   FaPlus,
   FaTimes,
   FaPrescriptionBottleAlt,
@@ -185,12 +184,6 @@ export default function PrescriptionBuilderPage() {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <button
-          onClick={() => router.push(`/doc/consultations/${params.id}/post`)}
-          className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-primary"
-        >
-          <FaArrowLeft className="text-xs" /> Back
-        </button>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">New Prescription</h1>
           {patientName && <Chip variant="flat" color="primary" size="sm">{patientName}</Chip>}

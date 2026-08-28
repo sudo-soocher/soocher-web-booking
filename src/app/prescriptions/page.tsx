@@ -49,14 +49,6 @@ export default function PrescriptionHistoryPage() {
       >
         <div className="mobile-page-header-inner">
           <div className="flex min-w-0 items-center gap-2.5">
-            <button
-              onClick={() => router.push("/")}
-              className="mobile-page-back"
-              style={{ WebkitTapHighlightColor: "transparent" }}
-              aria-label="Go back"
-            >
-              <FaArrowLeft className="text-[11px]" />
-            </button>
             <span className="mobile-page-title">Prescription history</span>
           </div>
         </div>

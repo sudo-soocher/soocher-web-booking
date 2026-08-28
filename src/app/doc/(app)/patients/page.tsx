@@ -2,11 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Input } from "@heroui/react";
 import {
-  FaArrowLeft,
   FaCalendarPlus,
   FaCommentDots,
   FaSearch,
@@ -80,16 +78,8 @@ function relativeDay(ms: number): string {
 }
 
 export default function PatientsPage() {
-  const router = useRouter();
   const { user, profile, status } = useAuth();
 
-  const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/doc/dashboard");
-    }
-  };
   const [patients, setPatients] = useState<DoctorPatient[]>([]);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
@@ -145,17 +135,7 @@ export default function PatientsPage() {
 
   return (
     <div className="mx-auto max-w-7xl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      {/* Back nav */}
-      <div className="mb-4 flex items-center justify-between gap-3 md:mb-6">
-        <motion.button
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          onClick={handleBack}
-          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-100 transition hover:text-primary hover:ring-primary-200"
-        >
-          <FaArrowLeft className="text-[10px]" />
-          Back
-        </motion.button>
+      <div className="mb-4 flex items-center justify-end gap-3 md:mb-6">
         <DoctorNotificationBell className="lg:hidden" />
       </div>
 

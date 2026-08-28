@@ -1,12 +1,10 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Chip } from "@heroui/react";
 import {
-  FaArrowLeft,
   FaEye,
   FaFilePdf,
   FaGraduationCap,
@@ -172,14 +170,7 @@ export default function ProfilePreviewPage() {
   return (
     <div className="mx-auto max-w-3xl pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/doc/profile"
-          aria-label="Back"
-          className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-slate-600 shadow-sm hover:text-primary"
-        >
-          <FaArrowLeft />
-        </Link>
+      <div className="flex items-center justify-start gap-3">
         <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-700">
           <FaEye className="text-[10px]" />
           View only
