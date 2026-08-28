@@ -428,11 +428,14 @@ export default function Profile() {
                         ref={dobInputRef}
                         aria-label={t("profile.dob")}
                         type="date"
-                        // pointer-events-none forces every tap/click through to
-                        // the calendar button layered on top instead of
-                        // opening the native picker from anywhere in the
-                        // field — the button is the only way in.
-                        className={`${profileControlClass} pointer-events-none pr-11`}
+                        // pointer-events-none broke WebKit's layout of a date
+                        // input's internal day/month/year sub-fields — it
+                        // fell back to a wide, borderless native chrome
+                        // instead of the normal boxed style. Left clickable
+                        // as a normal field (matches every other input here);
+                        // the calendar button below is an extra, obvious
+                        // shortcut rather than the field's only entry point.
+                        className={`${profileControlClass} pr-11`}
                         value={formData.dob}
                         onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
                       />
