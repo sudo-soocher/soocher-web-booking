@@ -171,7 +171,13 @@ export default function NativeAuthPage() {
                 clearNativeSession();
                 return;
               }
-              markNativeSession(user.uid, destinationPath(d) ?? "/");
+              // Must match goToAccountHome's own fallback below — an
+              // incomplete profile (destinationPath returns null) has to
+              // keep caching the registration route, not silently default
+              // to home. Caching "/" here overwrote a correct
+              // "/login?complete=1" and let a relaunch skip straight past
+              // an unfinished signup with no name/email ever saved.
+              markNativeSession(user.uid, destinationPath(d) ?? "/login?complete=1");
             })
             .catch(() => {});
           return;

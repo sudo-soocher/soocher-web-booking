@@ -12,7 +12,7 @@ import { getConsultationStatus, type Consultation } from "@/types/consultation";
 import { clearNativeSession } from "@/lib/native-session";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FaStethoscope,
   FaUser,
@@ -76,6 +76,7 @@ export default function Home() {
   // start from the same empty/loading state. The effect below applies the cache
   // immediately after hydration without causing an HTML mismatch.
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
+  const [specialitiesError, setSpecialitiesError] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
   const [navigatingSpeciality, setNavigatingSpeciality] = useState<string | null>(null);
@@ -135,19 +136,21 @@ export default function Home() {
     return () => unsubscribe();
   }, [isLoggedIn]);
 
-  useEffect(() => {
+  const loadSpecialities = useCallback(() => {
     let cancelled = false;
-    const cached = getCachedSpecialities();
-    if (cached) {
-      setSpecialities(cached);
-      setLoading(false);
-    }
-
+    setSpecialitiesError(false);
     fetchSpecialities()
       .then((data) => {
         if (!cancelled) setSpecialities(data);
       })
-      .catch((error) => console.error("Error fetching specialities:", error))
+      .catch((error) => {
+        console.error("Error fetching specialities:", error);
+        // A failed/cold-start read used to just leave this section empty
+        // forever with nothing telling the user anything went wrong — see
+        // fetchSpecialities' own retry for the common transient case; this
+        // covers the case where even that didn't land.
+        if (!cancelled) setSpecialitiesError(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -155,6 +158,15 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const cached = getCachedSpecialities();
+    if (cached) {
+      setSpecialities(cached);
+      setLoading(false);
+    }
+    return loadSpecialities();
+  }, [loadSpecialities]);
 
   // Every primary action on this page — the hero CTA, the search bar, the quick
   // actions and each speciality card — lands on /doctors, so warming that one
@@ -549,6 +561,7 @@ export default function Home() {
                         alt={`${speciality.name} specialist`}
                         fill
                         sizes="80px"
+                        priority={index < 6}
                         className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
@@ -566,8 +579,19 @@ export default function Home() {
               ))
             )}
             {!loading && specialities.length === 0 && (
-              <div className="col-span-full py-12 text-center">
-                <p className="text-slate-400 font-medium italic">{t("home.noSpecialities")}</p>
+              <div className="col-span-full flex flex-col items-center gap-3 py-12 text-center">
+                <p className="text-slate-400 font-medium italic">
+                  {specialitiesError ? t("doctors.loadFailed") : t("home.noSpecialities")}
+                </p>
+                {specialitiesError && (
+                  <button
+                    type="button"
+                    onClick={loadSpecialities}
+                    className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 transition hover:bg-primary-600"
+                  >
+                    {t("doctors.retry")}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -607,6 +631,7 @@ export default function Home() {
                     alt={`${speciality.name} specialist`}
                     fill
                     sizes="64px"
+                    priority={index < 6}
                     className="object-cover object-top"
                   />
                 ) : (
@@ -621,6 +646,23 @@ export default function Home() {
             </button>
           ))}
         </div>
+
+        {!loading && specialities.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-slate-400 font-medium italic">
+              {specialitiesError ? t("doctors.loadFailed") : t("home.noSpecialities")}
+            </p>
+            {specialitiesError && (
+              <button
+                type="button"
+                onClick={loadSpecialities}
+                className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 transition hover:bg-primary-600"
+              >
+                {t("doctors.retry")}
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mt-5 flex items-center gap-3 rounded-[22px] border border-emerald-100 bg-emerald-50/80 p-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm"><FaShieldAlt /></span>

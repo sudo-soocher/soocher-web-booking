@@ -72,6 +72,8 @@
   "doctors.allSpecialists": "എല്ലാ വിദഗ്ധരും",
   "doctors.verifiedIn": "{speciality} വിഭാഗത്തിലെ സ്ഥിരീകരിച്ച വിദഗ്ധർ",
   "doctors.yearsExp": "{years} വർഷ പരിചയം",
+  "doctors.loadFailed": "ഡോക്ടർമാരെ ലോഡ് ചെയ്യാനായില്ല. നിങ്ങളുടെ കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.",
+  "doctors.retry": "വീണ്ടും ശ്രമിക്കുക",
   "bookings.title": "എന്റെ ബുക്കിംഗുകൾ",
   "bookings.upcoming": "വരാനിരിക്കുന്നത്",
   "bookings.active": "സജീവം",

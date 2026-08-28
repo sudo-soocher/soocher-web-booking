@@ -72,6 +72,8 @@
   "doctors.allSpecialists": "All specialists",
   "doctors.verifiedIn": "Verified experts in {speciality}",
   "doctors.yearsExp": "{years} yrs exp.",
+  "doctors.loadFailed": "Couldn't load doctors. Check your connection and try again.",
+  "doctors.retry": "Try again",
   "bookings.title": "My Bookings",
   "bookings.upcoming": "Upcoming",
   "bookings.active": "Active",

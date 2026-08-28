@@ -1,4 +1,5 @@
 import { getAdminFirestore } from "@/lib/firebase-admin";
+import { withTimeout } from "@/lib/with-timeout";
 
 interface DecodedTokenLike {
   uid: string;
@@ -37,11 +38,19 @@ export async function resolveNativeAuthUid(
   const phone = decoded.phone_number;
   if (!phone) return { uid: decoded.uid };
 
-  const snap = await getAdminFirestore()
-    .collection("Users")
-    .where("phoneNumber", "==", phone)
-    .limit(2)
-    .get();
+  // Same unbounded-stall risk the client Firestore SDK has (see
+  // with-timeout.ts) — bounding it here means a stall surfaces as the
+  // client's own existing 8s timeout on this route's POST, instead of an
+  // indefinite hang with no error and no way to retry.
+  const snap = await withTimeout(
+    getAdminFirestore()
+      .collection("Users")
+      .where("phoneNumber", "==", phone)
+      .limit(2)
+      .get(),
+    8000,
+    "Firestore lookup timed out"
+  );
 
   if (snap.size > 1) {
     console.error(

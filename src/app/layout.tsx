@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { FocusScrollFix } from "@/components/system/FocusScrollFix";
+import { InAppScrollbarHide } from "@/components/system/InAppScrollbarHide";
 import { Noto_Sans_Malayalam } from "next/font/google";
 
 // Applied only under html[lang="ml"] (see globals.css). Android and iOS ship
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background">
         <Providers>
           <FocusScrollFix />
+          <InAppScrollbarHide />
           {children}
           <MobileBottomNav />
           <Analytics />
