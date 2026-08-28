@@ -11,7 +11,7 @@ import { auth } from "@/lib/firebase-auth";
 import { db } from "@/lib/firebase-db";
 import { signOut } from "firebase/auth";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FaArrowLeft, FaUser, FaSave, FaNotesMedical, FaCamera, FaShieldAlt, FaMapMarkerAlt, FaEnvelope, FaPhoneAlt, FaCalendarAlt, FaVenusMars, FaAllergies, FaCapsules, FaHeartbeat, FaSignOutAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
@@ -91,11 +91,14 @@ export default function Profile() {
       return;
     }
 
-    const fetchProfile = async () => {
-      try {
-        const docRef = doc(db, "Users", user.uid);
-        const docSnap = await getDoc(docRef);
-
+    // onSnapshot (not a one-off getDoc) so a local IndexedDB cache hit — same
+    // persistent cache Bookings already relies on — paints instantly instead
+    // of every visit blocking on a network round trip; it then updates again
+    // once the server responds.
+    const docRef = doc(db, "Users", user.uid);
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as Patient;
           setProfile(data);
@@ -116,14 +119,15 @@ export default function Profile() {
             medicalConditions: data.medicalConditions || "",
           });
         }
-      } catch (error) {
+        setLoading(false);
+      },
+      (error) => {
         console.error("Error fetching profile:", error);
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchProfile();
+    return unsubscribe;
   }, [authReady, user, router]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
