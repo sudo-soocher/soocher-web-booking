@@ -458,8 +458,13 @@ export default function Login() {
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           transition={{ type: "spring", damping: 28, stiffness: 260 }}
-          className="login-registration-sheet w-full max-w-lg rounded-t-[28px] bg-white px-5 pt-5 shadow-[0_-20px_60px_rgba(15,23,42,0.25)]"
-          style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 0px))" }}
+          // The native app's bottom nav bar is Flutter chrome overlaid on
+          // top of this WebView's content, not part of its viewport — the
+          // page has no way to know it's there, so this sheet's own bottom
+          // padding must reserve room for it directly, same as every other
+          // page in the app (pb-safe-nav). Without it, the sheet's own
+          // submit/skip buttons rendered underneath the translucent navbar.
+          className="login-registration-sheet pb-safe-nav w-full max-w-lg rounded-t-[28px] bg-white px-5 pt-5 shadow-[0_-20px_60px_rgba(15,23,42,0.25)]"
         >
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
           <div className="mb-5 flex items-center gap-3">
