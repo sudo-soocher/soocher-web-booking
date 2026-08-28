@@ -45,6 +45,7 @@ function DoctorsListContent() {
         searchParams.get("speciality") || "Physical Medicine and Rehabilitation"
     );
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     // Fetch Specialities — shared cache, so arriving here from the home page
     // (which already read this document) costs nothing.
@@ -75,6 +76,7 @@ function DoctorsListContent() {
 
     const fetchDoctorsWithScores = useCallback(async (speciality: string) => {
         setLoading(true);
+        setLoadError(false);
         try {
             // onRevalidate: the cached list (if any) renders instantly below, but
             // a live read always runs alongside it — otherwise a doctor's own
@@ -88,6 +90,13 @@ function DoctorsListContent() {
             setDoctors(scoreDoctors(doctorsList));
         } catch (error) {
             console.error("Error fetching doctors with scores:", error);
+            // A failed read (network blip, or a cold-start race with the
+            // Firestore session not being ready yet — see doctors.ts's own
+            // retry) used to just leave the page showing an empty "Top
+            // Specialists" section forever with no indication anything went
+            // wrong. Surface it so the user can retry instead of assuming
+            // there are genuinely no doctors.
+            setLoadError(true);
         } finally {
             setLoading(false);
         }
@@ -267,6 +276,21 @@ function DoctorsListContent() {
                         )}
                     </div>
                 </section>
+
+                {!loading && loadError && (
+                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 px-6 py-8 text-center">
+                        <p className="text-sm font-bold text-slate-700">
+                            {t("doctors.loadFailed")}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => fetchDoctorsWithScores(selectedSpeciality)}
+                            className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 transition hover:bg-primary-600"
+                        >
+                            {t("doctors.retry")}
+                        </button>
+                    </div>
+                )}
 
                 {(loading || remainingDoctors.length > 0) && (
                   <>

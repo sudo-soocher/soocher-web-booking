@@ -24,6 +24,26 @@ body {
   background: #f5f7fb;
 }
 
+/* A visible scrollbar reads as "webpage in a browser wrapper", not a
+   native app — see InAppScrollbarHide.tsx, which adds this class only
+   inside the Flutter WebView (detected via user agent). Real browser/PWA
+   visitors are untouched; every element's own scrollbar is hidden here,
+   not just the page's, since chat/lists/etc. scroll independently. */
+html.soocher-in-app {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
+}
+html.soocher-in-app *,
+html.soocher-in-app {
+  scrollbar-width: none;
+}
+html.soocher-in-app::-webkit-scrollbar,
+html.soocher-in-app *::-webkit-scrollbar {
+  display: none; /* WebKit — this covers the WKWebView the app actually runs in */
+  width: 0;
+  height: 0;
+}
+
 /* Shared mobile-app loading sheen. Background animation avoids oversized
    pseudo-elements, so the effect cannot create horizontal page overflow. */
 .app-shimmer {
@@ -148,6 +168,16 @@ body {
     -webkit-transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+  }
+
+  /* Keep the browser/PWA navigation as a light transparent dock even when
+     the device or embedded browser applies forced dark colour adjustments. */
+  .patient-bottom-nav-surface {
+    background: rgba(255, 255, 255, 0.58) !important;
+    color-scheme: light;
+    forced-color-adjust: none;
+    -webkit-backdrop-filter: blur(22px) saturate(145%);
+    backdrop-filter: blur(22px) saturate(145%);
   }
 
   /* Same WKWebView compositor-thread isolation as .patient-bottom-nav,

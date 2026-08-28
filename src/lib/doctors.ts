@@ -57,25 +57,41 @@ export function getCachedDoctorById(doctorId: string): Doctor | null {
   return null;
 }
 
-function fetchFresh(speciality: string): Promise<Doctor[]> {
-  const pending = inflight.get(speciality);
-  if (pending) return pending;
-
-  const request = getDocs(
+function queryOnce(speciality: string): Promise<Doctor[]> {
+  return getDocs(
     query(
       collection(db, "Users"),
       where("specialization", "==", speciality),
       where("isAccountVerified", "==", true)
     )
-  )
-    .then((snapshot) => {
-      const doctors = snapshot.docs.map((doctorDoc) => ({
-        id: doctorDoc.id,
-        ...doctorDoc.data(),
-      })) as Doctor[];
-      writeCache(speciality, doctors);
-      return doctors;
-    })
+  ).then((snapshot) => {
+    const doctors = snapshot.docs.map((doctorDoc) => ({
+      id: doctorDoc.id,
+      ...doctorDoc.data(),
+    })) as Doctor[];
+    writeCache(speciality, doctors);
+    return doctors;
+  });
+}
+
+function fetchFresh(speciality: string): Promise<Doctor[]> {
+  const pending = inflight.get(speciality);
+  if (pending) return pending;
+
+  // Same cold-start race as specialities.ts: a query that fires just before
+  // the native app's custom-token exchange finishes can fail or come back
+  // transiently empty, and the listing page has no way to tell "genuinely no
+  // doctors" apart from "the read didn't land" — it just renders the
+  // "Top Specialists" header with nothing underneath, with no error and no
+  // retry. One short-delayed retry rides out that window; a real failure
+  // still propagates to the caller.
+  const request = queryOnce(speciality)
+    .catch(
+      () =>
+        new Promise<void>((resolve) => setTimeout(resolve, 800)).then(() =>
+          queryOnce(speciality)
+        )
+    )
     .finally(() => inflight.delete(speciality));
 
   inflight.set(speciality, request);

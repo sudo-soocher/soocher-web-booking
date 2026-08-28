@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithCustomToken,
+  signOut,
   User,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -20,7 +21,7 @@ import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useTranslation } from "@/i18n/LanguageProvider";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
-import { markNativeSession } from "@/lib/native-session";
+import { clearNativeSession, markNativeSession } from "@/lib/native-session";
 import { fetchUserProfile } from "@/lib/user-profile";
 import {
   claimDoctorAccount,
@@ -56,10 +57,6 @@ export default function Login() {
   const [registrationData, setRegistrationData] = useState({
     name: "",
     email: "",
-    dob: "",
-    gender: "",
-    currentState: "",
-    currentCity: "",
   });
 
 
@@ -317,29 +314,19 @@ export default function Login() {
       setError(t("login.enterValidEmail"));
       return;
     }
-    if (!registrationData.dob) {
-      setError(t("login.enterDob"));
-      return;
-    }
-    if (!registrationData.gender) {
-      setError(t("login.enterGender"));
-      return;
-    }
 
     setIsLoading(true);
     setError("");
     try {
+      // dob/gender/currentState/currentCity are no longer collected here —
+      // createNewPatient's own defaults (dob: 0, gender: "Other") apply;
+      // the profile page still lets a patient fill these in later.
       const patient = createNewPatient(
         pendingUser.uid,
         registrationData.name.trim(),
         pendingUser.phoneNumber || phoneNumber.replace(/[\s\-\(\)]/g, ""),
         registrationData.email.trim() || pendingUser.email || ""
       );
-      const dobDate = new Date(registrationData.dob);
-      patient.dob = isNaN(dobDate.getTime()) ? 0 : dobDate.getTime();
-      patient.gender = registrationData.gender as "Male" | "Female" | "Other";
-      patient.currentState = registrationData.currentState.trim();
-      patient.currentCity = registrationData.currentCity.trim();
 
       await setDoc(doc(db, "Users", pendingUser.uid), patient);
       router.push("/");
@@ -354,8 +341,129 @@ export default function Login() {
     }
   };
 
+  /**
+   * Abandons an unfinished signup instead of leaving the only way out as
+   * force-quitting the app. Deletes the incomplete `Users/{uid}` Firestore
+   * doc server-side (see api/auth/skip-registration — it refuses to touch
+   * an already-registered account, so this can't be misused to wipe a real
+   * profile) and signs out. The phone number can OTP-verify again later
+   * and get a clean signup.
+   */
+  const handleSkipRegistration = async () => {
+    if (!pendingUser) return;
+    setIsLoading(true);
+    setError("");
+    try {
+      const idToken = await pendingUser.getIdToken();
+      const res = await fetch("/api/auth/skip-registration", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string })?.error || "Could not skip registration.");
+      }
+      clearNativeSession();
+      await signOut(auth);
+      setPendingUser(null);
+      setNeedsRegistration(false);
+      setRegistrationData({ name: "", email: "" });
+      setPhoneNumber("");
+      setShowOTPInput(false);
+      setVerificationCode("");
+    } catch (err: unknown) {
+      console.error("Error skipping registration:", err);
+      setError((err as { message?: string })?.message || "Could not skip registration. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (checkingAuth) {
     return <HomeShimmer />;
+  }
+
+  if (needsRegistration) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-sm">
+        <motion.div
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          transition={{ type: "spring", damping: 28, stiffness: 260 }}
+          className="login-registration-sheet w-full max-w-lg rounded-t-[28px] bg-white px-5 pt-5 shadow-[0_-20px_60px_rgba(15,23,42,0.25)]"
+          style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
+          <div className="mb-5 flex items-center gap-3">
+            <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
+            <div>
+              <h2 className="text-base font-black tracking-tight text-slate-900">Complete your profile</h2>
+              <p className="text-[11px] font-medium text-slate-500">Just your name and email to get started.</p>
+            </div>
+          </div>
+
+          <form onSubmit={submitRegistration} className="min-w-0 space-y-3">
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor="registration-name" className="ml-1 block text-[11px] font-extrabold text-slate-500">
+                {t("profile.name")} <span className="text-danger">*</span>
+              </label>
+              <input
+                id="registration-name"
+                aria-label={t("profile.name")}
+                required
+                value={registrationData.name}
+                onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
+                className="h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base text-slate-700 focus:border-primary focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor="registration-email" className="ml-1 block text-[11px] font-extrabold text-slate-500">
+                {t("profile.email")} <span className="text-danger">*</span>
+              </label>
+              <input
+                id="registration-email"
+                aria-label={t("profile.email")}
+                type="email"
+                required
+                value={registrationData.email}
+                onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
+                className="h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base text-slate-700 focus:border-primary focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            {error && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-xl border border-danger/10 bg-danger/5 py-2.5 text-center text-xs font-bold text-danger"
+              >
+                {error}
+              </motion.p>
+            )}
+
+            <Button
+              color="primary"
+              type="submit"
+              isLoading={isLoading}
+              spinnerPlacement="start"
+              className="h-12 w-full rounded-2xl text-base font-black shadow-lg shadow-primary/20"
+            >
+              {isLoading ? "Saving..." : "Complete Registration"}
+            </Button>
+
+            <button
+              type="button"
+              onClick={handleSkipRegistration}
+              disabled={isLoading}
+              className="mobile-pressable w-full py-2 text-center text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 disabled:opacity-50"
+            >
+              Skip for now
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
@@ -448,12 +556,7 @@ export default function Login() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7 ${needsRegistration ? "mobile-scroll overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}
-          style={
-            needsRegistration
-              ? { paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }
-              : undefined
-          }
+          className="login-panel min-h-0 min-w-0 w-full max-w-md space-y-4 overflow-hidden rounded-[24px] border border-white/90 bg-white/72 p-4 shadow-[0_22px_60px_rgba(46,109,212,0.10)] backdrop-blur-2xl md:space-y-6 md:rounded-[28px] md:p-7"
         >
           <div className="login-brand flex items-center gap-3 lg:hidden">
             <Logo size="sm" className="rounded-xl shadow-md shadow-primary/10" />
@@ -549,129 +652,6 @@ export default function Login() {
                   : isLoading
                   ? "Verifying..."
                   : "Verify & Continue"}
-              </Button>
-            </form>
-          ) : needsRegistration ? (
-            <form onSubmit={submitRegistration} className="login-registration-form min-w-0 space-y-3 pb-1 md:space-y-4">
-              <div className="min-w-0 space-y-1.5">
-                <label htmlFor="registration-name" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
-                  {t("profile.name")} <span className="text-danger">*</span>
-                </label>
-                <input
-                  id="registration-name"
-                  aria-label={t("profile.name")}
-                  required
-                  value={registrationData.name}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, name: e.target.value })
-                  }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="min-w-0 space-y-1.5">
-                <label htmlFor="registration-email" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
-                  {t("profile.email")} <span className="text-danger">*</span>
-                </label>
-                <input
-                  id="registration-email"
-                  aria-label={t("profile.email")}
-                  type="email"
-                  required
-                  value={registrationData.email}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, email: e.target.value })
-                  }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="min-w-0 space-y-1.5">
-                <label htmlFor="registration-dob" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
-                  {t("profile.dob")} <span className="text-danger">*</span>
-                </label>
-                <input
-                  id="registration-dob"
-                  aria-label={t("profile.dob")}
-                  type="date"
-                  required
-                  value={registrationData.dob}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, dob: e.target.value })
-                  }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="min-w-0 space-y-1.5">
-                <label htmlFor="registration-gender" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
-                  {t("profile.gender")} <span className="text-danger">*</span>
-                </label>
-                <select
-                  id="registration-gender"
-                  aria-label={t("profile.gender")}
-                  required
-                  value={registrationData.gender}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, gender: e.target.value })
-                  }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
-                >
-                  <option value="">—</option>
-                  <option value="Male">{t("profile.genderMale")}</option>
-                  <option value="Female">{t("profile.genderFemale")}</option>
-                  <option value="Other">{t("profile.genderOther")}</option>
-                </select>
-              </div>
-
-              <div className="min-w-0 space-y-1.5">
-                <label htmlFor="registration-state" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
-                  {t("profile.state")}
-                </label>
-                <input
-                  id="registration-state"
-                  aria-label={t("profile.state")}
-                  value={registrationData.currentState}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, currentState: e.target.value })
-                  }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="min-w-0 space-y-1.5">
-                <label htmlFor="registration-district" className="ml-1 block break-words text-[11px] font-extrabold leading-4 text-slate-500">
-                  {t("login.district")}
-                </label>
-                <input
-                  id="registration-district"
-                  aria-label={t("login.district")}
-                  value={registrationData.currentCity}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, currentCity: e.target.value })
-                  }
-                  className="h-12 md:h-14 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-700 hover:border-primary/50 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-xs font-bold text-danger text-center bg-danger/5 py-3 rounded-xl border border-danger/10"
-                >
-                  {error}
-                </motion.p>
-              )}
-
-              <Button
-                color="primary"
-                type="submit"
-                isLoading={isLoading}
-                spinnerPlacement="start"
-                className="w-full h-12 md:h-14 rounded-2xl font-black shadow-xl shadow-primary/20 text-base md:text-lg"
-              >
-                {isLoading ? "Saving..." : "Complete Registration"}
               </Button>
             </form>
           ) : (

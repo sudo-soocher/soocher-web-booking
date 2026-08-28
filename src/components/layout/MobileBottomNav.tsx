@@ -50,12 +50,12 @@ export function MobileBottomNav() {
 
   return createPortal(
     <nav
-      className="patient-bottom-nav fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 md:hidden"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
+      className="patient-bottom-nav fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 md:hidden"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
       aria-label={t("nav.bottomNav")}
     >
       <ul
-        className="flex w-full max-w-sm items-center justify-around rounded-[28px] border border-white/40 bg-white/60 px-2 py-1.5 shadow-xl shadow-black/10 backdrop-blur-2xl"
+        className="patient-bottom-nav-surface flex w-full max-w-sm items-center justify-around rounded-[22px] border border-white/70 px-1.5 py-1 shadow-[0_12px_34px_-14px_rgba(15,23,42,0.24)] backdrop-blur-2xl"
       >
         {tabs.map(({ icon: Icon, labelKey, href }) => {
           const label = t(labelKey);
@@ -67,7 +67,7 @@ export function MobileBottomNav() {
               <Link
                 href={href}
                 prefetch
-                className="flex min-w-0 select-none flex-col items-center justify-center gap-0.5 overflow-hidden py-2 transition-transform active:scale-95"
+                className="flex min-h-12 min-w-0 select-none flex-col items-center justify-center gap-0.5 overflow-hidden py-1 transition-transform active:scale-95"
                 style={{ WebkitTapHighlightColor: "transparent" }}
                 aria-label={label}
                 aria-current={isActive ? "page" : undefined}
@@ -75,20 +75,20 @@ export function MobileBottomNav() {
                 {isActive && (
                   <motion.span
                     layoutId="patient-bottomnav-active"
-                    className="absolute inset-x-1 inset-y-0 rounded-2xl bg-primary/10"
+                    className="absolute inset-x-1.5 inset-y-0.5 rounded-2xl border border-white/70 bg-white/60 shadow-sm"
                     transition={{ type: "spring", damping: 24, stiffness: 300 }}
                   />
                 )}
-                <span className="relative">
+                <span className="relative grid h-6 place-items-center">
                   <Icon
-                    className={`text-[22px] transition-colors ${
-                      isActive ? "text-primary" : "text-slate-400"
+                    className={`text-[21px] transition-colors ${
+                      isActive ? "text-primary" : "text-slate-500"
                     }`}
                   />
                 </span>
                 <span
-                  className={`relative block h-3 w-full max-w-full truncate px-0.5 text-center text-[9px] font-bold leading-3 tracking-wide transition-colors ${
-                    isActive ? "text-primary" : "text-slate-400"
+                  className={`relative block h-3 w-full max-w-full truncate px-0.5 text-center text-[8.5px] font-extrabold leading-3 tracking-wide transition-colors ${
+                    isActive ? "text-primary" : "text-slate-500"
                   }`}
                 >
                   {label}

@@ -58,19 +58,33 @@ export function getCachedSpecialities(): Speciality[] | null {
   return typeof window === "undefined" ? null : readCache();
 }
 
+function readOnce(): Promise<Speciality[]> {
+  return getDoc(doc(db, "Specialities", "available")).then((snap) => {
+    const data = snap.exists()
+      ? ((snap.data().specialityName as Speciality[]) ?? [])
+      : [];
+    writeCache(data);
+    return data;
+  });
+}
+
 export function fetchSpecialities(): Promise<Speciality[]> {
   const cached = readCache();
   if (cached) return Promise.resolve(cached);
   if (inflight) return inflight;
 
-  inflight = getDoc(doc(db, "Specialities", "available"))
-    .then((snap) => {
-      const data = snap.exists()
-        ? ((snap.data().specialityName as Speciality[]) ?? [])
-        : [];
-      writeCache(data);
-      return data;
-    })
+  // A cold app start (native WebView launch, custom-token exchange still in
+  // flight) can lose a race with Firestore being fully ready — the read then
+  // fails or transiently resolves as if the document doesn't exist, and
+  // nothing on this page ever tells the user or offers a way to recover: the
+  // "Specialities" section just renders empty forever. One retry after a
+  // short delay is enough to ride out that window on the far more common
+  // "briefly not ready yet" case; a real outage still surfaces to the caller
+  // to show its own retry affordance instead of caching a false "empty".
+  inflight = readOnce()
+    .catch(
+      () => new Promise<void>((resolve) => setTimeout(resolve, 800)).then(readOnce)
+    )
     .finally(() => {
       // Keep only active requests in memory. Once the TTL expires, a later
       // caller can perform a fresh read instead of receiving an old promise.
