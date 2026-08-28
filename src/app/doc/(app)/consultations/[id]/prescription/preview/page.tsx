@@ -112,12 +112,6 @@ export default function PrescriptionPreviewPage() {
       <div className="mx-auto max-w-2xl pb-8">
         {/* Action buttons — hidden on print */}
         <div className="no-print mb-6 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-primary"
-          >
-            <FaArrowLeft className="text-xs" /> Back
-          </button>
           <div className="flex-1" />
           <Button
             variant="bordered"

@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Chip, Input } from "@heroui/react";
 import {
-  FaArrowLeft,
   FaAt,
   FaCheck,
   FaEnvelope,
@@ -56,14 +54,7 @@ export default function AccountSecurityPage() {
   return (
     <div className="mx-auto max-w-3xl pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/doc/profile"
-          aria-label="Back"
-          className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-slate-600 shadow-sm hover:text-primary"
-        >
-          <FaArrowLeft />
-        </Link>
+      <div className="flex items-center justify-start gap-3">
         <Chip variant="flat" color="primary" className="text-[11px]">
           <FaShieldAlt className="mr-1 text-[10px]" />
           Account & security

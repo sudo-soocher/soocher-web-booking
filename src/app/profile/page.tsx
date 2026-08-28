@@ -235,14 +235,6 @@ export default function Profile() {
       >
         <div className="mobile-page-header-inner">
           <div className="flex min-w-0 items-center gap-2.5">
-            <button
-              onClick={() => router.back()}
-              className="mobile-page-back"
-              style={{ WebkitTapHighlightColor: "transparent" }}
-              aria-label={t("nav.back")}
-            >
-              <FaArrowLeft className="text-[11px]" />
-            </button>
             <span className="mobile-page-title">{t("profile.title")}</span>
           </div>
         </div>
@@ -319,6 +311,9 @@ export default function Profile() {
               <div className="min-w-0 flex-1 lg:w-full">
                 <h2 className="truncate text-base md:text-lg font-black text-slate-900">{profile?.name || "Patient Name"}</h2>
                 <p className="mt-1 truncate text-[10px] font-semibold text-slate-500">{formData.email || "Add your email"}</p>
+                {formData.phoneNumber && (
+                  <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-500">{formData.phoneNumber}</p>
+                )}
                 {uploading && (
                   <p className="mt-1 text-[9px] font-bold text-primary">
                     {t("profile.uploading")}

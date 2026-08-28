@@ -384,8 +384,15 @@ export default function Login() {
   }
 
   if (needsRegistration) {
+    // This is a full page (`/login?complete=1`), not a modal layered over
+    // another route — there is no real page content behind it for a dark
+    // scrim to dim, so a bg-slate-900/45 tint just rendered as a flat gray
+    // screen. Same branded light background + soft blur blobs as the rest
+    // of this page, so it reads as an intentional screen either way.
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-sm">
+      <div className="relative flex h-[100dvh] min-h-0 w-full items-end justify-center overflow-hidden bg-[#F4F8FF]">
+        <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
         <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
@@ -480,7 +487,7 @@ export default function Login() {
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="mobile-pressable absolute left-4 top-4 z-20 flex h-10 items-center gap-2 rounded-2xl border border-white/90 bg-white/70 px-3.5 text-xs font-extrabold text-slate-700 shadow-[0_8px_24px_rgba(46,109,212,0.10)] backdrop-blur-xl md:left-8 md:top-7"
+          className="mobile-pressable absolute left-4 top-4 z-20 hidden h-10 items-center gap-2 rounded-2xl border border-white/90 bg-white/70 px-3.5 text-xs font-extrabold text-slate-700 shadow-[0_8px_24px_rgba(46,109,212,0.10)] backdrop-blur-xl md:left-8 md:top-7 md:flex"
           style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
           aria-label={t("login.backToHome")}
         >
