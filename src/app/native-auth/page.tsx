@@ -77,9 +77,12 @@ export default function NativeAuthPage() {
     const params = new URLSearchParams(window.location.search);
     const ct = params.get("ct");
 
-    // Warm the home-page chunk before anything else, so the transition to "/"
-    // is instant rather than a fresh chunk download.
+    // Warm both possible destinations before anything else, so whichever
+    // one this resolves to is an instant transition rather than a fresh
+    // chunk download — a first-time patient's most common path lands on
+    // /login (registration), not "/".
     router.prefetch("/");
+    router.prefetch("/login");
 
     /**
      * Send the user to the screen their account type belongs to.
@@ -120,7 +123,25 @@ export default function NativeAuthPage() {
           router.replace("/login?denied=already-doctor");
           return;
         }
-        target = destinationPath(destination) ?? "/login?complete=1";
+        const destPath = destinationPath(destination);
+        if (destPath) {
+          target = destPath;
+        } else if (destination.kind === "patient-needs-profile") {
+          // /login's own routeByAccount used to redo this exact
+          // resolveDestination Firestore read from scratch after landing
+          // here — a first-time patient sat through two full sequential
+          // page loads (native-auth's own load, then /login's) each paying
+          // for the same lookup, which is what made "the registration form
+          // takes ~2 minutes" true even after each individual read got its
+          // own timeout. Passing what we already know forward means /login
+          // can skip that second read entirely.
+          const qs = new URLSearchParams({ complete: "1" });
+          if (destination.profile.name) qs.set("pfn", destination.profile.name);
+          if (destination.profile.email) qs.set("pfe", destination.profile.email);
+          target = `/login?${qs.toString()}`;
+        } else {
+          target = "/login?complete=1";
+        }
       } catch (err) {
         console.error("[native-auth] could not resolve account type:", err);
       }
