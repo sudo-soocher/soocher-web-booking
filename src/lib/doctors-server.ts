@@ -26,7 +26,15 @@ export async function fetchDoctorsBySpecialityServer(
       5000,
       "Doctors lookup timed out"
     );
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Doctor[];
+    // Admin SDK document data can carry Firestore Timestamp instances
+    // (lastTokenUpdate, accountCreationDate, phoneNumberFetchedAt, …) — real
+    // class instances, not plain objects. React Server Components refuse to
+    // pass those to a Client Component ("Only plain objects... can be
+    // passed"), which crashed this entire page. The JSON round-trip strips
+    // every such instance down to its plain serialized shape.
+    return JSON.parse(
+      JSON.stringify(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    ) as Doctor[];
   } catch (err) {
     console.error("[doctors-server] failed to fetch:", err);
     return [];
