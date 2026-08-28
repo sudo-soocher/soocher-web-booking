@@ -2,6 +2,15 @@
 
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase-db";
+import { withTimeout } from "./with-timeout";
+
+// Every getDoc/setDoc call in this file gates whether /login can even render
+// the registration form — an unbounded stall here (see with-timeout.ts) was
+// the actual cause of "the registration page takes 5+ minutes to load": the
+// page's own onAuthStateChanged → routeByAccount → resolveDestination chain
+// has no other timeout of its own, unlike the native-auth handoff pages that
+// already wrap their own outer call.
+const FIRESTORE_TIMEOUT_MS = 8000;
 
 /**
  * Where a freshly authenticated user belongs.
@@ -61,7 +70,7 @@ export async function claimDoctorAccount(
 
   let snap;
   try {
-    snap = await getDoc(ref);
+    snap = await withTimeout(getDoc(ref), FIRESTORE_TIMEOUT_MS);
   } catch (err) {
     console.error("[claimDoctorAccount] getDoc failed for", uid, err);
     throw err;
@@ -82,18 +91,21 @@ export async function claimDoctorAccount(
   }
 
   try {
-    await setDoc(
-      ref,
-      {
-        type: "DOCTOR",
-        isAccountVerified: false,
-        documentsSubmitted: false,
-        onboardingComplete: false,
-        dateOfAccountCreation: Date.now(),
-        accountCreationDate: serverTimestamp(),
-        ...(phoneNumber ? { phoneNumber } : {}),
-      },
-      { merge: true }
+    await withTimeout(
+      setDoc(
+        ref,
+        {
+          type: "DOCTOR",
+          isAccountVerified: false,
+          documentsSubmitted: false,
+          onboardingComplete: false,
+          dateOfAccountCreation: Date.now(),
+          accountCreationDate: serverTimestamp(),
+          ...(phoneNumber ? { phoneNumber } : {}),
+        },
+        { merge: true }
+      ),
+      FIRESTORE_TIMEOUT_MS
     );
   } catch (err) {
     console.error("[claimDoctorAccount] setDoc failed for", uid, err);
@@ -106,7 +118,7 @@ export async function claimDoctorAccount(
 export async function resolveDestination(uid: string): Promise<Destination> {
   let snap;
   try {
-    snap = await getDoc(doc(db, "Users", uid));
+    snap = await withTimeout(getDoc(doc(db, "Users", uid)), FIRESTORE_TIMEOUT_MS);
   } catch (err) {
     console.error("[resolveDestination] getDoc failed for", uid, err);
     throw err;

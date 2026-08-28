@@ -22,11 +22,13 @@ import { useTranslation } from "@/i18n/LanguageProvider";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { clearNativeSession, markNativeSession } from "@/lib/native-session";
+import { withTimeout } from "@/lib/with-timeout";
 import { fetchUserProfile } from "@/lib/user-profile";
 import {
   claimDoctorAccount,
   destinationPath,
   resolveDestination,
+  type Destination,
 } from "@/lib/post-login-route";
 import { createNewPatient } from "@/types/patient";
 import OtpInput from "@/components/forms/OtpInput";
@@ -80,7 +82,16 @@ export default function Login() {
         await claimDoctorAccount(user.uid, user.phoneNumber).catch(() => false);
       }
 
-      const destination = await resolveDestination(user.uid);
+      // A timed-out/failed read (see resolveDestination's own withTimeout)
+      // must not leave this signed-in user stuck: falling through to the
+      // registration form (empty, since we couldn't confirm what's already
+      // saved) is the safe default — it's re-submittable and never worse
+      // than the alternative of bouncing them back to re-enter their phone
+      // number while already authenticated.
+      const destination: Destination = await resolveDestination(user.uid).catch((err) => {
+        console.error("[login] resolveDestination failed:", err);
+        return { kind: "patient-needs-profile", profile: {} };
+      });
       const path = destinationPath(destination);
 
       if (path) {
@@ -328,7 +339,15 @@ export default function Login() {
         registrationData.email.trim() || pendingUser.email || ""
       );
 
-      await setDoc(doc(db, "Users", pendingUser.uid), patient);
+      // Unbounded — same stalled-connection risk as every other Firestore
+      // call in this flow (see with-timeout.ts). Without this, a stall left
+      // the button spinning forever with no error and no way to retry short
+      // of force-closing the app.
+      await withTimeout(
+        setDoc(doc(db, "Users", pendingUser.uid), patient),
+        8000,
+        t("login.saveFailed")
+      );
       router.push("/");
     } catch (err: unknown) {
       console.error("Error saving profile:", err);
