@@ -35,6 +35,11 @@ function openNativePicker(el: InputElementWithPicker | null) {
 const HIDE_NATIVE_INDICATOR =
   "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden";
 
+// Shown while the field is empty. Most browsers ignore `placeholder` on a
+// native date input (they render their own format hint), but the Soocher app
+// converts the field to a text input in its WebView and reads this attribute.
+const DEFAULT_DATE_PLACEHOLDER = "YYYY-MM-DD";
+
 function CalendarButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
@@ -66,6 +71,7 @@ export function HeroDateInput(props: HeroDateInputProps) {
       {...props}
       ref={ref}
       type="date"
+      placeholder={props.placeholder ?? DEFAULT_DATE_PLACEHOLDER}
       classNames={{
         ...props.classNames,
         input: `${existingInputClass} ${HIDE_NATIVE_INDICATOR}`.trim(),
@@ -85,6 +91,7 @@ type NativeDateInputProps = Omit<
 /** Plain-styled date field (used on the consultation post/prescription pages). */
 export function NativeDateInput({
   className = "",
+  placeholder = DEFAULT_DATE_PLACEHOLDER,
   ...props
 }: NativeDateInputProps) {
   const ref = useRef<InputElementWithPicker>(null);
@@ -94,6 +101,7 @@ export function NativeDateInput({
         {...props}
         ref={ref}
         type="date"
+        placeholder={placeholder}
         className={`${className} pr-12 ${HIDE_NATIVE_INDICATOR}`.trim()}
       />
       <button

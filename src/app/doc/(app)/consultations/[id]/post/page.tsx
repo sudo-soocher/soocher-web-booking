@@ -12,6 +12,7 @@ import {
   FaCheck,
   FaEye,
   FaEdit,
+  FaPaperPlane,
 } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
@@ -20,13 +21,19 @@ import { Button } from "@/doctor/components/ui/Button";
 import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
 import { NativeDateInput } from "@/doctor/components/ui/DateInput";
 import { fetchConsultationById, type FirestoreConsultation } from "@/doctor/services/consultations";
+import { useAuth } from "@/doctor/lib/auth";
 
 export default function PostConsultPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
 
   const [consultation, setConsultation] = useState<FirestoreConsultation | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [sendingRx, setSendingRx] = useState(false);
+  const [rxSent, setRxSent] = useState(false);
+  const [rxSendError, setRxSendError] = useState<string | null>(null);
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [clinicalNotes, setClinicalNotes] = useState("");
@@ -79,6 +86,34 @@ export default function PostConsultPage() {
       actualEndTime: Date.now(),
     });
     router.push("/doc/consultations");
+  };
+
+  // Sends the saved prescription straight to the patient's WhatsApp via ChatMitra.
+  const handleSendPrescription = async () => {
+    if (sendingRx || rxSent) return;
+    setSendingRx(true);
+    setRxSendError(null);
+    try {
+      const token = await user?.getIdToken();
+      if (!token) throw new Error("Your session expired. Please sign in again.");
+      const res = await fetch("/api/send-prescription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ consultationId: params.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Couldn't send the prescription.");
+      }
+      setRxSent(true);
+    } catch (err) {
+      setRxSendError(err instanceof Error ? err.message : "Couldn't send the prescription.");
+    } finally {
+      setSendingRx(false);
+    }
   };
 
   const cardVariants = {
@@ -143,15 +178,44 @@ export default function PostConsultPage() {
             </div>
           </button>
 
-          {/* View prescription button when saved */}
+          {/* View + send actions when a prescription is saved */}
           {consultation?.prescription && (
-            <div className="border-t border-slate-100 px-5 py-3">
+            <div className="space-y-2 border-t border-slate-100 px-5 py-3">
               <button
                 onClick={() => router.push(`/doc/consultations/${params.id}/prescription/preview`)}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-50 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary-100"
               >
                 <FaEye className="text-xs" /> View Full Prescription
               </button>
+
+              <button
+                onClick={handleSendPrescription}
+                disabled={sendingRx || rxSent}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-100 ${
+                  rxSent
+                    ? "bg-emerald-500"
+                    : "bg-[#25D366] hover:bg-[#1FB959] disabled:opacity-70"
+                }`}
+              >
+                {sendingRx ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
+                    Sending…
+                  </>
+                ) : rxSent ? (
+                  <>
+                    <FaCheck className="text-xs" /> Sent to patient&apos;s WhatsApp
+                  </>
+                ) : (
+                  <>
+                    <FaPaperPlane className="text-xs" /> Send to patient&apos;s WhatsApp
+                  </>
+                )}
+              </button>
+
+              {rxSendError && (
+                <p className="text-center text-xs font-medium text-rose-600">{rxSendError}</p>
+              )}
             </div>
           )}
         </motion.div>
