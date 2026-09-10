@@ -155,7 +155,12 @@ export default function DoctorsClient({
                         radius="lg"
                         classNames={{
                             trigger: "h-11 rounded-2xl border-white/90 bg-white/90 px-3 shadow-[0_5px_18px_rgba(31,65,112,0.08)] backdrop-blur-xl data-[open=true]:border-primary/35 data-[open=true]:ring-4 data-[open=true]:ring-primary/5",
-                            value: "truncate pr-2 text-xs font-bold text-slate-700",
+                            // HeroUI's selectorIcon is absolutely positioned
+                            // (end-3, w-4) rather than laid out in flow, so it
+                            // doesn't reserve its own space — pr-2 wasn't wide
+                            // enough to clear it for long speciality names,
+                            // which read as the arrow overlapping the text.
+                            value: "truncate pr-6 text-xs font-bold text-slate-700",
                             selectorIcon: "text-primary",
                             popoverContent: "doctor-speciality-menu overflow-hidden rounded-[22px] border border-slate-200/80 bg-white p-1.5 shadow-[0_20px_55px_rgba(15,42,80,0.18)]",
                             listboxWrapper: "max-h-[min(54dvh,360px)] px-0.5 py-0.5",
@@ -218,7 +223,9 @@ export default function DoctorsClient({
                             classNames={{
                                 trigger: "h-14 rounded-2xl border-slate-200 bg-white shadow-sm hover:border-primary/50 data-[open=true]:border-primary/50 data-[open=true]:ring-4 data-[open=true]:ring-primary/5",
                                 label: "text-[10px] font-black uppercase tracking-widest text-slate-400",
-                                value: "truncate pr-2 font-bold text-slate-700",
+                                // Same absolutely-positioned selectorIcon
+                                // clearance issue as the mobile Select above.
+                                value: "truncate pr-6 font-bold text-slate-700",
                                 selectorIcon: "text-primary",
                                 popoverContent: "doctor-speciality-menu overflow-hidden rounded-[22px] border border-slate-200/80 bg-white p-1.5 shadow-[0_20px_55px_rgba(15,42,80,0.18)]",
                                 listboxWrapper: "max-h-[min(55dvh,420px)] px-0.5 py-0.5",
