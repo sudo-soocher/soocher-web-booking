@@ -6,6 +6,7 @@ import { FaClock, FaMapMarkerAlt, FaSearch, FaShieldAlt, FaUserMd } from "react-
 import { Autocomplete, AutocompleteItem, Input, Select, SelectItem } from "@heroui/react";
 import { ErrorBanner, Field, StepShell, autocompleteClassNames, inputClassNames, selectClassNames } from "@/doctor/components/onboarding/shell";
 import { ImageUploader } from "@/doctor/components/onboarding/inputs";
+import { HeroDateInput } from "@/doctor/components/ui/DateInput";
 import { useAuth } from "@/doctor/lib/auth";
 import { COUNTRIES, STEPS, getNextStepSlug, saveStep, uploadDoctorFile } from "@/doctor/lib/onboarding";
 import type { Gender } from "@/doctor/types/doctor";
@@ -153,8 +154,7 @@ export default function BasicInfoStep() {
 
           <div className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Date of birth" required>
-              <Input
-                type="date"
+              <HeroDateInput
                 value={dob}
                 onValueChange={setDob}
                 variant="bordered"
