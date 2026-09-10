@@ -11,6 +11,7 @@ import {
   setDoc,
   query,
   where,
+  onSnapshot,
   getCountFromServer,
   type DocumentData,
   type QuerySnapshot,
@@ -110,7 +111,22 @@ interface Slot {
  *
  * The query itself is a single range scan; see `rangeQuery` below.
  */
-const bookedTimestampCache = new Map<string, Promise<Set<number>>>();
+// Short TTL: long enough to dedupe the timezone-resolve re-render a second
+// after load, short enough that a slot booked by someone else stops showing
+// as free within seconds even without the realtime listener below.
+const BOOKED_CACHE_TTL_MS = 15_000;
+const bookedTimestampCache = new Map<
+  string,
+  { at: number; promise: Promise<Set<number>> }
+>();
+
+/** Drop every cached availability answer for a doctor (call right after a
+ * booking, or when the realtime listener reports a change). */
+function invalidateBookedTimestamps(doctorId: string) {
+  for (const key of bookedTimestampCache.keys()) {
+    if (key.startsWith(`${doctorId}|`)) bookedTimestampCache.delete(key);
+  }
+}
 
 function fetchBookedTimestamps(
   doctorId: string,
@@ -122,7 +138,9 @@ function fetchBookedTimestamps(
   const cacheKey = `${doctorId}|${sorted.join(",")}`;
 
   const cached = bookedTimestampCache.get(cacheKey);
-  if (cached) return cached;
+  if (cached && Date.now() - cached.at < BOOKED_CACHE_TTL_MS) {
+    return cached.promise;
+  }
 
   const collect = (snaps: QuerySnapshot<DocumentData>[]) => {
     const booked = new Set<number>();
@@ -193,7 +211,7 @@ function fetchBookedTimestamps(
       throw err;
     });
 
-  bookedTimestampCache.set(cacheKey, pending);
+  bookedTimestampCache.set(cacheKey, { at: Date.now(), promise: pending });
   return pending;
 }
 
@@ -209,6 +227,12 @@ function DoctorDetailsContent() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
+  // Slot start-times already taken for the selected day, kept live via an
+  // onSnapshot listener so a slot booked by anyone (this tab or another user)
+  // disappears here immediately and can't be double-booked.
+  const [liveBookedTimestamps, setLiveBookedTimestamps] = useState<Set<number>>(
+    new Set()
+  );
   const [isBookingProcessing, setIsBookingProcessing] = useState(false);
   const [bookingStatus, setBookingStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -484,9 +508,20 @@ function DoctorDetailsContent() {
     }
 
     return candidateSlots
-      .filter((slot) => !bookedSet.has(slot.calculatedTimestamp))
+      .filter(
+        (slot) =>
+          !bookedSet.has(slot.calculatedTimestamp) &&
+          !liveBookedTimestamps.has(slot.calculatedTimestamp)
+      )
       .sort((a, b) => a.calculatedTimestamp - b.calculatedTimestamp);
-  }, [selectedDay, doctor, params.id, generateDynamicSlots, calculateSlotTimestamp]);
+  }, [
+    selectedDay,
+    doctor,
+    params.id,
+    generateDynamicSlots,
+    calculateSlotTimestamp,
+    liveBookedTimestamps,
+  ]);
 
   useEffect(() => {
     const fetchDoctorAndSlots = async () => {
@@ -583,6 +618,81 @@ function DoctorDetailsContent() {
     }
   }, [selectedDay, slots, getFilteredSlots]);
 
+  // Realtime availability: watch every Consultation for this doctor within the
+  // selected day's time window, so a slot booked by another user is removed
+  // from the list here the instant it happens.
+  useEffect(() => {
+    const doctorId = params.id as string;
+    if (!doctorId || !selectedDay || !doctor) {
+      setLiveBookedTimestamps(new Set());
+      return;
+    }
+
+    const daySlots =
+      (slots[selectedDay]?.availableSlots?.length
+        ? slots[selectedDay].availableSlots
+        : generateDynamicSlots(selectedDay)) || [];
+
+    const stamps = daySlots
+      .map((s) =>
+        s.bookingDate && s.bookingDate !== 0
+          ? s.bookingDate
+          : calculateSlotTimestamp(selectedDay, s.time)
+      )
+      .filter((t): t is number => typeof t === "number" && t > 0)
+      .sort((a, b) => a - b);
+
+    if (stamps.length === 0) {
+      setLiveBookedTimestamps(new Set());
+      return;
+    }
+
+    const applySnapshot = (snap: QuerySnapshot<DocumentData>) => {
+      const taken = new Set<number>();
+      snap.forEach((d) => {
+        const data = d.data();
+        if (!data.cancelledByDoctor) {
+          taken.add(data.consultationTime as number);
+        }
+      });
+      setLiveBookedTimestamps(taken);
+      // Keep the one-shot cache from re-serving a now-stale answer.
+      invalidateBookedTimestamps(doctorId);
+    };
+
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, "Consultations"),
+        where("participants", "array-contains", doctorId),
+        where("consultationTime", ">=", stamps[0]),
+        where("consultationTime", "<=", stamps[stamps.length - 1])
+      ),
+      applySnapshot,
+      (err) => {
+        // Missing composite index (failed-precondition) or transient error —
+        // fall back to the one-shot fetch (which has its own chunked
+        // fallback). The pre-booking conflict check still prevents an actual
+        // double-booking either way.
+        console.warn(
+          "[slots] realtime availability listener failed, using one-shot fetch:",
+          err
+        );
+        fetchBookedTimestamps(doctorId, stamps)
+          .then(setLiveBookedTimestamps)
+          .catch(() => {});
+      }
+    );
+
+    return unsubscribe;
+  }, [
+    selectedDay,
+    slots,
+    doctor,
+    params.id,
+    generateDynamicSlots,
+    calculateSlotTimestamp,
+  ]);
+
   // Removed duplicate auth-state coupon fetch — coupons are already fetched in fetchDoctorAndSlots
 
   /* Commented out unused sortSlots
@@ -619,6 +729,45 @@ function DoctorDetailsContent() {
 
 
 
+  /**
+   * Fresh (uncached) check for whether this doctor already has a live
+   * consultation at `slotTs`. Used as a guard right before payment and right
+   * before the Firestore write, so two users can't book the same slot even
+   * if it briefly showed as free in both their lists.
+   */
+  const isSlotAlreadyBooked = useCallback(
+    async (slotTs: number, excludeConsultationId?: string) => {
+      if (!slotTs) return false;
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, "Consultations"),
+            where("participants", "array-contains", params.id as string),
+            where("consultationTime", "==", slotTs)
+          )
+        );
+        return snap.docs.some(
+          (d) =>
+            d.id !== excludeConsultationId && !d.data().cancelledByDoctor
+        );
+      } catch (err) {
+        // If the check itself fails, don't block the booking on it — the
+        // post-write guard in saveConsultation is the backstop.
+        console.warn("[slots] conflict check failed:", err);
+        return false;
+      }
+    },
+    [params.id]
+  );
+
+  const refreshSlotsAfterConflict = useCallback(() => {
+    setSelectedSlot("");
+    invalidateBookedTimestamps(params.id as string);
+    getFilteredSlots(slots[selectedDay]?.availableSlots || []).then(
+      setFilteredSlots
+    );
+  }, [params.id, getFilteredSlots, slots, selectedDay]);
+
   const handleBookingClick = async () => {
     if (!auth.currentUser) {
       setShowLoginForm(true);
@@ -653,6 +802,14 @@ function DoctorDetailsContent() {
       const selectedSlotObj = filteredSlots.find(s => s.time === selectedSlot);
       const consultationTime = selectedSlotObj?.calculatedTimestamp || calculateSlotTimestamp(selectedDay, selectedSlot);
 
+      // Guard: don't even start payment if the slot was taken since it was shown.
+      if (await isSlotAlreadyBooked(consultationTime)) {
+        setError(
+          "Sorry, this time slot was just booked by someone else. Please pick another one."
+        );
+        refreshSlotsAfterConflict();
+        return;
+      }
 
       // Calculate consultation duration based on specialization
       const consultationDuration = doctor!.specialization
@@ -717,12 +874,18 @@ function DoctorDetailsContent() {
           console.log(`>>> [BOOKING DEBUG] ${ts()} STEP 1: Firestore write COMPLETE (a Cloud Function trigger on Consultations.onCreate may fire WhatsApp from here)`);
         } catch (error) {
           console.error("Save consultation failed:", error);
+          const slotTaken = (error as { code?: string })?.code === "SLOT_TAKEN";
           setError(
-            totalAmount === 0
-              ? "Failed to save booking. Please contact support."
-              : "Payment received but failed to save booking. Please contact support."
+            slotTaken
+              ? totalAmount === 0
+                ? "Sorry, this slot was just taken. Please pick another time."
+                : "This slot was just taken by someone else. Your payment will be refunded — please contact support or rebook a different time."
+              : totalAmount === 0
+                ? "Failed to save booking. Please contact support."
+                : "Payment received but failed to save booking. Please contact support."
           );
           setIsBookingProcessing(false);
+          if (slotTaken) refreshSlotsAfterConflict();
           return;
         }
 
@@ -821,6 +984,20 @@ function DoctorDetailsContent() {
         wa_noti_15min: false
       };
 
+      // Last-moment conflict guard: another user may have booked this exact
+      // slot during payment / while their list showed it as free. Bail before
+      // writing so we don't create a second consultation for the same time.
+      if (
+        await isSlotAlreadyBooked(
+          consultation.consultationTime,
+          consultation.consultationId
+        )
+      ) {
+        const conflict = new Error("SLOT_TAKEN") as Error & { code?: string };
+        conflict.code = "SLOT_TAKEN";
+        throw conflict;
+      }
+
       // DEBUG: Log the consultation data before saving
       console.log(">>> [BOOKING DEBUG] Saving NEW consultation to Firestore:", JSON.stringify(consultationWithDiscount, null, 2));
 
@@ -863,6 +1040,16 @@ function DoctorDetailsContent() {
         // Update local state so the slot disappears immediately from UI
         setSlots(updatedSlots);
       }
+
+      // Also drop this slot from the dynamically-generated list (doctors
+      // whose "Available Slots" subcollection is empty never hit the branch
+      // above) and force the next availability read to hit the network.
+      setLiveBookedTimestamps((prev) => {
+        const next = new Set(prev);
+        next.add(consultation.consultationTime);
+        return next;
+      });
+      invalidateBookedTimestamps(params.id as string);
     } catch (error) {
       console.error("Error saving consultation:", error);
       throw error;
