@@ -6,6 +6,7 @@ import { Autocomplete, AutocompleteItem, Input } from "@heroui/react";
 import { FaSearch } from "react-icons/fa";
 import { ErrorBanner, Field, StepShell, autocompleteClassNames, inputClassNames } from "@/doctor/components/onboarding/shell";
 import { FileUploader } from "@/doctor/components/onboarding/inputs";
+import { HeroDateInput } from "@/doctor/components/ui/DateInput";
 import { useAuth } from "@/doctor/lib/auth";
 import { MEDICAL_COUNCILS, STEPS, getNextStepSlug, saveStep, uploadDoctorFile } from "@/doctor/lib/onboarding";
 
@@ -118,8 +119,7 @@ export default function LicenceStep() {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <Field label="Registration date" required>
-          <Input
-            type="date"
+          <HeroDateInput
             value={regDate}
             onValueChange={setRegDate}
             variant="bordered"
@@ -129,8 +129,7 @@ export default function LicenceStep() {
           />
         </Field>
         <Field label="Valid until" required>
-          <Input
-            type="date"
+          <HeroDateInput
             value={validUntil}
             onValueChange={setValidUntil}
             variant="bordered"

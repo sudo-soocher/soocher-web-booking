@@ -18,6 +18,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/doctor/lib/firebase";
 import { Button } from "@/doctor/components/ui/Button";
 import { DoctorPageShimmer } from "@/doctor/components/ui/DoctorShimmer";
+import { NativeDateInput } from "@/doctor/components/ui/DateInput";
 import { fetchConsultationById, type FirestoreConsultation } from "@/doctor/services/consultations";
 
 export default function PostConsultPage() {
@@ -235,8 +236,7 @@ export default function PostConsultPage() {
           {followUpOpen && (
             <div className="mt-4">
               <Divider className="mb-4" />
-              <input
-                type="date"
+              <NativeDateInput
                 value={followUpDate}
                 min={new Date().toISOString().split("T")[0]}
                 onChange={(e) => { setFollowUpDate(e.target.value); setFollowUpSaved(false); }}

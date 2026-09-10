@@ -14,6 +14,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/doctor/lib/firebase";
 import { Button } from "@/doctor/components/ui/Button";
 import { fetchConsultationById, type FirestoreConsultation } from "@/doctor/services/consultations";
+import { NativeDateInput } from "@/doctor/components/ui/DateInput";
 import type { Medicine, Prescription } from "@/doctor/types/consultation";
 
 function generateId() {
@@ -317,7 +318,7 @@ export default function PrescriptionBuilderPage() {
           className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
           <h3 className="mb-4 font-black tracking-tight text-slate-900">Follow-up</h3>
           <label className={labelCls}>Follow-up Date (optional)</label>
-          <input type="date"
+          <NativeDateInput
             value={followUpDate}
             min={new Date().toISOString().split("T")[0]}
             onChange={(e) => setFollowUpDate(e.target.value)}
