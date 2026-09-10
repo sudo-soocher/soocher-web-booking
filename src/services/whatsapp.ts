@@ -174,6 +174,135 @@ export const sendWhatsAppBookingConfirmation = async (params: WhatsAppParams) =>
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Prescription (Rx) delivery to the patient's WhatsApp
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface WhatsAppPrescriptionMedicine {
+    name: string;
+    dose?: string;
+    frequency?: string;
+    duration?: string;
+    instructions?: string;
+}
+
+export interface WhatsAppPrescriptionParams {
+    recipient_mobile_number: string;
+    patientName: string;
+    doctorName: string;
+    date: string;                 // already formatted, e.g. "10 September 2026"
+    diagnosis: string;
+    medicines: WhatsAppPrescriptionMedicine[];
+    advice?: string | null;
+    followUp?: string | null;     // already formatted, or null
+    prescriptionUrl: string;      // link to the full prescription page
+}
+
+/**
+ * WhatsApp rejects a template body parameter that contains a tab character or
+ * more than four consecutive spaces, and a parameter may not be only
+ * whitespace. Newlines ARE allowed (Meta relaxed this in 2023) — kept only for
+ * the medicines list, collapsed to ", " everywhere else so each field stays on
+ * one line.
+ */
+const cleanParam = (
+    value: string,
+    opts: { allowNewlines?: boolean } = {},
+): string => {
+    let out = (value ?? "").replace(/\t/g, " ").replace(/ {2,}/g, " ");
+    out = opts.allowNewlines
+        ? out.replace(/\n{3,}/g, "\n\n")
+        : out.replace(/\s*\n\s*/g, ", ");
+    return out.trim();
+};
+
+const formatMedicinesForWhatsApp = (
+    meds: WhatsAppPrescriptionMedicine[],
+): string => {
+    if (!meds?.length) return "As advised by the doctor";
+    return meds
+        .map((m, i) => {
+            const detail = [m.dose, m.frequency, m.duration]
+                .map((s) => (s ?? "").trim())
+                .filter(Boolean)
+                .join(", ");
+            const note = (m.instructions ?? "").trim();
+            return `${i + 1}. ${(m.name ?? "Medicine").trim()}${detail ? ` - ${detail}` : ""}${note ? ` (${note})` : ""}`;
+        })
+        .join("\n");
+};
+
+/**
+ * Sends the saved prescription to the patient over WhatsApp using the
+ * `WA_PRESCRIPTION_TEMP` ChatMitra template. The template body must declare
+ * exactly 8 variables, in this order:
+ *   {{1}} patient name   {{2}} doctor name   {{3}} date          {{4}} diagnosis
+ *   {{5}} medicines list  {{6}} advice        {{7}} follow-up date {{8}} link
+ */
+export const sendWhatsAppPrescription = async (
+    params: WhatsAppPrescriptionParams,
+) => {
+    const cleanPhone = normalizePhone(params.recipient_mobile_number);
+    if (!cleanPhone) {
+        console.error(">>> [WHATSAPP RX ERROR] Recipient mobile number is empty");
+        return { success: false, error: "Recipient mobile number is empty" };
+    }
+
+    const templateName = process.env.WA_PRESCRIPTION_TEMP;
+    if (!templateName) {
+        console.error(">>> [WHATSAPP RX ERROR] WA_PRESCRIPTION_TEMP missing");
+        return { success: false, error: "Configuration missing" };
+    }
+    const language = process.env.WA_PRESCRIPTION_TEMP_LANG || "en_US";
+
+    const body = {
+        recipient_mobile_number: cleanPhone,
+        messages: [
+            {
+                kind: "template",
+                template: {
+                    name: templateName,
+                    language,
+                    components: [
+                        {
+                            type: "body",
+                            parameters: [
+                                { type: "text", text: cleanParam(params.patientName) || "Patient" },
+                                { type: "text", text: cleanParam(params.doctorName) || "your doctor" },
+                                { type: "text", text: cleanParam(params.date) || "-" },
+                                { type: "text", text: cleanParam(params.diagnosis) || "-" },
+                                {
+                                    type: "text",
+                                    text:
+                                        cleanParam(formatMedicinesForWhatsApp(params.medicines), {
+                                            allowNewlines: true,
+                                        }) || "As advised by the doctor",
+                                },
+                                { type: "text", text: cleanParam(params.advice || "") || "No additional advice" },
+                                { type: "text", text: cleanParam(params.followUp || "") || "Not scheduled" },
+                                { type: "text", text: params.prescriptionUrl },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+        customer_name: params.patientName,
+    };
+
+    try {
+        console.log(">>> [WHATSAPP RX] Sending prescription to:", cleanPhone);
+        const result = await postToChatMitra(body);
+        return { success: true, data: result };
+    } catch (error) {
+        console.error(">>> [WHATSAPP RX ERROR]", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+};
+
 export const sendWhatsAppDoctorBookingConfirmation = async (params: WhatsAppParams) => {
     const {
         recipient_mobile_number,

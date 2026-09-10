@@ -7,6 +7,8 @@ import {
   FaArrowLeft,
   FaPrint,
   FaWhatsapp,
+  FaPaperPlane,
+  FaCheck,
 } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/doctor/components/ui/Button";
@@ -23,6 +25,9 @@ export default function PrescriptionPreviewPage() {
   const [consultation, setConsultation] = useState<FirestoreConsultation | null>(null);
   const [prescription, setPrescription] = useState<Partial<Prescription> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConsultationById(params.id).then((c) => {
@@ -75,6 +80,34 @@ export default function PrescriptionPreviewPage() {
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
 
+  // Sends the saved Rx straight to the patient's WhatsApp via ChatMitra.
+  const handleSendToPatient = async () => {
+    if (sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const token = await user?.getIdToken();
+      if (!token) throw new Error("Your session expired. Please sign in again.");
+      const res = await fetch("/api/send-prescription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ consultationId: params.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Couldn't send the prescription.");
+      }
+      setSent(true);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Couldn't send the prescription.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   if (loading) {
     return <DoctorPageShimmer compact />;
   }
@@ -111,26 +144,61 @@ export default function PrescriptionPreviewPage() {
 
       <div className="mx-auto max-w-2xl pb-8">
         {/* Action buttons — hidden on print */}
-        <div className="no-print mb-6 flex items-center gap-3">
-          <div className="flex-1" />
+        <div className="no-print mb-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-1" />
+            <Button
+              variant="bordered"
+              size="sm"
+              className="rounded-full border-2 border-slate-200 font-semibold"
+              startContent={<FaWhatsapp className="text-emerald-500" />}
+              onPress={handleWhatsApp}
+            >
+              Share
+            </Button>
+            <Button
+              color="primary"
+              size="sm"
+              className="rounded-full font-semibold shadow-lg shadow-primary/25"
+              startContent={<FaPrint />}
+              onPress={handlePrint}
+            >
+              Print / PDF
+            </Button>
+          </div>
+
           <Button
-            variant="bordered"
-            size="sm"
-            className="rounded-full border-2 border-slate-200 font-semibold"
-            startContent={<FaWhatsapp className="text-emerald-500" />}
-            onPress={handleWhatsApp}
+            size="lg"
+            className={`h-14 w-full rounded-2xl font-bold text-white shadow-lg ${
+              sent
+                ? "bg-emerald-500 shadow-emerald-500/25"
+                : "bg-[#25D366] shadow-[#25D366]/25"
+            }`}
+            startContent={
+              sending ? null : sent ? <FaCheck /> : <FaPaperPlane />
+            }
+            isLoading={sending}
+            isDisabled={sent}
+            onPress={handleSendToPatient}
           >
-            Share
+            {sending
+              ? "Sending…"
+              : sent
+                ? "Prescription sent to patient"
+                : "Send prescription to patient's WhatsApp"}
           </Button>
-          <Button
-            color="primary"
-            size="sm"
-            className="rounded-full font-semibold shadow-lg shadow-primary/25"
-            startContent={<FaPrint />}
-            onPress={handlePrint}
-          >
-            Print / PDF
-          </Button>
+
+          {sendError && (
+            <p className="text-center text-sm font-medium text-rose-600">
+              {sendError}
+            </p>
+          )}
+          {sent && (
+            <p className="text-center text-xs text-slate-500">
+              The patient received it on WhatsApp with the full medicine list and
+              a link to the prescription.
+            </p>
+          )}
         </div>
 
         {/* Prescription card */}
