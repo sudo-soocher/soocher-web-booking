@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaArrowLeft, FaCheck, FaSignOutAlt, FaStethoscope } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaCheck, FaSignOutAlt, FaStethoscope } from "react-icons/fa";
 import { Button } from "@/doctor/components/ui/Button";
 import { useAuth } from "@/doctor/lib/auth";
 import { useEditMode } from "@/doctor/lib/edit-mode";
@@ -101,6 +101,31 @@ export function StepShell({
     nextLabel ??
     (isEditMode ? "Save changes" : effectiveIsLast ? "Submit for review" : "Save & continue");
 
+  const ctaRef = useRef<HTMLDivElement>(null);
+
+  // iOS WKWebView positions `position: fixed` elements against the layout
+  // viewport, not the visual one — so a fixed `bottom: 0` bar stays pinned to
+  // the pre-keyboard viewport bottom while the on-screen keyboard is open,
+  // ending up hidden behind it (or visibly jumping mid-animation as WebKit
+  // settles). Track the visual viewport directly and translate the bar to
+  // sit just above whatever currently obscures the bottom of the screen.
+  useEffect(() => {
+    const el = ctaRef.current;
+    const vv = window.visualViewport;
+    if (!el || !vv) return;
+    const update = () => {
+      const obscured = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      el.style.transform = obscured > 0.5 ? `translateY(-${obscured}px)` : "";
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   return (
     <>
       <motion.div
@@ -128,23 +153,24 @@ export function StepShell({
         <div className="mt-6 min-w-0 space-y-4 sm:mt-8 sm:space-y-5">{children}</div>
       </motion.div>
 
-      {/* Sticky bottom CTA — rendered OUTSIDE motion.div so its `position:
-          fixed` is positioned against the viewport, not against motion.div's
+      {/* Floating CTA — rendered OUTSIDE motion.div so its `position: fixed`
+          is positioned against the viewport, not against motion.div's
           transformed containing block (which made the bar briefly narrow on
-          first mount). Onboarding has no sidebar, so the bar spans the full
-          viewport and centers the CTA under the form via the inner max-w-3xl. */}
+          first mount). Inset from every edge with its own shadow/radius
+          instead of a docked, edge-to-edge toolbar, so it reads as a
+          floating action button rather than a bar bolted to the screen. */}
       <div
-        className="doctor-onboarding-cta fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/95 pt-3 shadow-[0_-12px_32px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+        ref={ctaRef}
+        className="doctor-onboarding-cta fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 sm:px-5"
       >
-        <div className="mx-auto flex w-full max-w-3xl px-4 sm:px-5">
+        <div className="w-full max-w-3xl">
           <Button
             color="primary"
             size="lg"
             onPress={onNext}
             isDisabled={nextDisabled}
-            endContent={effectiveIsLast ? <FaCheck /> : undefined}
-            className="h-14 w-full rounded-2xl px-6 text-base font-extrabold shadow-xl shadow-primary/25 transition-transform active:scale-[0.99]"
+            endContent={<span className="grid place-items-center">{effectiveIsLast ? <FaCheck /> : <FaArrowRight />}</span>}
+            className="h-14 w-full rounded-full px-8 text-base font-extrabold shadow-[0_18px_40px_-12px_rgba(46,109,212,0.55)] ring-1 ring-white/60 transition-transform duration-150 active:scale-[0.96] disabled:shadow-none"
           >
             {effectiveLabel}
           </Button>
