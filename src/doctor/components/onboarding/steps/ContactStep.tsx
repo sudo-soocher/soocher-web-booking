@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@heroui/react";
 import { FaCheck, FaShieldAlt, FaWhatsapp } from "react-icons/fa";
+import { guessCountryByPartialPhoneNumber, removeDialCode } from "react-international-phone";
 import { ErrorBanner, Field, StepShell, inputClassNames } from "@/doctor/components/onboarding/shell";
 import { useAuth } from "@/doctor/lib/auth";
 import { STEPS, getNextStepSlug, saveStep } from "@/doctor/lib/onboarding";
@@ -17,6 +18,7 @@ export default function ContactStep() {
 
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
+  const [mobileDialCode, setMobileDialCode] = useState("91");
   const [sameAsMobile, setSameAsMobile] = useState(true);
   const [whatsapp, setWhatsapp] = useState("");
   const [landline, setLandline] = useState("");
@@ -26,7 +28,16 @@ export default function ContactStep() {
     // Mobile is always the OTP-verified number on the account, never a
     // stored/editable value — a doctor cannot silently swap the number
     // patients and the app already trust for that account.
-    setMobile(user?.phoneNumber?.replace("+91", "") ?? "");
+    //
+    // `user.phoneNumber` is a full E.164 string (e.g. "+96599456767"), not
+    // always Indian — detect the real dial code instead of assuming "+91",
+    // otherwise non-Indian numbers show the whole E.164 string glued onto a
+    // hardcoded "+91" prefix.
+    const raw = user?.phoneNumber ?? "";
+    const { country } = guessCountryByPartialPhoneNumber({ phone: raw });
+    const dialCode = country?.dialCode ?? "91";
+    setMobileDialCode(dialCode);
+    setMobile(removeDialCode({ phone: raw, dialCode }));
     if (!profile) return;
     setEmail((profile.email as string) || user?.email || "");
     setSameAsMobile((profile.whatsappSameAsMobile as boolean) ?? true);
@@ -44,11 +55,27 @@ export default function ContactStep() {
     setError(null);
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return setError("Enter a valid email.");
-    if (!PHONE_RE.test(mobile)) return setError("Mobile must be a valid 10-digit Indian number.");
+    // `mobile` mirrors the Firebase-auth OTP-verified number, which may
+    // belong to any country — it's already been confirmed deliverable via
+    // SMS, so just require it's present rather than re-checking it against
+    // India's 10-digit format (that broke onboarding entirely for doctors
+    // verified with a non-Indian number).
+    if (!mobile.trim()) return setError("Mobile number is missing — please contact support.");
     // When "same as mobile" is on, the effect above keeps `whatsapp === mobile`.
-    // When off, the user types their own number — validate that.
+    // When off, the user types a brand-new number in the doctor's own country
+    // (mirrored from `mobileDialCode`) — apply India's strict 10-digit check
+    // only for Indian doctors; otherwise just require a plausible length.
     const wa = sameAsMobile ? mobile : whatsapp;
-    if (!PHONE_RE.test(wa)) return setError("WhatsApp number must be a valid 10-digit Indian number.");
+    if (!sameAsMobile) {
+      const waValid = mobileDialCode === "91" ? PHONE_RE.test(wa) : wa.trim().length >= 4;
+      if (!waValid) {
+        return setError(
+          mobileDialCode === "91"
+            ? "WhatsApp number must be a valid 10-digit Indian number."
+            : "Enter a valid WhatsApp number."
+        );
+      }
+    }
     if (!user) return;
     await saveStep(
       user.uid,
@@ -85,10 +112,14 @@ export default function ContactStep() {
         <Input
           value={mobile}
           isReadOnly
+          autoComplete="off"
+          inputMode="none"
           variant="bordered"
           radius="lg"
           size="lg"
-          startContent={<span className="text-sm font-bold text-slate-500">+91</span>}
+          startContent={
+            <span className="text-sm font-bold text-slate-500">+{mobileDialCode}</span>
+          }
           endContent={<FaShieldAlt className="text-sm text-emerald-500" aria-label="Verified" />}
           classNames={{
             ...inputClassNames,
@@ -119,7 +150,7 @@ export default function ContactStep() {
             <div className="text-sm font-bold text-slate-900">WhatsApp same as mobile</div>
             <div className="truncate text-xs text-slate-500">
               {sameAsMobile && mobile
-                ? `We'll use +91 ${mobile} for alerts.`
+                ? `We'll use +${mobileDialCode} ${mobile} for alerts.`
                 : "We send appointment alerts on WhatsApp."}
             </div>
           </div>
@@ -143,15 +174,28 @@ export default function ContactStep() {
       </button>
 
       {!sameAsMobile && (
-        <Field label="WhatsApp number" required hint="10-digit Indian number, no +91 prefix.">
+        <Field
+          label="WhatsApp number"
+          required
+          hint={
+            mobileDialCode === "91"
+              ? "10-digit Indian number, no +91 prefix."
+              : `Number without the +${mobileDialCode} prefix.`
+          }
+        >
           <Input
             value={whatsapp}
-            onValueChange={(v) => setWhatsapp(v.replace(/\D/g, "").slice(0, 10))}
+            // No fixed 10-digit cap — that was Indian-only. Strip non-digits
+            // and cap at 15, the longest a national number can be under E.164.
+            onValueChange={(v) => setWhatsapp(v.replace(/\D/g, "").slice(0, 15))}
             variant="bordered"
             radius="lg"
             size="lg"
-            startContent={<span className="text-sm font-bold text-slate-500">+91</span>}
-            placeholder="9876543210"
+            // Same dial code the mobile field detected — a doctor's WhatsApp
+            // number is assumed to be in the same country as their verified
+            // mobile, not hardcoded to India.
+            startContent={<span className="text-sm font-bold text-slate-500">+{mobileDialCode}</span>}
+            placeholder={mobileDialCode === "91" ? "9876543210" : "99456767"}
             classNames={inputClassNames}
           />
         </Field>
