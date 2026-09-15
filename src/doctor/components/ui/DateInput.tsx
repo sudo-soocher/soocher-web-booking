@@ -31,9 +31,14 @@ function openNativePicker(el: InputElementWithPicker | null) {
 }
 
 // Hide the browser's own picker indicator so the calendar button is the single
-// affordance (still openable everywhere via showPicker()).
+// affordance (still openable everywhere via showPicker()). `appearance-none`
+// is required too — on iOS Safari/WKWebView, `type="date"` renders its own
+// pill-shaped control with a built-in segmented date + calendar icon that
+// hiding just the picker-indicator/spin-button pseudo-elements doesn't
+// remove; without it that native chrome visibly clashes with (or flashes
+// briefly ahead of) our own calendar button.
 const HIDE_NATIVE_INDICATOR =
-  "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden";
+  "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden appearance-none [-webkit-appearance:none]";
 
 // Shown while the field is empty. Most browsers ignore `placeholder` on a
 // native date input (they render their own format hint), but the Soocher app
